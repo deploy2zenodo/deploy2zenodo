@@ -11,11 +11,16 @@ out=deploy2zenodo.yaml
 script=$(sed -n '/^#    deploy2zenodo$/,/^# stop deploy2zenodo$/p' deploy2zenodo | sed 's/^/      /')
 
 cat >$out <<EOL
-pre-commit:
-  stage: deploy
-  image:
-    name: alpine:latest
+.deploy2zenodo:
   script:
     - |
 $script
+
+deploy2zenodo:
+  stage: .post
+  image:
+    name: alpine:latest
+  before_script:
+    - apk add --no-cache curl
+  extends: .deploy2zenodo
 EOL

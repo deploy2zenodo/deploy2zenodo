@@ -3,10 +3,11 @@ set -e
 
 #    deploy2zenodo
 #    Copyright (C) 2023  Daniel Mohr
-#    Version: 0.0.1
+#    Version: 0.0.2
 #
 set -x
 #
 echo "run deploy2zenodo"
+echo "TAG: $TAG"
 #
 # stop deploy2zenodo
