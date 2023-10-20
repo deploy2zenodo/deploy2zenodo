@@ -97,5 +97,5 @@ release_job:
           link_type: other
         - name: $FILE_NAME
           filepath: /$FILE_NAME
-          url: FILE_URL
+          url: $FILE_URL
           link_type: other
