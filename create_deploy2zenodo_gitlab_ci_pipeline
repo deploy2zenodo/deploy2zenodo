@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+set -e
+
+#    create_deploy2zenodo_gitlab_ci_pipeline
+#    Copyright (C) 2023  Daniel Mohr
+
+echo "run create_deploy2zenodo_gitlab_ci_pipeline"
+
+out=deploy2zenodo.yaml
+
+script=$(sed -n '/^#    deploy2zenodo$/,/^# stop deploy2zenodo$/p' deploy2zenodo | sed 's/^/      /')
+
+cat >$out <<EOL
+pre-commit:
+  stage: deploy
+  image:
+    name: alpine:latest
+  script:
+    - |
+$script
+EOL

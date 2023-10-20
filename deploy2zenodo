@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+set -e
+
+#    deploy2zenodo
+#    Copyright (C) 2023  Daniel Mohr
+#    Version: 0.0.1
+#
+set -x
+#
+echo "run deploy2zenodo"
+#
+# stop deploy2zenodo
