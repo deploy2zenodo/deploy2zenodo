@@ -42,7 +42,6 @@ The provided gitlab ci template of `deploy2zenodo` uses
 and installs necessary software in `before_script`.
 To use other images you must adapt the it, e. g.:
 
-
 ```yaml
 include:
   - remote: 'https://gitlab.com/daniel_mohr/deploy2zenodo/-/releases/permalink/latest/downloads/deploy2zenodo.yaml'
