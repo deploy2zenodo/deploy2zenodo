@@ -2,7 +2,7 @@
 author: Daniel Mohr
 date: 2023-10-23
 license: ?
-home: https://gitlab.com/daniel_mohr/deploy2zenodo
+home: https://gitlab.com/daniel_mohr/deploy2zenodo/
 mirror: ?
 latest_release: https://gitlab.com/daniel_mohr/deploy2zenodo/-/releases/permalink/latest
 ---
@@ -11,6 +11,81 @@ latest_release: https://gitlab.com/daniel_mohr/deploy2zenodo/-/releases/permalin
 
 `deploy2zenodo` is a small script to deploy your data to
 [zenodo](https://zenodo.org/). You can use it in a CI pipeline.
+
+## script parameter
+
+Instead of command line parameters we use environment variables.
+
+You have to provide the following variables:
+
+| variable | content |
+| ------ | ------ |
+| DEPLOY2ZENODO_API_URL | The URL of the api to use. |
+| DEPLOY2ZENODO_ACCESS_TOKEN | access token of zenodo |
+| DEPLOY2ZENODO_DEPOSITION_ID | id of the deposition/record on zenodo |
+| DEPLOY2ZENODO_JSON | file with metadata in json format to upload |
+| DEPLOY2ZENODO_UPLOAD | file/data to upload |
+
+### DEPLOY2ZENODO_API_URL
+
+You can use the api of your own zenodo instance or you can use the
+official [Zenodo instance](https://about.zenodo.org/):
+
+| state | URL |
+| ------ | ------ |
+| production | [`https://zenodo.org/api`](https://zenodo.org/api) |
+| testing | [`https://sandbox.zenodo.org/api`](https://sandbox.zenodo.org/api) |
+
+### DEPLOY2ZENODO_ACCESS_TOKEN
+
+To access your zenodo account you have to provide an
+[access token](https://developers.zenodo.org/?shell#authentication).
+
+### DEPLOY2ZENODO_DEPOSITION_ID
+
+To update an existing record you have to provide the `id` of this record.
+
+If you want to create a new record please set `DEPLOY2ZENODO_DEPOSITION_ID`
+to `create NEW record`. After creating this record read the script output
+and adapt `DEPLOY2ZENODO_DEPOSITION_ID` for the next run with the returned
+record `id`.
+
+### DEPLOY2ZENODO_JSON
+
+The given file should contain the metadata in json format.
+
+You can write this file on your own, e. g.:
+
+```json
+{
+  "metadata": {
+    "title": "foo",
+    "upload_type": "software",
+    "creators": [
+      {
+        "name": "ich",
+        "affiliation": "bar"
+      }
+    ],
+    "description": "foos description"
+  }
+}
+```
+
+Or you can create it from from a
+[CITATION.cff file](https://github.com/citation-file-format/citation-file-format)
+using [cffconvert](https://github.com/citation-file-format/cffconvert).
+
+### DEPLOY2ZENODO_UPLOAD
+
+The given file will be uploaded as data. Typically this would be an archive.
+
+For example you can create an archive of a tag from a git repository:
+
+```sh
+TAG=0.0.3
+git archive --format zip --output $TAG.zip $TAG
+```
 
 ## CI pipeline
 
