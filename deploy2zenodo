@@ -42,6 +42,7 @@ if [ "$DEPLOY2ZENODO_DEPOSITION_ID" = "create NEW record" ]; then
     #   * upload metadata
     #   * upload files/archive
     #   * publish
+    echo "create new record"
 else
     # update record
     #   * get data from record
@@ -50,6 +51,7 @@ else
     #   * remove all files from new version
     #   * upload files/archive
     #   * publish
+    echo "update record"
 fi
 
 # stop deploy2zenodo
