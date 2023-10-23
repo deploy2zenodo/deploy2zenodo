@@ -30,6 +30,7 @@ pre-commit:
     expire_in: 1 hrs
     paths:
       - $CI_FILE_NAME
+      - $FILE_NAME.sh
 
 prepare_release:
   stage: .pre
