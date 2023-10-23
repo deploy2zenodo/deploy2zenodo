@@ -6,11 +6,19 @@ set -e
 
 echo "run create_deploy2zenodo_gitlab_ci_pipeline"
 
-out=deploy2zenodo.yaml
+IN=deploy2zenodo
+OUT=deploy2zenodo.yaml
 
-script=$(sed -n '/^#    deploy2zenodo$/,/^# stop deploy2zenodo$/p' deploy2zenodo | sed 's/^/      /')
+VERSION=$(sed -n 's/^.*Version:\s*\(\S*\)$/\1/p' $IN)
+URL=$(sed -n 's/^home:\s*\(https:\S*\)$/\1/p' README.md)
 
-cat >$out <<EOL
+script=$(sed -n '/^#    deploy2zenodo$/,/^# stop deploy2zenodo$/p' $IN | \
+	     sed '/^\s*$/d' | \
+	     sed '/^VERSION=.*$/d' | \
+	     sed "s#v\$VERSION#v$VERSION $URL-/releases/$VERSION#g" | \
+	     sed 's/^/      /')
+
+cat >$OUT <<EOL
 .deploy2zenodo:
   script:
     - |

@@ -23,6 +23,8 @@ pre-commit:
     - pre-commit run --all-files
     - ./create_deploy2zenodo_gitlab_ci_pipeline
     - cat $CI_FILE_NAME
+    - ./create_deploy2zenodo_script
+    - cat $FILE_NAME.sh
     - pre-commit run --all-files
   artifacts:
     expire_in: 1 hrs
@@ -37,7 +39,7 @@ prepare_release:
   extends: .display_env
   script:
     - echo "DESCRIPTION=README.md" > variables.env
-    - TAG=$(sed -n 's/^.*Version:\s*\(\S*\).*$/\1/p' $BASE_FILE_NAME)
+    - TAG=$(sed -n 's/^.*Version:\s*\(\S*\)$/\1/p' $BASE_FILE_NAME)
     - echo "TAG=$TAG" >> variables.env
     - cat variables.env
   artifacts:
@@ -64,7 +66,7 @@ deploy_ci_template:
     - |
       curl --header "JOB-TOKEN: ${CI_JOB_TOKEN}" --upload-file $CI_FILE_NAME $CI_FILE_URL
     - |
-      curl --header "JOB-TOKEN: ${CI_JOB_TOKEN}" --upload-file $FILE_NAME $FILE_URL
+      curl --header "JOB-TOKEN: ${CI_JOB_TOKEN}" --upload-file $FILE_NAME.sh $FILE_URL
 
 release_job:
   stage: deploy

@@ -3,11 +3,14 @@ set -e
 
 #    deploy2zenodo
 #    Copyright (C) 2023  Daniel Mohr
-#    Version: 0.0.2
-#
+#    Version: 0.0.3
+
+VERSION=$(sed -n 's/^.*Version:\s*\(\S*\).*$/\1/p' "$0")
+
 set -x
-#
-echo "run deploy2zenodo"
+
+echo "run deploy2zenodo v$VERSION"
+
 echo "TAG: $TAG"
-#
+
 # stop deploy2zenodo

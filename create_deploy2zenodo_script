@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+set -e
+
+#    create_deploy2zenodo_script
+#    Copyright (C) 2023  Daniel Mohr
+
+echo "run create_deploy2zenodo_script"
+
+IN=deploy2zenodo
+OUT=deploy2zenodo.sh
+
+VERSION=$(sed -n 's/^.*Version:\s*\(\S*\)$/\1/p' $IN)
+URL=$(sed -n 's/^home:\s*\(https:\S*\)$/\1/p' README.md)
+
+sed '/^VERSION=.*$/d' $IN | \
+    sed "s#v\$VERSION#v$VERSION $URL-/releases/$VERSION#g" | \
+    sed '/^\s*$/d'  > $OUT
