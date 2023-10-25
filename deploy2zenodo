@@ -3,17 +3,33 @@ set -e
 
 #    deploy2zenodo
 #    Copyright (C) 2023  Daniel Mohr
-#    Version: 0.0.4
+#    Version: 0.0.5
 #
 # Instead of command line parameters we use environment variables.
+#
 # You have to provide:
 #   * DEPLOY2ZENODO_API_URL
 #   * DEPLOY2ZENODO_ACCESS_TOKEN
 #   * DEPLOY2ZENODO_DEPOSITION_ID
 #   * DEPLOY2ZENODO_JSON
 #   * DEPLOY2ZENODO_UPLOAD
-# For more information see:
-# https://gitlab.com/daniel_mohr/deploy2zenodo
+#
+# For more information see: https://gitlab.com/daniel_mohr/deploy2zenodo
+#
+# Copyright 2023 Daniel Mohr and
+#    Deutsches Zentrum fuer Luft- und Raumfahrt e. V., D-51170 Koeln
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 
 VERSION=$(sed -n 's/^.*Version:\s*\(\S*\)$/\1/p' "$0")
 
@@ -35,23 +51,85 @@ fi
 
 set -x
 
-echo "TAG: $TAG"
+echo "$DEPLOY2ZENODO_JSON" | jq .
+
+hjson='Content-Type: application/json'
+hauth="Authorization: Bearer $DEPLOY2ZENODO_ACCESS_TOKEN"
 
 if [ "$DEPLOY2ZENODO_DEPOSITION_ID" = "create NEW record" ]; then
     # create new record
-    #   * upload metadata
-    #   * upload files/archive
-    #   * publish
     echo "create new record"
+    #   * create new record and upload metadata
+    NEWRECORD="$(curl --header "$hjson" --header "$hauth" --request POST --data-binary "$(cat "$DEPLOY2ZENODO_JSON")" "$DEPLOY2ZENODO_API_URL"/deposit/depositions)"
+    echo "$NEWRECORD" | jq .
+    DEPLOY2ZENODO_DEPOSITION_ID=$(echo "$NEWRECORD" | jq .id)
+    test "$DEPLOY2ZENODO_DEPOSITION_ID" != "null"
+    echo "##################################################################"
+    echo "# add the id of the deposition/record on zenodo for the next run"
+    echo "# id: $DEPLOY2ZENODO_DEPOSITION_ID"
+    echo "#"
+    echo "# DEPLOY2ZENODO_DEPOSITION_ID=$DEPLOY2ZENODO_DEPOSITION_ID"
+    echo "##################################################################"
+    BUCKETURLRAW=$(echo "$NEWRECORD" | jq .links.bucket)
+    test "$BUCKETURLRAW" != "null"
+    BUCKETURL=${BUCKETURLRAW//\"/}
+    #   * upload files/archive
+    FILEUPLOAD=$(curl --header "$hauth" --upload-file "$DEPLOY2ZENODO_UPLOAD" "$BUCKETURL"/"$(basename "$DEPLOY2ZENODO_UPLOAD")")
+    echo "$FILEUPLOAD" | jq .
+    CHECKSUM=$(echo "$FILEUPLOAD" | jq .checksum)
+    test "$CHECKSUM" != "null"
+    CHECKSUM=${CHECKSUM//\"/}
+    CHECKSUM=$(echo "$CHECKSUM" | cut -d ':' -f 2)
+    echo "$CHECKSUM  $DEPLOY2ZENODO_UPLOAD" | md5sum -c -
+    #   * publish
+    PUBLISHRECORD=$(curl --header "$hauth" --request POST "$DEPLOY2ZENODO_API_URL"/deposit/depositions/"$DEPLOY2ZENODO_DEPOSITION_ID"/actions/publish)
+    echo "$PUBLISHRECORD" | jq .
+    echo "##################################################################"
+    echo "# add the id of the deposition/record on zenodo for the next run"
+    echo "# id: $DEPLOY2ZENODO_DEPOSITION_ID"
+    echo "#"
+    echo "# DEPLOY2ZENODO_DEPOSITION_ID=$DEPLOY2ZENODO_DEPOSITION_ID"
+    echo "##################################################################"
 else
     # update record
-    #   * get data from record
-    #   * create new version
-    #   * update metadata
-    #   * remove all files from new version
-    #   * upload files/archive
     #   * publish
     echo "update record"
+    #   * get data from record
+    RECORD=$(curl --header "$hauth" "$DEPLOY2ZENODO_API_URL"/deposit/depositions/"$DEPLOY2ZENODO_DEPOSITION_ID")
+    echo "$RECORD" | jq .
+    NEWVERSIONURLRAW=$(echo "$RECORD" | jq .links.newversion)
+    test "$NEWVERSIONURLRAW" != "null"
+    NEWVERSIONURL=${NEWVERSIONURLRAW//\"/}
+    #   * create new version
+    NEWVERSION=$(curl --header "$hauth" --request POST "$NEWVERSIONURL")
+    echo "$NEWVERSION" | jq .
+    LATESTDRAFTRAW=$(echo "$NEWVERSION" | jq .links.latest_draft)
+    test "$LATESTDRAFTRAW" != "null"
+    LATESTDRAFT=${LATESTDRAFTRAW//\"/}
+    BUCKETURLRAW=$(echo "$NEWVERSION" | jq .links.bucket)
+    test "$BUCKETURLRAW" != "null"
+    BUCKETURL=${BUCKETURLRAW//\"/}
+    #   * update metadata
+    UPLOADMETADATA=$(curl --header "$hauth" --header "$hjson" --request PUT --data-binary "$(cat "$DEPLOY2ZENODO_JSON")" "$LATESTDRAFT")
+    echo "$UPLOADMETADATA" | jq .
+    #   * remove all files from new version
+    for id in $(echo "$UPLOADMETADATA" | jq ".files[] | .id"); do
+	id=${id//\"/}
+	echo "$id"
+	DELETEFILE=$(curl --header "$hauth" --request DELETE "$LATESTDRAFT"/files/"$id")
+	echo "$DELETEFILE" | jq .
+    done
+    #   * upload files/archive
+    #FILEUPLOAD=$(curl --header "$hauth" --upload-file "$DEPLOY2ZENODO_UPLOAD" "$BUCKETURL"/"$(basename "$DEPLOY2ZENODO_UPLOAD")")
+    #echo "$FILEUPLOAD" | jq .
+    #CHECKSUM=$(echo "$FILEUPLOAD" | jq .checksum)
+    #test "$CHECKSUM" != "null"
+    #CHECKSUM=${CHECKSUM//\"/}
+    #CHECKSUM=$(echo "$CHECKSUM" | cut -d ':' -f 2)
+    #echo "$CHECKSUM  $DEPLOY2ZENODO_UPLOAD" | md5sum -c -
+    #   * publish
+    #PUBLISHRECORD=$(curl --header "$hauth" --request POST "$DEPLOY2ZENODO_API_URL"/deposit/depositions/"$DEPLOY2ZENODO_DEPOSITION_ID"/actions/publish)
+    #echo "$PUBLISHRECORD" | jq .
 fi
 
 # stop deploy2zenodo
