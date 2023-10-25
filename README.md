@@ -1,6 +1,6 @@
 ---
 author: Daniel Mohr
-date: 2023-10-24
+date: 2023-10-25
 license: Apache-2.0
 home: https://gitlab.com/daniel_mohr/deploy2zenodo/
 mirror: ?
@@ -46,7 +46,9 @@ To access your zenodo account you have to provide an
 To update an existing record you have to provide the `id` of this record.
 
 If you want to create a new record please set `DEPLOY2ZENODO_DEPOSITION_ID`
-to `create NEW record`, e. g. `DEPLOY2ZENODO_DEPOSITION_ID="create NEW record"`. After creating this record read the script output
+to `create NEW record`,
+e. g. `DEPLOY2ZENODO_DEPOSITION_ID="create NEW record"`.
+After creating this record read the script output
 and adapt `DEPLOY2ZENODO_DEPOSITION_ID` for the next run with the returned
 record `id`.
 
@@ -79,7 +81,9 @@ Unfortunately we need [jq](https://github.com/jqlang/jq) to correct the format,
 e. g.:
 
 ```sh
-cffconvert -i CITATION.cff -f zenodo | jq -c '{"metadata": .}' | jq '.metadata += {"upload_type": "software"}' | tee CITATION.json
+cffconvert -i CITATION.cff -f zenodo | \
+  jq -c '{"metadata": .}' | jq '.metadata += {"upload_type": "software"}' | \
+  tee CITATION.json
 ```
 
 ### DEPLOY2ZENODO_UPLOAD
@@ -137,7 +141,7 @@ deploy2zenodo:
 
 `deploy2zenodo` has the license [Apache-2.0](http://www.apache.org/licenses/LICENSE-2.0).
 
-```
+```txt
 Copyright 2023 Daniel Mohr and
    Deutsches Zentrum fuer Luft- und Raumfahrt e. V., D-51170 Koeln
 
