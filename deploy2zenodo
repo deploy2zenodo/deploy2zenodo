@@ -3,7 +3,7 @@ set -e
 
 #    deploy2zenodo
 #    Copyright (C) 2023  Daniel Mohr
-#    Version: 0.0.5
+#    Version: 0.0.6
 #
 # Instead of command line parameters we use environment variables.
 #
@@ -49,12 +49,12 @@ if [ -n "$missing_variables" ]; then
     exit 1
 fi
 
-set -x
-
-echo "$DEPLOY2ZENODO_JSON" | jq .
-
 hjson='Content-Type: application/json'
 hauth="Authorization: Bearer $DEPLOY2ZENODO_ACCESS_TOKEN"
+
+set -x
+
+cat "$DEPLOY2ZENODO_JSON" | jq .
 
 if [ "$DEPLOY2ZENODO_DEPOSITION_ID" = "create NEW record" ]; then
     # create new record
