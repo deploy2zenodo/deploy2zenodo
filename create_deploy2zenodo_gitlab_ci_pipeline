@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/usr/bin/env sh
 set -e
 
 #    create_deploy2zenodo_gitlab_ci_pipeline
@@ -29,6 +29,6 @@ deploy2zenodo:
   image:
     name: alpine:latest
   before_script:
-    - apk add --no-cache curl
+    - apk add --no-cache curl jq
   extends: .deploy2zenodo
 EOL

@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/usr/bin/env sh
 set -e
 
 #    deploy2zenodo
@@ -38,7 +38,7 @@ echo "run deploy2zenodo v$VERSION"
 # check available variables
 missing_variables=""
 for varname in DEPLOY2ZENODO_API_URL DEPLOY2ZENODO_ACCESS_TOKEN DEPLOY2ZENODO_DEPOSITION_ID DEPLOY2ZENODO_JSON DEPLOY2ZENODO_UPLOAD; do
-    if [ -z ${!varname} ]; then
+    if [ -z "$(eval "echo \"\$$varname\"")" ]; then
 	missing_variables="$missing_variables $varname"
     fi
 done
@@ -73,15 +73,17 @@ if [ "$DEPLOY2ZENODO_DEPOSITION_ID" = "create NEW record" ]; then
     echo "##################################################################"
     BUCKETURLRAW=$(echo "$NEWRECORD" | jq .links.bucket)
     test "$BUCKETURLRAW" != "null"
-    BUCKETURL=${BUCKETURLRAW//\"/}
+    BUCKETURL=$(echo "$BUCKETURLRAW" | sed 's/"//g')
+
     #   * upload files/archive
     FILEUPLOAD=$(curl --header "$hauth" --upload-file "$DEPLOY2ZENODO_UPLOAD" "$BUCKETURL"/"$(basename "$DEPLOY2ZENODO_UPLOAD")")
     echo "$FILEUPLOAD"
     echo "$FILEUPLOAD" | jq .
     CHECKSUM=$(echo "$FILEUPLOAD" | jq .checksum)
     test "$CHECKSUM" != "null"
-    CHECKSUM=$(echo "${CHECKSUM//\"/}" | cut -d ':' -f 2)
+    CHECKSUM=$(echo "$CHECKSUM" | sed 's/"//g' | cut -d ':' -f 2)
     echo "$CHECKSUM  $DEPLOY2ZENODO_UPLOAD" | md5sum -c -
+
     #   * publish
     PUBLISHRECORD=$(curl --max-time 300 --header "$hauth" --request POST "$DEPLOY2ZENODO_API_URL"/deposit/depositions/"$DEPLOY2ZENODO_DEPOSITION_ID"/actions/publish)
     echo "$PUBLISHRECORD"
@@ -102,38 +104,43 @@ else
     echo "$RECORD" | jq .
     NEWVERSIONURLRAW=$(echo "$RECORD" | jq .links.newversion)
     test "$NEWVERSIONURLRAW" != "null"
-    NEWVERSIONURL=${NEWVERSIONURLRAW//\"/}
+    NEWVERSIONURL=$(echo "$NEWVERSIONURLRAW" | sed 's/"//g')
+
     #   * create new version
     NEWVERSION=$(curl --header "$hauth" --request POST "$NEWVERSIONURL")
     echo "$NEWVERSION"
     echo "$NEWVERSION" | jq .
     LATESTDRAFTRAW=$(echo "$NEWVERSION" | jq .links.latest_draft)
     test "$LATESTDRAFTRAW" != "null"
-    LATESTDRAFT=${LATESTDRAFTRAW//\"/}
+    LATESTDRAFT=$(echo "$LATESTDRAFTRAW" | sed 's/"//g')
     BUCKETURLRAW=$(echo "$NEWVERSION" | jq .links.bucket)
     test "$BUCKETURLRAW" != "null"
-    BUCKETURL=${BUCKETURLRAW//\"/}
+    BUCKETURL=$(echo "$BUCKETURLRAW" | sed 's/"//g')
+
     #   * update metadata
     UPLOADMETADATA=$(curl --header "$hauth" --header "$hjson" --request PUT --data-binary "$(cat "$DEPLOY2ZENODO_JSON")" "$LATESTDRAFT")
     echo "$UPLOADMETADATA"
     echo "$UPLOADMETADATA" | jq .
+
     #   * remove all files from new version
     for id in $(echo "$UPLOADMETADATA" | jq ".files[] | .id"); do
-	id=${id//\"/}
+	id=$(echo "$id" | sed 's/"//g')
 	echo "$id"
 	DELETEFILE=$(curl --header "$hauth" --request DELETE "$LATESTDRAFT"/files/"$id")
 	echo "$DELETEFILE"
 	echo "$DELETEFILE" | jq .
     done
+
     #   * upload files/archive
     FILEUPLOAD=$(curl --header "$hauth" --upload-file "$DEPLOY2ZENODO_UPLOAD" "$BUCKETURL"/"$(basename "$DEPLOY2ZENODO_UPLOAD")")
     echo "$FILEUPLOAD"
     echo "$FILEUPLOAD" | jq .
     CHECKSUM=$(echo "$FILEUPLOAD" | jq .checksum)
     test "$CHECKSUM" != "null"
-    CHECKSUM=${CHECKSUM//\"/}
+    CHECKSUM=$(echo "$CHECKSUM" | sed 's/"//g')
     CHECKSUM=$(echo "$CHECKSUM" | cut -d ':' -f 2)
     echo "$CHECKSUM  $DEPLOY2ZENODO_UPLOAD" | md5sum -c -
+
     #   * publish
     PUBLISHRECORD=$(curl --max-time 300 --header "$hauth" --request POST "$LATESTDRAFT"/actions/publish)
     echo "$PUBLISHRECORD"
