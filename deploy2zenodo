@@ -54,7 +54,7 @@ hauth="Authorization: Bearer $DEPLOY2ZENODO_ACCESS_TOKEN"
 
 set -x
 
-cat "$DEPLOY2ZENODO_JSON" | jq .
+jq . "$DEPLOY2ZENODO_JSON"
 
 if [ "$DEPLOY2ZENODO_DEPOSITION_ID" = "create NEW record" ]; then
     # create new record
