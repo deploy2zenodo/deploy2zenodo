@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/usr/bin/env sh
 set -e
 
 #    create_deploy2zenodo_script
@@ -15,3 +15,5 @@ URL=$(sed -n 's/^home:\s*\(https:\S*\)$/\1/p' README.md)
 sed '/^VERSION=.*$/d' $IN | \
     sed "s#v\$VERSION#v$VERSION $URL-/releases/$VERSION#g" | \
     sed '/^\s*$/d'  > $OUT
+
+chmod +x $OUT

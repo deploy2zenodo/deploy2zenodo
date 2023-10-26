@@ -12,7 +12,7 @@ variables:
     - cat /etc/os-release
 
 pre-commit:
-  stage: .pre
+  stage: build
   image:
     name: alpine:latest
   extends: .display_env
@@ -33,7 +33,7 @@ pre-commit:
       - $FILE_NAME.sh
 
 prepare_release:
-  stage: .pre
+  stage: build
   image:
     # https://hub.docker.com/_/alpine
     name: alpine:latest
