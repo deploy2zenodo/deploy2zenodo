@@ -3,7 +3,7 @@ set -e
 
 #    deploy2zenodo
 #    Copyright (C) 2023  Daniel Mohr
-#    Version: 0.0.6
+#    Version: 0.0.7
 #
 # Instead of command line parameters we use environment variables.
 #
@@ -47,6 +47,10 @@ if [ -n "$missing_variables" ]; then
     echo "ERROR: you have to provide environment variables"
     echo "missing variables are at least:$missing_variables"
     exit 1
+else
+    for varname in DEPLOY2ZENODO_API_URL DEPLOY2ZENODO_DEPOSITION_ID DEPLOY2ZENODO_JSON DEPLOY2ZENODO_UPLOAD; do
+	echo "$varname: $(eval "echo \"\$$varname\"")"
+    done
 fi
 
 hjson='Content-Type: application/json'
@@ -61,7 +65,6 @@ if [ "$DEPLOY2ZENODO_DEPOSITION_ID" = "create NEW record" ]; then
     echo "create new record"
     #   * create new record and upload metadata
     NEWRECORD="$(curl --header "$hjson" --header "$hauth" --request POST --data-binary "$(cat "$DEPLOY2ZENODO_JSON")" "$DEPLOY2ZENODO_API_URL"/deposit/depositions)"
-    echo "$NEWRECORD"
     echo "$NEWRECORD" | jq .
     DEPLOY2ZENODO_DEPOSITION_ID=$(echo "$NEWRECORD" | jq .id)
     test "$DEPLOY2ZENODO_DEPOSITION_ID" != "null"
@@ -77,7 +80,6 @@ if [ "$DEPLOY2ZENODO_DEPOSITION_ID" = "create NEW record" ]; then
 
     #   * upload files/archive
     FILEUPLOAD=$(curl --header "$hauth" --upload-file "$DEPLOY2ZENODO_UPLOAD" "$BUCKETURL"/"$(basename "$DEPLOY2ZENODO_UPLOAD")")
-    echo "$FILEUPLOAD"
     echo "$FILEUPLOAD" | jq .
     CHECKSUM=$(echo "$FILEUPLOAD" | jq .checksum)
     test "$CHECKSUM" != "null"
@@ -86,7 +88,6 @@ if [ "$DEPLOY2ZENODO_DEPOSITION_ID" = "create NEW record" ]; then
 
     #   * publish
     PUBLISHRECORD=$(curl --max-time 300 --header "$hauth" --request POST "$DEPLOY2ZENODO_API_URL"/deposit/depositions/"$DEPLOY2ZENODO_DEPOSITION_ID"/actions/publish)
-    echo "$PUBLISHRECORD"
     echo "$PUBLISHRECORD" | jq .
     echo "##################################################################"
     echo "# add the id of the deposition/record on zenodo for the next run"
@@ -100,7 +101,6 @@ else
     echo "update record"
     #   * get data from record
     RECORD=$(curl --header "$hauth" "$DEPLOY2ZENODO_API_URL"/deposit/depositions/"$DEPLOY2ZENODO_DEPOSITION_ID")
-    echo "$RECORD"
     echo "$RECORD" | jq .
     NEWVERSIONURLRAW=$(echo "$RECORD" | jq .links.newversion)
     test "$NEWVERSIONURLRAW" != "null"
@@ -108,7 +108,6 @@ else
 
     #   * create new version
     NEWVERSION=$(curl --header "$hauth" --request POST "$NEWVERSIONURL")
-    echo "$NEWVERSION"
     echo "$NEWVERSION" | jq .
     LATESTDRAFTRAW=$(echo "$NEWVERSION" | jq .links.latest_draft)
     test "$LATESTDRAFTRAW" != "null"
@@ -119,7 +118,6 @@ else
 
     #   * update metadata
     UPLOADMETADATA=$(curl --header "$hauth" --header "$hjson" --request PUT --data-binary "$(cat "$DEPLOY2ZENODO_JSON")" "$LATESTDRAFT")
-    echo "$UPLOADMETADATA"
     echo "$UPLOADMETADATA" | jq .
 
     #   * remove all files from new version
@@ -133,7 +131,6 @@ else
 
     #   * upload files/archive
     FILEUPLOAD=$(curl --header "$hauth" --upload-file "$DEPLOY2ZENODO_UPLOAD" "$BUCKETURL"/"$(basename "$DEPLOY2ZENODO_UPLOAD")")
-    echo "$FILEUPLOAD"
     echo "$FILEUPLOAD" | jq .
     CHECKSUM=$(echo "$FILEUPLOAD" | jq .checksum)
     test "$CHECKSUM" != "null"
@@ -143,8 +140,8 @@ else
 
     #   * publish
     PUBLISHRECORD=$(curl --max-time 300 --header "$hauth" --request POST "$LATESTDRAFT"/actions/publish)
-    echo "$PUBLISHRECORD"
     echo "$PUBLISHRECORD" | jq .
+    test "$(echo "$PUBLISHRECORD" | jq .submitted)" = "true"
 fi
 
 # stop deploy2zenodo

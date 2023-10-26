@@ -58,6 +58,7 @@ deploy_ci_template:
     - job: pre-commit
       artifacts: true
     - job: prepare_release
+      artifacts: true
   image:
     # https://hub.docker.com/_/alpine
     name: alpine:latest
