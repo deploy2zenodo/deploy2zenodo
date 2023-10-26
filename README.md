@@ -9,7 +9,7 @@ latest_release: https://gitlab.com/daniel_mohr/deploy2zenodo/-/releases/permalin
 
 # `deploy2zenodo`
 
-`deploy2zenodo` is a small script to deploy your data to
+`deploy2zenodo` is a script to deploy your data to
 [zenodo](https://zenodo.org/). You can use it in a CI pipeline.
 
 ## script parameter
@@ -23,8 +23,8 @@ You have to provide the following variables:
 | DEPLOY2ZENODO_API_URL | The URL of the api to use. |
 | DEPLOY2ZENODO_ACCESS_TOKEN | access token of zenodo |
 | DEPLOY2ZENODO_DEPOSITION_ID | id of the deposition/record on zenodo |
-| DEPLOY2ZENODO_JSON | file with metadata in JSON format to upload |
-| DEPLOY2ZENODO_UPLOAD | file/data to upload |
+| DEPLOY2ZENODO_JSON | file name with metadata in JSON format to upload |
+| DEPLOY2ZENODO_UPLOAD | file name to upload |
 
 ### DEPLOY2ZENODO_API_URL
 
