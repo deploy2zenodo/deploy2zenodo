@@ -53,7 +53,7 @@ if [ -n "$missing_variables" ]; then
     echo "missing variables are at least:$missing_variables"
     exit 1
 else
-    for varname in DEPLOY2ZENODO_API_URL DEPLOY2ZENODO_DEPOSITION_ID DEPLOY2ZENODO_JSON DEPLOY2ZENODO_UPLOAD; do
+    for varname in DEPLOY2ZENODO_API_URL DEPLOY2ZENODO_DEPOSITION_ID DEPLOY2ZENODO_JSON DEPLOY2ZENODO_UPLOAD DEPLOY2ZENODO_SKIP_PUBLISH DEPLOY2ZENODO_DRYRUN DEPLOY2ZENODO_SKIPRUN; do
 	echo "$varname: $(eval "echo \"\$$varname\"")"
     done
 fi
