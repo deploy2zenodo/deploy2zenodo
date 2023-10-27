@@ -3,7 +3,7 @@ set -e
 
 #    deploy2zenodo
 #    Copyright (C) 2023  Daniel Mohr
-#    Version: 0.0.7
+#    Version: 0.0.8
 #
 # Instead of command line parameters we use environment variables.
 #
@@ -89,6 +89,7 @@ if [ "$DEPLOY2ZENODO_DEPOSITION_ID" = "create NEW record" ]; then
     #   * publish
     PUBLISHRECORD=$(curl --max-time 300 --header "$hauth" --request POST "$DEPLOY2ZENODO_API_URL"/deposit/depositions/"$DEPLOY2ZENODO_DEPOSITION_ID"/actions/publish)
     echo "$PUBLISHRECORD" | jq .
+    test "$(echo "$PUBLISHRECORD" | jq .submitted)" = "true"
     echo "##################################################################"
     echo "# add the id of the deposition/record on zenodo for the next run"
     echo "# id: $DEPLOY2ZENODO_DEPOSITION_ID"
