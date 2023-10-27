@@ -3,7 +3,7 @@ set -e
 
 #    deploy2zenodo
 #    Copyright (C) 2023  Daniel Mohr
-#    Version: 0.1.0
+#    Version: 0.1.1
 #
 # Instead of command line parameters we use environment variables.
 #
@@ -13,6 +13,11 @@ set -e
 #   * DEPLOY2ZENODO_DEPOSITION_ID
 #   * DEPLOY2ZENODO_JSON
 #   * DEPLOY2ZENODO_UPLOAD
+#
+# And there are optional variables you can provide:
+#   * DEPLOY2ZENODO_SKIP_PUBLISH
+#   * DEPLOY2ZENODO_DRYRUN
+#   * DEPLOY2ZENODO_SKIPRUN
 #
 # For more information see: https://gitlab.com/deploy2zenodo/deploy2zenodo
 #
@@ -48,9 +53,23 @@ if [ -n "$missing_variables" ]; then
     echo "missing variables are at least:$missing_variables"
     exit 1
 else
-    for varname in DEPLOY2ZENODO_API_URL DEPLOY2ZENODO_DEPOSITION_ID DEPLOY2ZENODO_JSON DEPLOY2ZENODO_UPLOAD; do
+    for varname in DEPLOY2ZENODO_API_URL DEPLOY2ZENODO_DEPOSITION_ID DEPLOY2ZENODO_JSON DEPLOY2ZENODO_UPLOAD DEPLOY2ZENODO_SKIP_PUBLISH DEPLOY2ZENODO_DRYRUN DEPLOY2ZENODO_SKIPRUN; do
 	echo "$varname: $(eval "echo \"\$$varname\"")"
     done
+fi
+
+if [ -n "$DEPLOY2ZENODO_DRYRUN" ] || [ -n "$DEPLOY2ZENODO_SKIPRUN" ]; then
+    curl() {
+	echo "$@" > /dev/null
+    }
+fi
+if [ -n "$DEPLOY2ZENODO_SKIPRUN" ]; then
+    jq() {
+	echo "$@" > /dev/null
+    }
+    md5sum() {
+	echo "$@" > /dev/null
+    }
 fi
 
 hjson='Content-Type: application/json'
@@ -84,12 +103,27 @@ if [ "$DEPLOY2ZENODO_DEPOSITION_ID" = "create NEW record" ]; then
     CHECKSUM=$(echo "$FILEUPLOAD" | jq .checksum)
     test "$CHECKSUM" != "null"
     CHECKSUM=$(echo "$CHECKSUM" | sed 's/"//g' | cut -d ':' -f 2)
-    echo "$CHECKSUM  $DEPLOY2ZENODO_UPLOAD" | md5sum -c -
+    if [ -n "$DEPLOY2ZENODO_DRYRUN" ] || [ -n "$DEPLOY2ZENODO_SKIPRUN" ]; then
+	echo "Skip testing checksum due to DRYRUN or SKIPRUN."
+    else
+	echo "$CHECKSUM  $DEPLOY2ZENODO_UPLOAD" | md5sum -c -
+    fi
 
     #   * publish
-    PUBLISHRECORD=$(curl --max-time 300 --header "$hauth" --request POST "$DEPLOY2ZENODO_API_URL"/deposit/depositions/"$DEPLOY2ZENODO_DEPOSITION_ID"/actions/publish)
-    echo "$PUBLISHRECORD" | jq .
-    test "$(echo "$PUBLISHRECORD" | jq .submitted)" = "true"
+    if [ -n "$DEPLOY2ZENODO_SKIP_PUBLISH" ]; then
+	echo "#################################################"
+	echo "# --> Publishing is skipped!                    #"
+	echo "# --> You have to publish this record manually! #"
+	echo "#################################################"
+    else
+	PUBLISHRECORD=$(curl --max-time 300 --header "$hauth" --request POST "$DEPLOY2ZENODO_API_URL"/deposit/depositions/"$DEPLOY2ZENODO_DEPOSITION_ID"/actions/publish)
+	echo "$PUBLISHRECORD" | jq .
+	if [ -n "$DEPLOY2ZENODO_DRYRUN" ] || [ -n "$DEPLOY2ZENODO_SKIPRUN" ]; then
+	    echo "Skip testing result due to DRYRUN or SKIPRUN."
+	else
+	    test "$(echo "$PUBLISHRECORD" | jq .submitted)" = "true"
+	fi
+    fi
     echo "##################################################################"
     echo "# add the id of the deposition/record on zenodo for the next run #"
     echo "# id: $DEPLOY2ZENODO_DEPOSITION_ID"
@@ -137,12 +171,27 @@ else
     test "$CHECKSUM" != "null"
     CHECKSUM=$(echo "$CHECKSUM" | sed 's/"//g')
     CHECKSUM=$(echo "$CHECKSUM" | cut -d ':' -f 2)
-    echo "$CHECKSUM  $DEPLOY2ZENODO_UPLOAD" | md5sum -c -
+    if [ -n "$DEPLOY2ZENODO_DRYRUN" ] || [ -n "$DEPLOY2ZENODO_SKIPRUN" ]; then
+	echo "Skip testing checksum due to DRYRUN or SKIPRUN."
+    else
+	echo "$CHECKSUM  $DEPLOY2ZENODO_UPLOAD" | md5sum -c -
+    fi
 
     #   * publish
-    PUBLISHRECORD=$(curl --max-time 300 --header "$hauth" --request POST "$LATESTDRAFT"/actions/publish)
-    echo "$PUBLISHRECORD" | jq .
-    test "$(echo "$PUBLISHRECORD" | jq .submitted)" = "true"
+    if [ -n "$DEPLOY2ZENODO_SKIP_PUBLISH" ]; then
+	echo "#################################################"
+	echo "# --> Publishing is skipped!                    #"
+	echo "# --> You have to publish this record manually! #"
+	echo "#################################################"
+    else
+	PUBLISHRECORD=$(curl --max-time 300 --header "$hauth" --request POST "$LATESTDRAFT"/actions/publish)
+	echo "$PUBLISHRECORD" | jq .
+	if [ -n "$DEPLOY2ZENODO_DRYRUN" ] || [ -n "$DEPLOY2ZENODO_SKIPRUN" ]; then
+	    echo "Skip testing result due to DRYRUN or SKIPRUN."
+	else
+	    test "$(echo "$PUBLISHRECORD" | jq .submitted)" = "true"
+	fi
+    fi
 fi
 
 # stop deploy2zenodo

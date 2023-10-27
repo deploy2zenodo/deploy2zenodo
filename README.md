@@ -26,6 +26,14 @@ You have to provide the following variables:
 | DEPLOY2ZENODO_JSON | file name with metadata in JSON format to upload |
 | DEPLOY2ZENODO_UPLOAD | file name to upload |
 
+There are other optional variables:
+
+| variable | content |
+| ------ | ------ |
+| DEPLOY2ZENODO_SKIP_PUBLISH | prepare record, but skip publishing |
+| DEPLOY2ZENODO_DRYRUN | skip communicating with the extern URL |
+| DEPLOY2ZENODO_SKIPRUN | skip everything, only prints commands to execute |
+
 ### DEPLOY2ZENODO_API_URL
 
 You can use the api of your own zenodo instance or you can use the
@@ -97,6 +105,24 @@ TAG=0.0.3
 git archive --format zip --output $TAG.zip $TAG
 ```
 
+### DEPLOY2ZENODO_SKIP_PUBLISH
+
+If this variable is not empty the publishing step is skipped.
+Only the record is prepared -- metadata and data is uploaded -- but not
+published. You can do the publishing step in the web interface of zenodo.
+This could help to integrate `deploy2zenodo` in your project.
+
+### DEPLOY2ZENODO_DRYRUN
+
+If this variable is not empty the communication to the given URL is skipped.
+But your parameter are analysed. This could help to integrate `deploy2zenodo`
+in your project.
+
+### DEPLOY2ZENODO_SKIPRUN
+
+If this variable is not empty nearly everything is skipped.
+Only the commands to be executed are echoed. This is for debugging purpose.
+
 ## CI pipeline
 
 Using the keyword
@@ -109,7 +135,7 @@ You can use the latest version
 [deploy2zenodo.yaml](https://gitlab.com/deploy2zenodo/deploy2zenodo/-/releases/permalink/latest/downloads/deploy2zenodo.yaml)
 in your CI pipeline.
 Or you can use any special versions, e. g.
-[deploy2zenodo.yaml v0.0.2](https://gitlab.com/deploy2zenodo/deploy2zenodo/-/releases/0.0.2/downloads/deploy2zenodo.yaml).
+[deploy2zenodo.yaml v0.1.0](https://gitlab.com/deploy2zenodo/deploy2zenodo/-/releases/0.1.0/downloads/deploy2zenodo.yaml).
 
 A simple example choosing the stage to run could be:
 
