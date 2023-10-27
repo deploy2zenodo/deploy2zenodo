@@ -69,9 +69,9 @@ if [ "$DEPLOY2ZENODO_DEPOSITION_ID" = "create NEW record" ]; then
     DEPLOY2ZENODO_DEPOSITION_ID=$(echo "$NEWRECORD" | jq .id)
     test "$DEPLOY2ZENODO_DEPOSITION_ID" != "null"
     echo "##################################################################"
-    echo "# add the id of the deposition/record on zenodo for the next run"
+    echo "# add the id of the deposition/record on zenodo for the next run #"
     echo "# id: $DEPLOY2ZENODO_DEPOSITION_ID"
-    echo "#"
+    echo "#                                                                #"
     echo "# DEPLOY2ZENODO_DEPOSITION_ID=$DEPLOY2ZENODO_DEPOSITION_ID"
     echo "##################################################################"
     BUCKETURLRAW=$(echo "$NEWRECORD" | jq .links.bucket)
@@ -91,9 +91,9 @@ if [ "$DEPLOY2ZENODO_DEPOSITION_ID" = "create NEW record" ]; then
     echo "$PUBLISHRECORD" | jq .
     test "$(echo "$PUBLISHRECORD" | jq .submitted)" = "true"
     echo "##################################################################"
-    echo "# add the id of the deposition/record on zenodo for the next run"
+    echo "# add the id of the deposition/record on zenodo for the next run #"
     echo "# id: $DEPLOY2ZENODO_DEPOSITION_ID"
-    echo "#"
+    echo "#                                                                #"
     echo "# DEPLOY2ZENODO_DEPOSITION_ID=$DEPLOY2ZENODO_DEPOSITION_ID"
     echo "##################################################################"
 else
