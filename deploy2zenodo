@@ -103,7 +103,11 @@ if [ "$DEPLOY2ZENODO_DEPOSITION_ID" = "create NEW record" ]; then
     CHECKSUM=$(echo "$FILEUPLOAD" | jq .checksum)
     test "$CHECKSUM" != "null"
     CHECKSUM=$(echo "$CHECKSUM" | sed 's/"//g' | cut -d ':' -f 2)
-    echo "$CHECKSUM  $DEPLOY2ZENODO_UPLOAD" | md5sum -c -
+    if [ -n "$DEPLOY2ZENODO_DRYRUN" ] || [ -n "$DEPLOY2ZENODO_SKIPRUN" ]; then
+	echo "Skip testing checksum due to DRYRUN or SKIPRUN."
+    else
+	echo "$CHECKSUM  $DEPLOY2ZENODO_UPLOAD" | md5sum -c -
+    fi
 
     #   * publish
     if [ -n "$DEPLOY2ZENODO_SKIP_PUBLISH" ]; then
@@ -167,7 +171,11 @@ else
     test "$CHECKSUM" != "null"
     CHECKSUM=$(echo "$CHECKSUM" | sed 's/"//g')
     CHECKSUM=$(echo "$CHECKSUM" | cut -d ':' -f 2)
-    echo "$CHECKSUM  $DEPLOY2ZENODO_UPLOAD" | md5sum -c -
+    if [ -n "$DEPLOY2ZENODO_DRYRUN" ] || [ -n "$DEPLOY2ZENODO_SKIPRUN" ]; then
+	echo "Skip testing checksum due to DRYRUN or SKIPRUN."
+    else
+	echo "$CHECKSUM  $DEPLOY2ZENODO_UPLOAD" | md5sum -c -
+    fi
 
     #   * publish
     if [ -n "$DEPLOY2ZENODO_SKIP_PUBLISH" ]; then

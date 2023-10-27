@@ -135,7 +135,7 @@ You can use the latest version
 [deploy2zenodo.yaml](https://gitlab.com/deploy2zenodo/deploy2zenodo/-/releases/permalink/latest/downloads/deploy2zenodo.yaml)
 in your CI pipeline.
 Or you can use any special versions, e. g.
-[deploy2zenodo.yaml v0.0.2](https://gitlab.com/deploy2zenodo/deploy2zenodo/-/releases/0.0.2/downloads/deploy2zenodo.yaml).
+[deploy2zenodo.yaml v0.1.0](https://gitlab.com/deploy2zenodo/deploy2zenodo/-/releases/0.1.0/downloads/deploy2zenodo.yaml).
 
 A simple example choosing the stage to run could be:
 
