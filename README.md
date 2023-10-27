@@ -20,7 +20,7 @@ You have to provide the following variables:
 
 | variable | content |
 | ------ | ------ |
-| DEPLOY2ZENODO_API_URL | The URL of the api to use. |
+| DEPLOY2ZENODO_API_URL | The URL of the API to use. |
 | DEPLOY2ZENODO_ACCESS_TOKEN | access token of zenodo |
 | DEPLOY2ZENODO_DEPOSITION_ID | id of the deposition/record on zenodo |
 | DEPLOY2ZENODO_JSON | file name with metadata in JSON format to upload |
@@ -31,13 +31,13 @@ There are other optional variables:
 | variable | content |
 | ------ | ------ |
 | DEPLOY2ZENODO_SKIP_PUBLISH | prepare record, but skip publishing |
-| DEPLOY2ZENODO_DRYRUN | skip communicating with the extern URL |
+| DEPLOY2ZENODO_DRYRUN | skip communicating with the external URL |
 | DEPLOY2ZENODO_SKIPRUN | skip everything, only prints commands to execute |
 
 ### DEPLOY2ZENODO_API_URL
 
-You can use the api of your own zenodo instance or you can use the
-official [Zenodo instance](https://about.zenodo.org/):
+You can use the API of your own zenodo instance or you can use the
+official [zenodo instance](https://about.zenodo.org/):
 
 | state | URL |
 | ------ | ------ |
@@ -115,7 +115,7 @@ This could help to integrate `deploy2zenodo` in your project.
 ### DEPLOY2ZENODO_DRYRUN
 
 If this variable is not empty the communication to the given URL is skipped.
-But your parameter are analysed. This could help to integrate `deploy2zenodo`
+But your parameter are analyzed. This could help to integrate `deploy2zenodo`
 in your project.
 
 ### DEPLOY2ZENODO_SKIPRUN
