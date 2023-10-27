@@ -1,10 +1,10 @@
 ---
 author: Daniel Mohr
-date: 2023-10-25
+date: 2023-10-27
 license: Apache-2.0
-home: https://gitlab.com/daniel_mohr/deploy2zenodo/
+home: https://gitlab.com/deploy2zenodo/deploy2zenodo
 mirror: ?
-latest_release: https://gitlab.com/daniel_mohr/deploy2zenodo/-/releases/permalink/latest
+latest_release: https://gitlab.com/deploy2zenodo/deploy2zenodo/-/releases/permalink/latest
 ---
 
 # `deploy2zenodo`
@@ -106,16 +106,16 @@ it is possible to include YAML files and/or CI pipelines in your
 In this way you can use a template of `deploy2zenodo` for your CI pipeline.
 
 You can use the latest version
-[deploy2zenodo.yaml](https://gitlab.com/daniel_mohr/deploy2zenodo/-/releases/permalink/latest/downloads/deploy2zenodo.yaml)
+[deploy2zenodo.yaml](https://gitlab.com/deploy2zenodo/deploy2zenodo/-/releases/permalink/latest/downloads/deploy2zenodo.yaml)
 in your CI pipeline.
 Or you can use any special versions, e. g.
-[deploy2zenodo.yaml v0.0.2](https://gitlab.com/daniel_mohr/deploy2zenodo/-/releases/0.0.2/downloads/deploy2zenodo.yaml).
+[deploy2zenodo.yaml v0.0.2](https://gitlab.com/deploy2zenodo/deploy2zenodo/-/releases/0.0.2/downloads/deploy2zenodo.yaml).
 
 A simple example choosing the stage to run could be:
 
 ```yaml
 include:
-  - remote: 'https://gitlab.com/daniel_mohr/deploy2zenodo/-/releases/permalink/latest/downloads/deploy2zenodo.yaml'
+  - remote: 'https://gitlab.com/deploy2zenodo/deploy2zenodo/-/releases/permalink/latest/downloads/deploy2zenodo.yaml'
 
 deploy2zenodo:
   stage: deploy
@@ -128,7 +128,7 @@ To use other images you must adapt it, e. g.:
 
 ```yaml
 include:
-  - remote: 'https://gitlab.com/daniel_mohr/deploy2zenodo/-/releases/permalink/latest/downloads/deploy2zenodo.yaml'
+  - remote: 'https://gitlab.com/deploy2zenodo/deploy2zenodo/-/releases/permalink/latest/downloads/deploy2zenodo.yaml'
 
 deploy2zenodo:
   image:
