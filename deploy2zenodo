@@ -114,7 +114,11 @@ if [ "$DEPLOY2ZENODO_DEPOSITION_ID" = "create NEW record" ]; then
     else
 	PUBLISHRECORD=$(curl --max-time 300 --header "$hauth" --request POST "$DEPLOY2ZENODO_API_URL"/deposit/depositions/"$DEPLOY2ZENODO_DEPOSITION_ID"/actions/publish)
 	echo "$PUBLISHRECORD" | jq .
-	test "$(echo "$PUBLISHRECORD" | jq .submitted)" = "true"
+	if [ -n "$DEPLOY2ZENODO_DRYRUN" ] || [ -n "$DEPLOY2ZENODO_SKIPRUN" ]; then
+	    echo "Skip testing result due to DRYRUN or SKIPRUN."
+	else
+	    test "$(echo "$PUBLISHRECORD" | jq .submitted)" = "true"
+	fi
     fi
     echo "##################################################################"
     echo "# add the id of the deposition/record on zenodo for the next run #"
@@ -174,7 +178,11 @@ else
     else
 	PUBLISHRECORD=$(curl --max-time 300 --header "$hauth" --request POST "$LATESTDRAFT"/actions/publish)
 	echo "$PUBLISHRECORD" | jq .
-	test "$(echo "$PUBLISHRECORD" | jq .submitted)" = "true"
+	if [ -n "$DEPLOY2ZENODO_DRYRUN" ] || [ -n "$DEPLOY2ZENODO_SKIPRUN" ]; then
+	    echo "Skip testing result due to DRYRUN or SKIPRUN."
+	else
+	    test "$(echo "$PUBLISHRECORD" | jq .submitted)" = "true"
+	fi
     fi
 fi
 
