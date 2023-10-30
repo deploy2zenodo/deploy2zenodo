@@ -189,11 +189,11 @@ else
 	echo "#################################################"
     else
 	PUBLISHRECORD=$(curl --max-time 300 --header "$hauth" --request POST "$LATESTDRAFT"/actions/publish)
-	echo "$PUBLISHRECORD" | jq .
+	echo "$PUBLISHRECORD" | jq -C .
 	if [ -n "$DEPLOY2ZENODO_DRYRUN" ] || [ -n "$DEPLOY2ZENODO_SKIPRUN" ]; then
 	    echo "Skip testing result due to DRYRUN or SKIPRUN."
 	else
-	    test "$(echo "$PUBLISHRECORD" | jq .state)" = "done"
+	    test "$(echo "$PUBLISHRECORD" | jq .state)" = '"done"'
 	    test "$(echo "$PUBLISHRECORD" | jq .submitted)" = "true"
 	fi
     fi
