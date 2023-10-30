@@ -245,6 +245,7 @@ There are other optional variables:
 | DEPLOY2ZENODO_SKIPRUN | skip everything, only prints commands to execute |
 | DEPLOY2ZENODO_SKIP_NEW_VERSION | skip creating new version |
 | DEPLOY2ZENODO_GET_METADATA | write actual metadata to a file |
+| DEPLOY2ZENODO_SKIP_UPLOAD | skip upload of data |
 
 ### DEPLOY2ZENODO_API_URL
 
@@ -355,6 +356,9 @@ and initiate the publishing by pressing the button in the web interface.
 
 This helps to integrate `deploy2zenodo` in your project.
 
+Together with DEPLOY2ZENODO_SKIP_NEW_VERSION this allows to split deploying
+to zenodo in steps.
+
 ### DEPLOY2ZENODO_DRYRUN
 
 If this variable is not empty the communication to the given URL is skipped.
@@ -389,6 +393,15 @@ file with this name.
 
 To get these data at the end of the script an additional communication
 with the DEPLOY2ZENODO_API_URL server is done.
+
+### DEPLOY2ZENODO_SKIP_UPLOAD
+
+If this variable is not empty skip uploading the data. This is only
+allowed if DEPLOY2ZENODO_SKIP_PUBLISH is not empty, too.
+
+If you split deploying to zenodo in steps using DEPLOY2ZENODO_SKIP_PUBLISH and
+DEPLOY2ZENODO_SKIP_NEW_VERSION you can avoid unnecessary traffic by using also
+DEPLOY2ZENODO_SKIP_UPLOAD.
 
 ## CI pipeline
 
