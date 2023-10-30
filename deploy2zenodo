@@ -3,7 +3,7 @@ set -e
 
 #    deploy2zenodo
 #    Copyright (C) 2023  Daniel Mohr
-#    Version: 0.4.0
+#    Version: 0.4.1
 #
 # Instead of command line parameters we use environment variables.
 #
@@ -20,6 +20,7 @@ set -e
 #   * DEPLOY2ZENODO_SKIPRUN
 #   * DEPLOY2ZENODO_SKIP_NEW_VERSION
 #   * DEPLOY2ZENODO_GET_METADATA
+#   * DEPLOY2ZENODO_SKIP_UPLOAD
 #
 # For more information see: https://gitlab.com/deploy2zenodo/deploy2zenodo
 #
@@ -55,9 +56,14 @@ if [ -n "$missing_variables" ]; then
     echo "missing variables are at least:$missing_variables"
     exit 1
 else
-    for varname in DEPLOY2ZENODO_API_URL DEPLOY2ZENODO_DEPOSITION_ID DEPLOY2ZENODO_JSON DEPLOY2ZENODO_UPLOAD DEPLOY2ZENODO_SKIP_PUBLISH DEPLOY2ZENODO_DRYRUN DEPLOY2ZENODO_SKIPRUN; do
+    for varname in DEPLOY2ZENODO_API_URL DEPLOY2ZENODO_DEPOSITION_ID DEPLOY2ZENODO_JSON DEPLOY2ZENODO_UPLOAD DEPLOY2ZENODO_SKIP_PUBLISH DEPLOY2ZENODO_DRYRUN DEPLOY2ZENODO_SKIPRUN DEPLOY2ZENODO_SKIP_NEW_VERSION DEPLOY2ZENODO_GET_METADATA DEPLOY2ZENODO_SKIP_UPLOAD; do
 	echo "$varname: $(eval "echo \"\$$varname\"")"
     done
+fi
+
+if [ -n "$DEPLOY2ZENODO_SKIP_UPLOAD" ] && [ -z "$DEPLOY2ZENODO_SKIP_PUBLISH" ]; then
+    echo "ERROR: DEPLOY2ZENODO_SKIP_UPLOAD can only be used if DEPLOY2ZENODO_SKIP_PUBLISH is used, too!"
+    test -n "$DEPLOY2ZENODO_SKIP_PUBLISH"
 fi
 
 if [ -n "$DEPLOY2ZENODO_DRYRUN" ] || [ -n "$DEPLOY2ZENODO_SKIPRUN" ]; then
@@ -101,18 +107,24 @@ if [ "$DEPLOY2ZENODO_DEPOSITION_ID" = "create NEW record" ]; then
     BUCKETURL=$(echo "$BUCKETURLRAW" | sed 's/"//g')
 
     #   * upload files/archives
-    for filename in $DEPLOY2ZENODO_UPLOAD; do
-	FILEUPLOAD=$(curl --header "$hauth" --upload-file "$filename" "$BUCKETURL"/"$(basename "$filename")")
-	echo "$FILEUPLOAD" | jq -C .
-	CHECKSUM=$(echo "$FILEUPLOAD" | jq .checksum)
-	test "$CHECKSUM" != "null"
-	CHECKSUM=$(echo "$CHECKSUM" | sed 's/"//g' | cut -d ':' -f 2)
-	if [ -n "$DEPLOY2ZENODO_DRYRUN" ] || [ -n "$DEPLOY2ZENODO_SKIPRUN" ]; then
-	    echo "Skip testing checksum due to DRYRUN or SKIPRUN."
-	else
-	    echo "$CHECKSUM  $filename" | md5sum -c -
-	fi
-    done
+    if [ -n "$DEPLOY2ZENODO_SKIP_UPLOAD" ]; then
+	echo "##############################"
+	echo "# skip upload files/archives #"
+	echo "##############################"
+    else
+	for filename in $DEPLOY2ZENODO_UPLOAD; do
+	    FILEUPLOAD=$(curl --header "$hauth" --upload-file "$filename" "$BUCKETURL"/"$(basename "$filename")")
+	    echo "$FILEUPLOAD" | jq -C .
+	    CHECKSUM=$(echo "$FILEUPLOAD" | jq .checksum)
+	    test "$CHECKSUM" != "null"
+	    CHECKSUM=$(echo "$CHECKSUM" | sed 's/"//g' | cut -d ':' -f 2)
+	    if [ -n "$DEPLOY2ZENODO_DRYRUN" ] || [ -n "$DEPLOY2ZENODO_SKIPRUN" ]; then
+		echo "Skip testing checksum due to DRYRUN or SKIPRUN."
+	    else
+		echo "$CHECKSUM  $filename" | md5sum -c -
+	    fi
+	done
+    fi
 
     #   * publish
     if [ -n "$DEPLOY2ZENODO_SKIP_PUBLISH" ]; then
@@ -190,19 +202,25 @@ else
     done
 
     #   * upload files/archives
-    for filename in $DEPLOY2ZENODO_UPLOAD; do
-	FILEUPLOAD=$(curl --header "$hauth" --upload-file "$filename" "$BUCKETURL"/"$(basename "$filename")")
-	echo "$FILEUPLOAD" | jq -C .
-	CHECKSUM=$(echo "$FILEUPLOAD" | jq .checksum)
-	test "$CHECKSUM" != "null"
-	CHECKSUM=$(echo "$CHECKSUM" | sed 's/"//g')
-	CHECKSUM=$(echo "$CHECKSUM" | cut -d ':' -f 2)
-	if [ -n "$DEPLOY2ZENODO_DRYRUN" ] || [ -n "$DEPLOY2ZENODO_SKIPRUN" ]; then
-	    echo "Skip testing checksum due to DRYRUN or SKIPRUN."
-	else
-	    echo "$CHECKSUM  $filename" | md5sum -c -
-	fi
-    done
+    if [ -n "$DEPLOY2ZENODO_SKIP_UPLOAD" ]; then
+	echo "##############################"
+	echo "# skip upload files/archives #"
+	echo "##############################"
+    else
+	for filename in $DEPLOY2ZENODO_UPLOAD; do
+	    FILEUPLOAD=$(curl --header "$hauth" --upload-file "$filename" "$BUCKETURL"/"$(basename "$filename")")
+	    echo "$FILEUPLOAD" | jq -C .
+	    CHECKSUM=$(echo "$FILEUPLOAD" | jq .checksum)
+	    test "$CHECKSUM" != "null"
+	    CHECKSUM=$(echo "$CHECKSUM" | sed 's/"//g')
+	    CHECKSUM=$(echo "$CHECKSUM" | cut -d ':' -f 2)
+	    if [ -n "$DEPLOY2ZENODO_DRYRUN" ] || [ -n "$DEPLOY2ZENODO_SKIPRUN" ]; then
+		echo "Skip testing checksum due to DRYRUN or SKIPRUN."
+	    else
+		echo "$CHECKSUM  $filename" | md5sum -c -
+	    fi
+	done
+    fi
 
     #   * publish
     if [ -n "$DEPLOY2ZENODO_SKIP_PUBLISH" ]; then
