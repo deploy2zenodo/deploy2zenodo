@@ -9,8 +9,10 @@ latest_release: https://gitlab.com/deploy2zenodo/deploy2zenodo/-/releases/permal
 
 # `deploy2zenodo`
 
-`deploy2zenodo` is a script to deploy your data to
-[zenodo](https://zenodo.org/). You can use it in a CI pipeline.
+`deploy2zenodo` is a
+[shell](https://en.wikipedia.org/wiki/Bourne_shell) script to deploy
+your data to [zenodo](https://zenodo.org/).
+You can use it in a [CI pipeline](https://docs.gitlab.com/ee/ci/pipelines/).
 
 ## how-to
 
@@ -50,7 +52,7 @@ prepare_release_and_deploy2zenodo:
       echo '{"metadata":{"creators":[{"name":"family, given"}],\
         "license":{"id":"GPL-3.0-or-later"},"title":"test script alpine",\
         "version":"***","upload_type":"software"}}' | \
-        jq ".metadata.version = \"$TAG\"" | jq . | tee $DEPLOY2ZENODO_JSON
+        jq ".metadata.version = \"$TAG\"" | tee $DEPLOY2ZENODO_JSON
     # prepare release
     - echo "DESCRIPTION=README.md" > variables.env
     - echo "TAG=$TAG" >> variables.env
@@ -166,6 +168,61 @@ could help to overcome this.
 Another possibility is too use
 [Secrets management providers](https://docs.gitlab.com/ee/ci/pipelines/pipeline_security.html#secrets-management-providers).
 
+### complex workflow
+
+This workflow splits the deploying to zenodo in steps. This allows to use
+the zenodo record (e. g. the DOI) already in the data to publish.
+
+```yaml
+deploy2zenodo:
+  rules:
+    - if: '"0" == "1"'
+      when: never
+
+prepare_deploy2zenodo_step1:
+  script:
+    - ...
+
+deploy2zenodo-step1:
+  variables:
+    - DEPLOY2ZENODO_SKIP_PUBLISH: "true"
+    - DEPLOY2ZENODO_GET_METADATA: "newmetadata.json"
+  extends: .deploy2zenodo
+  after_script:
+    - echo "DEPLOY2ZENODO_GET_METADATA=$DEPLOY2ZENODO_GET_METADATA" > variables.env
+  artifacts:
+    paths:
+      - $DEPLOY2ZENODO_GET_METADATA
+    reports:
+      dotenv: variables.env
+
+prepare_release:
+  script:
+    - echo "use the file \"$DEPLOY2ZENODO_GET_METADATA\""
+    - ...
+
+release_job:
+  script:
+    - ...
+
+prepare_deploy2zenodo_step2:
+  script:
+    - ...
+
+deploy2zenodo-step2:
+  variables:
+    - DEPLOY2ZENODO_SKIP_NEW_VERSION: "true"
+  extends: .deploy2zenodo
+```
+
+In the step `prepare_release` you can use [jq](https://github.com/jqlang/jq)
+to extract data. For example the preserved DOI is available by:
+
+```sh
+jq .metadata.prereserve_doi.doi "$DEPLOY2ZENODO_GET_METADATA"
+```
+
+
 ## script parameter
 
 Instead of command line parameters we use environment variables.
@@ -187,6 +244,8 @@ There are other optional variables:
 | DEPLOY2ZENODO_SKIP_PUBLISH | prepare record, but skip publishing |
 | DEPLOY2ZENODO_DRYRUN | skip communicating with the external URL |
 | DEPLOY2ZENODO_SKIPRUN | skip everything, only prints commands to execute |
+| DEPLOY2ZENODO_SKIP_NEW_VERSION | skip creating new version |
+| DEPLOY2ZENODO_GET_METADATA | write actual metadata to a file |
 
 ### DEPLOY2ZENODO_API_URL
 
@@ -260,7 +319,7 @@ pandoc -o README.html README.md
 echo '{"metadata":{"title":"foo","upload_type":"software",
   "creators":[{"name":"ich","affiliation":"bar"}],
   "description":"foos description"}}' | \
-  jq --rawfile README README.html '.metadata.description = $README' | jq . | \
+  jq --rawfile README README.html '.metadata.description = $README' | \
   tee metadata.json
 ```
 
@@ -308,6 +367,30 @@ in your project.
 If this variable is not empty nearly everything is skipped.
 Only the commands to be executed are echoed. This is for debugging purpose.
 
+### DEPLOY2ZENODO_SKIP_NEW_VERSION
+
+If this variable is not empty the step creating a new version is skipped.
+This allows to split deploying to zenodo in steps.
+
+Between creating a new version and deploying to zenodo you can
+use the zenodo record (e. g. the DOI) already in the data to publish:
+
+```sh
+jq .metadata.prereserve_doi.doi "$DEPLOY2ZENODO_GET_METADATA" >> README.md
+```
+
+Using a [manual job](https://docs.gitlab.com/ee/ci/jobs/job_control.html#create-a-job-that-must-be-run-manually)
+allows you to first check the artifacts and data to be published
+before the last job run.
+
+### DEPLOY2ZENODO_GET_METADATA
+
+If this variable is not empty the metadata of the record is stored in a
+file with this name.
+
+To get these data at the end of the script an additional communication
+with the DEPLOY2ZENODO_API_URL server is done.
+
 ## CI pipeline
 
 Using the keyword
@@ -332,7 +415,7 @@ deploy2zenodo:
   stage: deploy
 ```
 
-The provided GitLab ci template of `deploy2zenodo` uses
+The provided GitLab CI template of `deploy2zenodo` uses
 [`alpine:latest`](https://hub.docker.com/_/alpine)
 and installs necessary software in `before_script`.
 To use other images you must adapt it, e. g.:

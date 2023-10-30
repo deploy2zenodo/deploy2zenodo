@@ -3,7 +3,7 @@ set -e
 
 #    deploy2zenodo
 #    Copyright (C) 2023  Daniel Mohr
-#    Version: 0.3.1
+#    Version: 0.4.0
 #
 # Instead of command line parameters we use environment variables.
 #
@@ -18,6 +18,8 @@ set -e
 #   * DEPLOY2ZENODO_SKIP_PUBLISH
 #   * DEPLOY2ZENODO_DRYRUN
 #   * DEPLOY2ZENODO_SKIPRUN
+#   * DEPLOY2ZENODO_SKIP_NEW_VERSION
+#   * DEPLOY2ZENODO_GET_METADATA
 #
 # For more information see: https://gitlab.com/deploy2zenodo/deploy2zenodo
 #
@@ -86,6 +88,7 @@ if [ "$DEPLOY2ZENODO_DEPOSITION_ID" = "create NEW record" ]; then
     NEWRECORD="$(curl --header "$hjson" --header "$hauth" --request POST --data-binary "$(cat "$DEPLOY2ZENODO_JSON")" "$DEPLOY2ZENODO_API_URL"/deposit/depositions)"
     echo "$NEWRECORD" | jq -C .
     DEPLOY2ZENODO_DEPOSITION_ID=$(echo "$NEWRECORD" | jq .id)
+    LATESTID=$DEPLOY2ZENODO_DEPOSITION_ID
     test "$DEPLOY2ZENODO_DEPOSITION_ID" != "null"
     echo "##################################################################"
     echo "# add the id of the deposition/record on zenodo for the next run #"
@@ -144,14 +147,35 @@ else
     NEWVERSIONURL=$(echo "$NEWVERSIONURLRAW" | sed 's/"//g')
 
     #   * create new version
-    NEWVERSION=$(curl --header "$hauth" --request POST "$NEWVERSIONURL")
-    echo "$NEWVERSION" | jq -C .
-    LATESTDRAFTRAW=$(echo "$NEWVERSION" | jq .links.latest_draft)
-    test "$LATESTDRAFTRAW" != "null"
-    LATESTDRAFT=$(echo "$LATESTDRAFTRAW" | sed 's/"//g')
-    BUCKETURLRAW=$(echo "$NEWVERSION" | jq .links.bucket)
-    test "$BUCKETURLRAW" != "null"
-    BUCKETURL=$(echo "$BUCKETURLRAW" | sed 's/"//g')
+    if [ -n "$DEPLOY2ZENODO_SKIP_NEW_VERSION" ]; then
+	echo "#########################################"
+	echo "# --> Creating new version is skipped!  #"
+	echo "# --> Try to find latest draft.         #"
+	echo "#########################################"
+	conceptrecidraw=$(echo "$RECORD" | jq .conceptrecid)
+	conceptrecid=$(echo "$conceptrecidraw" | sed 's/"//g')
+	#LISTRES=$(curl --header "Authorization: Bearer $DEPLOY2ZENODO_ACCESS_TOKEN" "$DEPLOY2ZENODO_API_URL"/deposit/depositions?all_versions=1)
+	LISTRES=$(curl --header "Authorization: Bearer $DEPLOY2ZENODO_ACCESS_TOKEN" "$DEPLOY2ZENODO_API_URL"/deposit/depositions?conceptrecid="$conceptrecid")
+	LATESTRECORDPRE=$(echo "$LISTRES" | jq ".[] | select(.conceptrecid==\"$conceptrecid\" and .state!=\"done\")")
+	LATESTID=$(echo "$LATESTRECORDPRE" | jq .id)
+	LATESTRECORD=$(curl --header "$hauth" "$DEPLOY2ZENODO_API_URL/deposit/depositions/$LATESTID")
+	LATESTDRAFTRAW=$(echo "$LATESTRECORD" | jq .links.latest_draft)
+	test "$LATESTDRAFTRAW" != "null"
+	LATESTDRAFT=$(echo "$LATESTDRAFTRAW" | sed 's/"//g')
+	BUCKETURLRAW=$(echo "$LATESTRECORD" | jq .links.bucket)
+	test "$BUCKETURLRAW" != "null"
+	test "$BUCKETURL" != "null"
+    else
+	NEWVERSION=$(curl --header "$hauth" --request POST "$NEWVERSIONURL")
+	echo "$NEWVERSION" | jq -C .
+	LATESTDRAFTRAW=$(echo "$NEWVERSION" | jq .links.latest_draft)
+	test "$LATESTDRAFTRAW" != "null"
+	LATESTDRAFT=$(echo "$LATESTDRAFTRAW" | sed 's/"//g')
+	BUCKETURLRAW=$(echo "$NEWVERSION" | jq .links.bucket)
+	test "$BUCKETURLRAW" != "null"
+	BUCKETURL=$(echo "$BUCKETURLRAW" | sed 's/"//g')
+	LATESTID=$(echo "$NEWVERSION" | jq .id)
+    fi
 
     #   * update metadata
     UPLOADMETADATA=$(curl --header "$hauth" --header "$hjson" --request PUT --data-binary "$(cat "$DEPLOY2ZENODO_JSON")" "$LATESTDRAFT")
@@ -162,7 +186,6 @@ else
 	id=$(echo "$id" | sed 's/"//g')
 	echo "$id"
 	DELETEFILE=$(curl --header "$hauth" --request DELETE "$LATESTDRAFT"/files/"$id")
-	echo "$DELETEFILE"
 	echo "$DELETEFILE" | jq -C .
     done
 
@@ -196,7 +219,13 @@ else
 	    test "$(echo "$PUBLISHRECORD" | jq .state)" = '"done"'
 	    test "$(echo "$PUBLISHRECORD" | jq .submitted)" = "true"
 	fi
+	LATESTID=$(echo "$PUBLISHRECORD" | jq .id)
     fi
+fi
+if [ -n "$DEPLOY2ZENODO_GET_METADATA" ]; then
+    LATESTMETADATA=$(curl --header "$hauth" "$DEPLOY2ZENODO_API_URL"/deposit/depositions/"$LATESTID" | tee "$DEPLOY2ZENODO_GET_METADATA")
+    echo "$LATESTMETADATA" | jq -C .
+    test "$(echo "$LATESTMETADATA" | jq .id)" = "$LATESTID"
 fi
 
 # stop deploy2zenodo
