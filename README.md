@@ -222,7 +222,6 @@ to extract data. For example the preserved DOI is available by:
 jq .metadata.prereserve_doi.doi "$DEPLOY2ZENODO_GET_METADATA"
 ```
 
-
 ## script parameter
 
 Instead of command line parameters we use environment variables.
