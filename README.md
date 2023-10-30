@@ -1,6 +1,6 @@
 ---
 author: Daniel Mohr
-date: 2023-10-28
+date: 2023-10-30
 license: Apache-2.0
 home: https://gitlab.com/deploy2zenodo/deploy2zenodo
 mirror: ?
@@ -82,6 +82,9 @@ You can write this file on your own, e. g.:
 }
 ```
 
+You can find the necessary and possible fields on
+[zenodo: Deposit metadata](https://developers.zenodo.org/#representation).
+
 Or [cffconvert](https://github.com/citation-file-format/cffconvert) can help
 you to create the necessary metadata in JSON format from a
 [CITATION.cff file](https://github.com/citation-file-format/citation-file-format).
@@ -92,6 +95,19 @@ e. g.:
 cffconvert -i CITATION.cff -f zenodo | \
   jq -c '{"metadata": .}' | jq '.metadata += {"upload_type": "software"}' | \
   tee CITATION.json
+```
+
+As `description` you can use HTML. For example you could use
+[pandoc](https://pandoc.org/) to convert your `README.md` to HTML and
+[jq](https://github.com/jqlang/jq) to add the HTML code as JSON value:
+
+```sh
+pandoc -o README.html README.md
+echo '{"metadata":{"title":"foo","upload_type":"software",
+  "creators":[{"name":"ich","affiliation":"bar"}],
+  "description":"foos description"}}' | \
+  jq --rawfile README README.html '.metadata.description = $README' | jq . | \
+  tee metadata.json
 ```
 
 ### DEPLOY2ZENODO_UPLOAD
@@ -109,6 +125,9 @@ File names with spaces are not supported. Instead if `DEPLOY2ZENODO_UPLOAD`
 contains space(s) it is assumed that splitting at the spaces leads to many
 files which should each be uploaded.
 
+The reason not supporting spaces is that
+[you cannot create a CI/CD variable that is an array](https://docs.gitlab.com/ee/ci/variables/index.html#store-multiple-values-in-one-variable).
+
 ### DEPLOY2ZENODO_SKIP_PUBLISH
 
 If this variable is not empty the publishing step is skipped, e. g.:
@@ -119,8 +138,8 @@ If this variable is not empty the publishing step is skipped, e. g.:
 
 Only the record is prepared -- metadata and data is uploaded -- but not
 published.
-You can see what will be published in the web interface of zenodo and
-initiate the publishing by pressing the button in the web interface.
+You can see what will be published as a preview in the web interface of zenodo
+and initiate the publishing by pressing the button in the web interface.
 
 This helps to integrate `deploy2zenodo` in your project.
 
