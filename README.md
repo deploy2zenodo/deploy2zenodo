@@ -1,6 +1,6 @@
 ---
 author: Daniel Mohr
-date: 2023-10-27
+date: 2023-10-28
 license: Apache-2.0
 home: https://gitlab.com/deploy2zenodo/deploy2zenodo
 mirror: ?
@@ -24,7 +24,7 @@ You have to provide the following variables:
 | DEPLOY2ZENODO_ACCESS_TOKEN | access token of zenodo |
 | DEPLOY2ZENODO_DEPOSITION_ID | id of the deposition/record on zenodo |
 | DEPLOY2ZENODO_JSON | file name with metadata in JSON format to upload |
-| DEPLOY2ZENODO_UPLOAD | file name to upload |
+| DEPLOY2ZENODO_UPLOAD | file name(s) to upload |
 
 There are other optional variables:
 
@@ -96,7 +96,7 @@ cffconvert -i CITATION.cff -f zenodo | \
 
 ### DEPLOY2ZENODO_UPLOAD
 
-The given file will be uploaded as data. Typically this would be an archive.
+The given file(s) will be uploaded as data. Typically this would be an archive.
 
 For example you can create an archive of a tag from a git repository:
 
@@ -105,12 +105,24 @@ TAG=0.0.3
 git archive --format zip --output $TAG.zip $TAG
 ```
 
+File names with spaces are not supported. Instead if `DEPLOY2ZENODO_UPLOAD`
+contains space(s) it is assumed that splitting at the spaces leads to many
+files which should each be uploaded.
+
 ### DEPLOY2ZENODO_SKIP_PUBLISH
 
-If this variable is not empty the publishing step is skipped.
+If this variable is not empty the publishing step is skipped, e. g.:
+
+```sh
+ DEPLOY2ZENODO_SKIP_PUBLISH="true"
+```
+
 Only the record is prepared -- metadata and data is uploaded -- but not
-published. You can do the publishing step in the web interface of zenodo.
-This could help to integrate `deploy2zenodo` in your project.
+published.
+You can see what will be published in the web interface of zenodo and
+initiate the publishing by pressing the button in the web interface.
+
+This helps to integrate `deploy2zenodo` in your project.
 
 ### DEPLOY2ZENODO_DRYRUN
 
