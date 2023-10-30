@@ -164,7 +164,7 @@ else
 	LATESTDRAFT=$(echo "$LATESTDRAFTRAW" | sed 's/"//g')
 	BUCKETURLRAW=$(echo "$LATESTRECORD" | jq .links.bucket)
 	test "$BUCKETURLRAW" != "null"
-	test "$BUCKETURL" != "null"
+	BUCKETURL=$(echo "$BUCKETURLRAW" | sed 's/"//g')
     else
 	NEWVERSION=$(curl --header "$hauth" --request POST "$NEWVERSIONURL")
 	echo "$NEWVERSION" | jq -C .
