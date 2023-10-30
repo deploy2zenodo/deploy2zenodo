@@ -3,7 +3,7 @@ set -e
 
 #    deploy2zenodo
 #    Copyright (C) 2023  Daniel Mohr
-#    Version: 0.3.0
+#    Version: 0.3.1
 #
 # Instead of command line parameters we use environment variables.
 #
@@ -77,14 +77,14 @@ hauth="Authorization: Bearer $DEPLOY2ZENODO_ACCESS_TOKEN"
 
 set -x
 
-jq . "$DEPLOY2ZENODO_JSON"
+jq -C . "$DEPLOY2ZENODO_JSON"
 
 if [ "$DEPLOY2ZENODO_DEPOSITION_ID" = "create NEW record" ]; then
     # create new record
     echo "create new record"
     #   * create new record and upload metadata
     NEWRECORD="$(curl --header "$hjson" --header "$hauth" --request POST --data-binary "$(cat "$DEPLOY2ZENODO_JSON")" "$DEPLOY2ZENODO_API_URL"/deposit/depositions)"
-    echo "$NEWRECORD" | jq .
+    echo "$NEWRECORD" | jq -C .
     DEPLOY2ZENODO_DEPOSITION_ID=$(echo "$NEWRECORD" | jq .id)
     test "$DEPLOY2ZENODO_DEPOSITION_ID" != "null"
     echo "##################################################################"
@@ -97,10 +97,10 @@ if [ "$DEPLOY2ZENODO_DEPOSITION_ID" = "create NEW record" ]; then
     test "$BUCKETURLRAW" != "null"
     BUCKETURL=$(echo "$BUCKETURLRAW" | sed 's/"//g')
 
-    #   * upload files/archive
+    #   * upload files/archives
     for filename in $DEPLOY2ZENODO_UPLOAD; do
 	FILEUPLOAD=$(curl --header "$hauth" --upload-file "$filename" "$BUCKETURL"/"$(basename "$filename")")
-	echo "$FILEUPLOAD" | jq .
+	echo "$FILEUPLOAD" | jq -C .
 	CHECKSUM=$(echo "$FILEUPLOAD" | jq .checksum)
 	test "$CHECKSUM" != "null"
 	CHECKSUM=$(echo "$CHECKSUM" | sed 's/"//g' | cut -d ':' -f 2)
@@ -119,10 +119,11 @@ if [ "$DEPLOY2ZENODO_DEPOSITION_ID" = "create NEW record" ]; then
 	echo "#################################################"
     else
 	PUBLISHRECORD=$(curl --max-time 300 --header "$hauth" --request POST "$DEPLOY2ZENODO_API_URL"/deposit/depositions/"$DEPLOY2ZENODO_DEPOSITION_ID"/actions/publish)
-	echo "$PUBLISHRECORD" | jq .
+	echo "$PUBLISHRECORD" | jq -C .
 	if [ -n "$DEPLOY2ZENODO_DRYRUN" ] || [ -n "$DEPLOY2ZENODO_SKIPRUN" ]; then
 	    echo "Skip testing result due to DRYRUN or SKIPRUN."
 	else
+	    test "$(echo "$PUBLISHRECORD" | jq .state)" = '"done"'
 	    test "$(echo "$PUBLISHRECORD" | jq .submitted)" = "true"
 	fi
     fi
@@ -134,18 +135,17 @@ if [ "$DEPLOY2ZENODO_DEPOSITION_ID" = "create NEW record" ]; then
     echo "##################################################################"
 else
     # update record
-    #   * publish
     echo "update record"
     #   * get data from record
     RECORD=$(curl --header "$hauth" "$DEPLOY2ZENODO_API_URL"/deposit/depositions/"$DEPLOY2ZENODO_DEPOSITION_ID")
-    echo "$RECORD" | jq .
+    echo "$RECORD" | jq -C .
     NEWVERSIONURLRAW=$(echo "$RECORD" | jq .links.newversion)
     test "$NEWVERSIONURLRAW" != "null"
     NEWVERSIONURL=$(echo "$NEWVERSIONURLRAW" | sed 's/"//g')
 
     #   * create new version
     NEWVERSION=$(curl --header "$hauth" --request POST "$NEWVERSIONURL")
-    echo "$NEWVERSION" | jq .
+    echo "$NEWVERSION" | jq -C .
     LATESTDRAFTRAW=$(echo "$NEWVERSION" | jq .links.latest_draft)
     test "$LATESTDRAFTRAW" != "null"
     LATESTDRAFT=$(echo "$LATESTDRAFTRAW" | sed 's/"//g')
@@ -155,7 +155,7 @@ else
 
     #   * update metadata
     UPLOADMETADATA=$(curl --header "$hauth" --header "$hjson" --request PUT --data-binary "$(cat "$DEPLOY2ZENODO_JSON")" "$LATESTDRAFT")
-    echo "$UPLOADMETADATA" | jq .
+    echo "$UPLOADMETADATA" | jq -C .
 
     #   * remove all files from new version
     for id in $(echo "$UPLOADMETADATA" | jq ".files[] | .id"); do
@@ -163,13 +163,13 @@ else
 	echo "$id"
 	DELETEFILE=$(curl --header "$hauth" --request DELETE "$LATESTDRAFT"/files/"$id")
 	echo "$DELETEFILE"
-	echo "$DELETEFILE" | jq .
+	echo "$DELETEFILE" | jq -C .
     done
 
-    #   * upload files/archive
+    #   * upload files/archives
     for filename in $DEPLOY2ZENODO_UPLOAD; do
 	FILEUPLOAD=$(curl --header "$hauth" --upload-file "$filename" "$BUCKETURL"/"$(basename "$filename")")
-	echo "$FILEUPLOAD" | jq .
+	echo "$FILEUPLOAD" | jq -C .
 	CHECKSUM=$(echo "$FILEUPLOAD" | jq .checksum)
 	test "$CHECKSUM" != "null"
 	CHECKSUM=$(echo "$CHECKSUM" | sed 's/"//g')
@@ -189,10 +189,11 @@ else
 	echo "#################################################"
     else
 	PUBLISHRECORD=$(curl --max-time 300 --header "$hauth" --request POST "$LATESTDRAFT"/actions/publish)
-	echo "$PUBLISHRECORD" | jq .
+	echo "$PUBLISHRECORD" | jq -C .
 	if [ -n "$DEPLOY2ZENODO_DRYRUN" ] || [ -n "$DEPLOY2ZENODO_SKIPRUN" ]; then
 	    echo "Skip testing result due to DRYRUN or SKIPRUN."
 	else
+	    test "$(echo "$PUBLISHRECORD" | jq .state)" = '"done"'
 	    test "$(echo "$PUBLISHRECORD" | jq .submitted)" = "true"
 	fi
     fi
