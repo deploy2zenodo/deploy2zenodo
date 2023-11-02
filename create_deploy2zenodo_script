@@ -14,6 +14,6 @@ URL=$(sed -n 's/^home:\s*\(https:\S*\)$/\1/p' README.md)
 
 sed '/^VERSION=.*$/d' $IN | \
     sed "s#v\$VERSION#v$VERSION $URL-/releases/$VERSION#g" | \
-    sed '/^\s*$/d'  > $OUT
+    sed '/^\s*$/d' > $OUT
 
 chmod +x $OUT

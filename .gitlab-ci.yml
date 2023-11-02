@@ -25,6 +25,7 @@ pre-commit:
     - cat $CI_FILE_NAME
     - ./create_deploy2zenodo_script
     - cat $FILE_NAME.sh
+    - md5sum $BASE_FILE_NAME $CI_FILE_NAME $FILE_NAME.sh
     - pre-commit run --all-files
   artifacts:
     expire_in: 1 hrs

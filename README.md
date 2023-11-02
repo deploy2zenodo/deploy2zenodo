@@ -1,6 +1,6 @@
 ---
 author: Daniel Mohr
-date: 2023-10-30
+date: 2023-11-02
 license: Apache-2.0
 home: https://gitlab.com/deploy2zenodo/deploy2zenodo
 mirror: ?
@@ -8,6 +8,8 @@ latest_release: https://gitlab.com/deploy2zenodo/deploy2zenodo/-/releases/permal
 ---
 
 # `deploy2zenodo`
+
+[[_TOC_]]
 
 `deploy2zenodo` is a
 [shell](https://en.wikipedia.org/wiki/Bourne_shell) script to deploy
@@ -62,7 +64,6 @@ prepare_release_and_deploy2zenodo:
     - git archive --format zip --output v$TAG.zip $TAG
     - echo "DEPLOY2ZENODO_UPLOAD=$DEPLOY2ZENODO_UPLOAD" >> variables.env
   artifacts:
-    expire_in: 1 hrs
     reports:
       dotenv: variables.env
     paths:
@@ -99,6 +100,8 @@ We use here 3 jobs:
 * The job `prepare_release_and_deploy2zenodo` prepares the
   variables and data for the following jobs. You can choose how to get
   the variables and data from your project/repository.
+  (see hints in [DEPLOY2ZENODO_JSON](#deploy2zenodo_json) and
+  [DEPLOY2ZENODO_UPLOAD](#deploy2zenodo_upload))
 * The job `release_job` uses the workflow
   [Create release metadata in a custom script](https://docs.gitlab.com/ee/user/project/releases/release_cicd_examples.html#create-release-metadata-in-a-custom-script).
 * The job `deploy2zenodo` publishes the data to zenodo.
@@ -112,12 +115,36 @@ After the first run of the above pipeline (job `deploy2zenodo`) adapt
 `DEPLOY2ZENODO_DEPOSITION_ID` to store the record id. Only then you are
 able to release new versions to zenodo.
 
+The used environment variables (see [script parameter](#script-parameter)) can
+be provided in many different ways as a
+[GitLab CI/CD variable](https://docs.gitlab.com/ee/ci/variables/), e. g.:
+
+* [CI/CD variable in the UI](https://docs.gitlab.com/ee/ci/variables/#define-a-cicd-variable-in-the-ui)
+  * not stored in the repository
+  * possible to [Mask variable](https://docs.gitlab.com/ee/ci/variables/index.html#mask-a-cicd-variable)
+  * possible to [Protect variable](https://docs.gitlab.com/ee/ci/variables/index.html#protect-a-cicd-variable)
+  * used for private data (e. g. access token)
+* [CI/CD variable in the .gitlab-ci.yml](https://docs.gitlab.com/ee/ci/variables/#define-a-cicd-variable-in-the-gitlab-ciyml-file)
+  * stored in the repository
+  * in public projects also publicly accessable
+
+You should think about which information to store at which place.
+Here a few simple considerations:
+
+| variable | private data | note |
+| ------ | ------ | ------ |
+| DEPLOY2ZENODO_API_URL | no | Should a user find your publication? |
+| DEPLOY2ZENODO_ACCESS_TOKEN | YES | Should not be shared with anyone! |
+| DEPLOY2ZENODO_DEPOSITION_ID | no | Should a user find your publication? |
+| DEPLOY2ZENODO_JSON | ? | Is the publication public? |
+| DEPLOY2ZENODO_UPLOAD | ? | Is the publication public? |
+
 ### triggered workflow
 
-In many projects are more then one maintainer. Therefore it is not possible
-to store the user token for zenodo as CI variable in the project.
+In many projects there are more than one maintainer. Therefore it is not
+possible to store the user token for zenodo as CI variable in the project.
 
-But the project `A` with more then one maintainer can trigger a pipeline in
+But the project `A` with more than one maintainer can trigger a pipeline in
 another (private) project `B` with only one maintainer, e. g.:
 
 ```yaml
@@ -134,7 +161,7 @@ trigger:
     - curl -X POST --fail -F token="$TRIGGER_TOKEN" -F ref=main $TRIGGER_URL
 ```
 
-In the project `B` you can do the normal use of `deploy2zenodo`, e. g.:
+In the project `B` you can use deploy2zenodo as normal, e. g.:
 
 ```yaml
 prepare_deploy2zenodo:
@@ -246,6 +273,8 @@ There are other optional variables:
 | DEPLOY2ZENODO_SKIP_NEW_VERSION | skip creating new version |
 | DEPLOY2ZENODO_GET_METADATA | write actual metadata to a file |
 | DEPLOY2ZENODO_SKIP_UPLOAD | skip upload of data |
+| DEPLOY2ZENODO_CURL_MAX_TIME | max time for curl |
+| DEPLOY2ZENODO_CURL_MAX_TIME_PUBLISH | max time for curl during publishing |
 
 ### DEPLOY2ZENODO_API_URL
 
@@ -334,9 +363,9 @@ TAG=0.0.3
 git archive --format zip --output $TAG.zip $TAG
 ```
 
-File names with spaces are not supported. Instead if `DEPLOY2ZENODO_UPLOAD`
-contains space(s) it is assumed that splitting at the spaces leads to many
-files which should each be uploaded.
+File names with spaces are not supported. Instead, if `DEPLOY2ZENODO_UPLOAD`
+contains space(s), the string is split at the spaces.
+Each individual block represents a file and these files will be uploaded.
 
 The reason not supporting spaces is that
 [you cannot create a CI/CD variable that is an array](https://docs.gitlab.com/ee/ci/variables/index.html#store-multiple-values-in-one-variable).
@@ -362,7 +391,7 @@ to zenodo in steps.
 ### DEPLOY2ZENODO_DRYRUN
 
 If this variable is not empty the communication to the given URL is skipped.
-But your parameter are analyzed. This could help to integrate `deploy2zenodo`
+But your parameters are analyzed. This could help to integrate `deploy2zenodo`
 in your project.
 
 ### DEPLOY2ZENODO_SKIPRUN
@@ -403,6 +432,16 @@ If you split deploying to zenodo in steps using DEPLOY2ZENODO_SKIP_PUBLISH and
 DEPLOY2ZENODO_SKIP_NEW_VERSION you can avoid unnecessary traffic by using also
 DEPLOY2ZENODO_SKIP_UPLOAD.
 
+### DEPLOY2ZENODO_CURL_MAX_TIME
+
+Max time for curl (`--max-time` flag) in seconds for normal use.
+Default value is 60.
+
+### DEPLOY2ZENODO_CURL_MAX_TIME_PUBLISH
+
+Max time for curl (`--max-time` flag) in seconds during publishing.
+Default value is 300.
+
 ## CI pipeline
 
 Using the keyword
@@ -416,6 +455,9 @@ You can use the latest version
 in your CI pipeline.
 Or you can use any special versions, e. g.
 [deploy2zenodo.yaml v0.1.0](https://gitlab.com/deploy2zenodo/deploy2zenodo/-/releases/0.1.0/downloads/deploy2zenodo.yaml).
+
+The provided job is called `deploy2zenodo` and you can overwrite or enhance
+the defined job as you need (e. g. defining when to run or defining variables).
 
 A simple example choosing the stage to run could be:
 

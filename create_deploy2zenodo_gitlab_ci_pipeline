@@ -13,10 +13,10 @@ VERSION=$(sed -n 's/^.*Version:\s*\(\S*\)$/\1/p' $IN)
 URL=$(sed -n 's/^home:\s*\(https:\S*\)$/\1/p' README.md)
 
 script=$(sed -n '/^#    deploy2zenodo$/,/^# stop deploy2zenodo$/p' $IN | \
-	     sed '/^\s*$/d' | \
-	     sed '/^VERSION=.*$/d' | \
-	     sed "s#v\$VERSION#v$VERSION $URL-/releases/$VERSION#g" | \
-	     sed 's/^/      /')
+             sed '/^\s*$/d' | \
+             sed '/^VERSION=.*$/d' | \
+             sed "s#v\$VERSION#v$VERSION $URL-/releases/$VERSION#g" | \
+             sed 's/^/      /')
 
 cat >$OUT <<EOL
 .deploy2zenodo:
