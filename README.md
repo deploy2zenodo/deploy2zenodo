@@ -126,7 +126,7 @@ be provided in many different ways as a
   * used for private data (e. g. access token)
 * [CI/CD variable in the .gitlab-ci.yml](https://docs.gitlab.com/ee/ci/variables/#define-a-cicd-variable-in-the-gitlab-ciyml-file)
   * stored in the repository
-  * in public projects also public accessable
+  * in public projects also publicly accessable
 
 You should think about which information to store at which place.
 Here a few simple considerations:
@@ -141,10 +141,10 @@ Here a few simple considerations:
 
 ### triggered workflow
 
-In many projects are more then one maintainer. Therefore it is not possible
-to store the user token for zenodo as CI variable in the project.
+In many projects there are more than one maintainer. Therefore it is not
+possible to store the user token for zenodo as CI variable in the project.
 
-But the project `A` with more then one maintainer can trigger a pipeline in
+But the project `A` with more than one maintainer can trigger a pipeline in
 another (private) project `B` with only one maintainer, e. g.:
 
 ```yaml
@@ -161,7 +161,7 @@ trigger:
     - curl -X POST --fail -F token="$TRIGGER_TOKEN" -F ref=main $TRIGGER_URL
 ```
 
-In the project `B` you can do the normal use of `deploy2zenodo`, e. g.:
+In the project `B` you can use deploy2zenodo as normal, e. g.:
 
 ```yaml
 prepare_deploy2zenodo:
@@ -363,9 +363,9 @@ TAG=0.0.3
 git archive --format zip --output $TAG.zip $TAG
 ```
 
-File names with spaces are not supported. Instead if `DEPLOY2ZENODO_UPLOAD`
-contains space(s) it is assumed that splitting at the spaces leads to many
-files which should each be uploaded.
+File names with spaces are not supported. Instead, if `DEPLOY2ZENODO_UPLOAD`
+contains space(s), the string is split at the spaces.
+Each individual block represents a file and these files will be uploaded.
 
 The reason not supporting spaces is that
 [you cannot create a CI/CD variable that is an array](https://docs.gitlab.com/ee/ci/variables/index.html#store-multiple-values-in-one-variable).
@@ -391,7 +391,7 @@ to zenodo in steps.
 ### DEPLOY2ZENODO_DRYRUN
 
 If this variable is not empty the communication to the given URL is skipped.
-But your parameter are analyzed. This could help to integrate `deploy2zenodo`
+But your parameters are analyzed. This could help to integrate `deploy2zenodo`
 in your project.
 
 ### DEPLOY2ZENODO_SKIPRUN
@@ -434,12 +434,12 @@ DEPLOY2ZENODO_SKIP_UPLOAD.
 
 ### DEPLOY2ZENODO_CURL_MAX_TIME
 
-Max time for curl (`--max-time` flag) for normal use.
+Max time for curl (`--max-time` flag) in seconds for normal use.
 Default value is 60.
 
 ### DEPLOY2ZENODO_CURL_MAX_TIME_PUBLISH
 
-Max time for curl (`--max-time` flag) during publishing.
+Max time for curl (`--max-time` flag) in seconds during publishing.
 Default value is 300.
 
 ## CI pipeline
