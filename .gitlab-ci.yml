@@ -27,10 +27,6 @@ pre-commit:
     - cat $FILE_NAME.sh
     - md5sum $BASE_FILE_NAME $CI_FILE_NAME $FILE_NAME.sh
     - pre-commit run --all-files
-    # ensure no tab used
-    - awk '{exit !/\t/}' $BASE_FILE_NAME
-    - awk '{exit !/\t/}' $CI_FILE_NAME
-    - awk '{exit !/\t/}' $FILE_NAME.sh
   artifacts:
     expire_in: 1 hrs
     paths:
