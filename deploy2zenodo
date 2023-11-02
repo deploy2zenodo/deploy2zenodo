@@ -21,6 +21,8 @@ set -e
 #   * DEPLOY2ZENODO_SKIP_NEW_VERSION
 #   * DEPLOY2ZENODO_GET_METADATA
 #   * DEPLOY2ZENODO_SKIP_UPLOAD
+#   * DEPLOY2ZENODO_CURL_MAX_TIME
+#   * DEPLOY2ZENODO_CURL_MAX_TIME_PUBLISH
 #
 # For more information see: https://gitlab.com/deploy2zenodo/deploy2zenodo
 #
@@ -55,7 +57,7 @@ if [ -n "$missing_variables" ]; then
     echo "missing variables are at least:$missing_variables"
     exit 1
 else
-    for varname in DEPLOY2ZENODO_API_URL DEPLOY2ZENODO_DEPOSITION_ID DEPLOY2ZENODO_JSON DEPLOY2ZENODO_UPLOAD DEPLOY2ZENODO_SKIP_PUBLISH DEPLOY2ZENODO_DRYRUN DEPLOY2ZENODO_SKIPRUN DEPLOY2ZENODO_SKIP_NEW_VERSION DEPLOY2ZENODO_GET_METADATA DEPLOY2ZENODO_SKIP_UPLOAD; do
+    for varname in DEPLOY2ZENODO_API_URL DEPLOY2ZENODO_DEPOSITION_ID DEPLOY2ZENODO_JSON DEPLOY2ZENODO_UPLOAD DEPLOY2ZENODO_SKIP_PUBLISH DEPLOY2ZENODO_DRYRUN DEPLOY2ZENODO_SKIPRUN DEPLOY2ZENODO_SKIP_NEW_VERSION DEPLOY2ZENODO_GET_METADATA DEPLOY2ZENODO_SKIP_UPLOAD DEPLOY2ZENODO_CURL_MAX_TIME DEPLOY2ZENODO_CURL_MAX_TIME_PUBLISH; do
         echo "$varname: $(eval "echo \"\$$varname\"")"
     done
 fi
@@ -78,9 +80,10 @@ if [ -n "$DEPLOY2ZENODO_SKIPRUN" ]; then
     }
 fi
 
+CURL_MAX_TIME_PUBLISH=${DEPLOY2ZENODO_CURL_MAX_TIME_PUBLISH:-300}
 hjson='Content-Type: application/json'
-hauth="Authorization: Bearer $DEPLOY2ZENODO_ACCESS_TOKEN"
-alias curlauth='curl --header "$hauth"'
+alias curlauth='curl --header "Authorization: Bearer $DEPLOY2ZENODO_ACCESS_TOKEN"  --max-time "${DEPLOY2ZENODO_CURL_MAX_TIME:-60}"'
+
 echojq() {
     echo "$1" | jq -C .
 }
@@ -171,11 +174,11 @@ else
         LISTRES=$(curlauth "$DEPLOY2ZENODO_API_URL"/deposit/depositions?conceptrecid="$conceptrecid")
         LATESTRECORDPRE=$(echo "$LISTRES" | jq -c ".[] | select(.conceptrecid==\"$conceptrecid\" and .state!=\"done\")")
         LATESTID=$(echo "$LATESTRECORDPRE" | jq .id)
-	echo "#############################"
-	echo "# found latest id: $LATESTID"
-	echo "#############################"
+        echo "#############################"
+        echo "# found latest id: $LATESTID"
+        echo "#############################"
         LATESTRECORD=$(curlauth "$DEPLOY2ZENODO_API_URL/deposit/depositions/$LATESTID")
-	echojq "$LATESTRECORD"
+        echojq "$LATESTRECORD"
         LATESTDRAFTRAW=$(echo "$LATESTRECORD" | jq .links.latest_draft)
         test "$LATESTDRAFTRAW" != "null"
         LATESTDRAFT=$(echo "$LATESTDRAFTRAW" | sed 's/"//g')
@@ -192,9 +195,9 @@ else
         test "$BUCKETURLRAW" != "null"
         BUCKETURL=$(echo "$BUCKETURLRAW" | sed 's/"//g')
         LATESTID=$(echo "$NEWVERSION" | jq .id)
-	echo "#############################"
-	echo "# found latest id: $LATESTID"
-	echo "#############################"
+        echo "#############################"
+        echo "# found latest id: $LATESTID"
+        echo "#############################"
     fi
 
     #   * update metadata
@@ -237,7 +240,7 @@ else
         echo "# --> You have to publish this record manually! #"
         echo "#################################################"
     else
-        PUBLISHRECORD=$(curlauth --max-time 300 --request POST "$LATESTDRAFT"/actions/publish)
+        PUBLISHRECORD=$(curlauth --max-time "$CURL_MAX_TIME_PUBLISH" --request POST "$LATESTDRAFT"/actions/publish)
         echojq "$PUBLISHRECORD"
         if [ -n "$DEPLOY2ZENODO_DRYRUN" ] || [ -n "$DEPLOY2ZENODO_SKIPRUN" ]; then
             echo "Skip testing result due to DRYRUN or SKIPRUN."
@@ -246,9 +249,9 @@ else
             test "$(echo "$PUBLISHRECORD" | jq .submitted)" = "true"
         fi
         LATESTID=$(echo "$PUBLISHRECORD" | jq .id)
-	echo "#############################"
-	echo "# found latest id: $LATESTID"
-	echo "#############################"
+        echo "#############################"
+        echo "# found latest id: $LATESTID"
+        echo "#############################"
     fi
 fi
 if [ -n "$DEPLOY2ZENODO_GET_METADATA" ]; then

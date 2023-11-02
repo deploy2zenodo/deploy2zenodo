@@ -273,6 +273,8 @@ There are other optional variables:
 | DEPLOY2ZENODO_SKIP_NEW_VERSION | skip creating new version |
 | DEPLOY2ZENODO_GET_METADATA | write actual metadata to a file |
 | DEPLOY2ZENODO_SKIP_UPLOAD | skip upload of data |
+| DEPLOY2ZENODO_CURL_MAX_TIME | max time for curl |
+| DEPLOY2ZENODO_CURL_MAX_TIME_PUBLISH | max time for curl during publishing |
 
 ### DEPLOY2ZENODO_API_URL
 
@@ -429,6 +431,16 @@ allowed if DEPLOY2ZENODO_SKIP_PUBLISH is not empty, too.
 If you split deploying to zenodo in steps using DEPLOY2ZENODO_SKIP_PUBLISH and
 DEPLOY2ZENODO_SKIP_NEW_VERSION you can avoid unnecessary traffic by using also
 DEPLOY2ZENODO_SKIP_UPLOAD.
+
+### DEPLOY2ZENODO_CURL_MAX_TIME
+
+Max time for curl (`--max-time` flag) for normal use.
+Default value is 60.
+
+### DEPLOY2ZENODO_CURL_MAX_TIME_PUBLISH
+
+Max time for curl (`--max-time` flag) during publishing.
+Default value is 300.
 
 ## CI pipeline
 
