@@ -3,7 +3,7 @@ set -e
 
 #    deploy2zenodo
 #    Copyright (C) 2023  Daniel Mohr
-#    Version: 0.4.1
+#    Version: 0.4.2
 #
 # Instead of command line parameters we use environment variables.
 #
@@ -47,41 +47,43 @@ echo "run deploy2zenodo v$VERSION"
 missing_variables=""
 for varname in DEPLOY2ZENODO_API_URL DEPLOY2ZENODO_ACCESS_TOKEN DEPLOY2ZENODO_DEPOSITION_ID DEPLOY2ZENODO_JSON DEPLOY2ZENODO_UPLOAD; do
     if [ -z "$(eval "echo \"\$$varname\"")" ]; then
-	missing_variables="$missing_variables $varname"
+        missing_variables="$missing_variables $varname"
     fi
 done
-
 if [ -n "$missing_variables" ]; then
     echo "ERROR: you have to provide environment variables"
     echo "missing variables are at least:$missing_variables"
     exit 1
 else
     for varname in DEPLOY2ZENODO_API_URL DEPLOY2ZENODO_DEPOSITION_ID DEPLOY2ZENODO_JSON DEPLOY2ZENODO_UPLOAD DEPLOY2ZENODO_SKIP_PUBLISH DEPLOY2ZENODO_DRYRUN DEPLOY2ZENODO_SKIPRUN DEPLOY2ZENODO_SKIP_NEW_VERSION DEPLOY2ZENODO_GET_METADATA DEPLOY2ZENODO_SKIP_UPLOAD; do
-	echo "$varname: $(eval "echo \"\$$varname\"")"
+        echo "$varname: $(eval "echo \"\$$varname\"")"
     done
 fi
 
 if [ -n "$DEPLOY2ZENODO_SKIP_UPLOAD" ] && [ -z "$DEPLOY2ZENODO_SKIP_PUBLISH" ]; then
     echo "ERROR: DEPLOY2ZENODO_SKIP_UPLOAD can only be used if DEPLOY2ZENODO_SKIP_PUBLISH is used, too!"
-    test -n "$DEPLOY2ZENODO_SKIP_PUBLISH"
+    exit 1
 fi
-
 if [ -n "$DEPLOY2ZENODO_DRYRUN" ] || [ -n "$DEPLOY2ZENODO_SKIPRUN" ]; then
     curl() {
-	echo "$@" > /dev/null
+        echo "$@" > /dev/null
     }
 fi
 if [ -n "$DEPLOY2ZENODO_SKIPRUN" ]; then
     jq() {
-	echo "$@" > /dev/null
+        echo "$@" > /dev/null
     }
     md5sum() {
-	echo "$@" > /dev/null
+        echo "$@" > /dev/null
     }
 fi
 
 hjson='Content-Type: application/json'
 hauth="Authorization: Bearer $DEPLOY2ZENODO_ACCESS_TOKEN"
+alias curlauth='curl --header "$hauth"'
+echojq() {
+    echo "$1" | jq -C .
+}
 
 set -x
 
@@ -91,8 +93,8 @@ if [ "$DEPLOY2ZENODO_DEPOSITION_ID" = "create NEW record" ]; then
     # create new record
     echo "create new record"
     #   * create new record and upload metadata
-    NEWRECORD="$(curl --header "$hjson" --header "$hauth" --request POST --data-binary "$(cat "$DEPLOY2ZENODO_JSON")" "$DEPLOY2ZENODO_API_URL"/deposit/depositions)"
-    echo "$NEWRECORD" | jq -C .
+    NEWRECORD="$(curlauth --header "$hjson" --request POST --data-binary "$(cat "$DEPLOY2ZENODO_JSON")" "$DEPLOY2ZENODO_API_URL"/deposit/depositions)"
+    echojq "$NEWRECORD"
     DEPLOY2ZENODO_DEPOSITION_ID=$(echo "$NEWRECORD" | jq .id)
     LATESTID=$DEPLOY2ZENODO_DEPOSITION_ID
     test "$DEPLOY2ZENODO_DEPOSITION_ID" != "null"
@@ -108,39 +110,39 @@ if [ "$DEPLOY2ZENODO_DEPOSITION_ID" = "create NEW record" ]; then
 
     #   * upload files/archives
     if [ -n "$DEPLOY2ZENODO_SKIP_UPLOAD" ]; then
-	echo "##############################"
-	echo "# skip upload files/archives #"
-	echo "##############################"
+        echo "##############################"
+        echo "# skip upload files/archives #"
+        echo "##############################"
     else
-	for filename in $DEPLOY2ZENODO_UPLOAD; do
-	    FILEUPLOAD=$(curl --header "$hauth" --upload-file "$filename" "$BUCKETURL"/"$(basename "$filename")")
-	    echo "$FILEUPLOAD" | jq -C .
-	    CHECKSUM=$(echo "$FILEUPLOAD" | jq .checksum)
-	    test "$CHECKSUM" != "null"
-	    CHECKSUM=$(echo "$CHECKSUM" | sed 's/"//g' | cut -d ':' -f 2)
-	    if [ -n "$DEPLOY2ZENODO_DRYRUN" ] || [ -n "$DEPLOY2ZENODO_SKIPRUN" ]; then
-		echo "Skip testing checksum due to DRYRUN or SKIPRUN."
-	    else
-		echo "$CHECKSUM  $filename" | md5sum -c -
-	    fi
-	done
+        for filename in $DEPLOY2ZENODO_UPLOAD; do
+            FILEUPLOAD=$(curlauth --upload-file "$filename" "$BUCKETURL"/"$(basename "$filename")")
+            echojq "$FILEUPLOAD"
+            CHECKSUM=$(echo "$FILEUPLOAD" | jq .checksum)
+            test "$CHECKSUM" != "null"
+            CHECKSUM=$(echo "$CHECKSUM" | sed 's/"//g' | cut -d ':' -f 2)
+            if [ -n "$DEPLOY2ZENODO_DRYRUN" ] || [ -n "$DEPLOY2ZENODO_SKIPRUN" ]; then
+                echo "Skip testing checksum due to DRYRUN or SKIPRUN."
+            else
+                echo "$CHECKSUM  $filename" | md5sum -c -
+            fi
+        done
     fi
 
     #   * publish
     if [ -n "$DEPLOY2ZENODO_SKIP_PUBLISH" ]; then
-	echo "#################################################"
-	echo "# --> Publishing is skipped!                    #"
-	echo "# --> You have to publish this record manually! #"
-	echo "#################################################"
+        echo "#################################################"
+        echo "# --> Publishing is skipped!                    #"
+        echo "# --> You have to publish this record manually! #"
+        echo "#################################################"
     else
-	PUBLISHRECORD=$(curl --max-time 300 --header "$hauth" --request POST "$DEPLOY2ZENODO_API_URL"/deposit/depositions/"$DEPLOY2ZENODO_DEPOSITION_ID"/actions/publish)
-	echo "$PUBLISHRECORD" | jq -C .
-	if [ -n "$DEPLOY2ZENODO_DRYRUN" ] || [ -n "$DEPLOY2ZENODO_SKIPRUN" ]; then
-	    echo "Skip testing result due to DRYRUN or SKIPRUN."
-	else
-	    test "$(echo "$PUBLISHRECORD" | jq .state)" = '"done"'
-	    test "$(echo "$PUBLISHRECORD" | jq .submitted)" = "true"
-	fi
+        PUBLISHRECORD=$(curlauth --max-time 300 --request POST "$DEPLOY2ZENODO_API_URL"/deposit/depositions/"$DEPLOY2ZENODO_DEPOSITION_ID"/actions/publish)
+        echojq "$PUBLISHRECORD"
+        if [ -n "$DEPLOY2ZENODO_DRYRUN" ] || [ -n "$DEPLOY2ZENODO_SKIPRUN" ]; then
+            echo "Skip testing result due to DRYRUN or SKIPRUN."
+        else
+            test "$(echo "$PUBLISHRECORD" | jq .state)" = '"done"'
+            test "$(echo "$PUBLISHRECORD" | jq .submitted)" = "true"
+        fi
     fi
     echo "##################################################################"
     echo "# add the id of the deposition/record on zenodo for the next run #"
@@ -152,97 +154,96 @@ else
     # update record
     echo "update record"
     #   * get data from record
-    RECORD=$(curl --header "$hauth" "$DEPLOY2ZENODO_API_URL"/deposit/depositions/"$DEPLOY2ZENODO_DEPOSITION_ID")
-    echo "$RECORD" | jq -C .
+    RECORD=$(curlauth "$DEPLOY2ZENODO_API_URL"/deposit/depositions/"$DEPLOY2ZENODO_DEPOSITION_ID")
+    echojq "$RECORD"
     NEWVERSIONURLRAW=$(echo "$RECORD" | jq .links.newversion)
     test "$NEWVERSIONURLRAW" != "null"
     NEWVERSIONURL=$(echo "$NEWVERSIONURLRAW" | sed 's/"//g')
 
     #   * create new version
     if [ -n "$DEPLOY2ZENODO_SKIP_NEW_VERSION" ]; then
-	echo "#########################################"
-	echo "# --> Creating new version is skipped!  #"
-	echo "# --> Try to find latest draft.         #"
-	echo "#########################################"
-	conceptrecidraw=$(echo "$RECORD" | jq .conceptrecid)
-	conceptrecid=$(echo "$conceptrecidraw" | sed 's/"//g')
-	#LISTRES=$(curl --header "Authorization: Bearer $DEPLOY2ZENODO_ACCESS_TOKEN" "$DEPLOY2ZENODO_API_URL"/deposit/depositions?all_versions=1)
-	LISTRES=$(curl --header "Authorization: Bearer $DEPLOY2ZENODO_ACCESS_TOKEN" "$DEPLOY2ZENODO_API_URL"/deposit/depositions?conceptrecid="$conceptrecid")
-	LATESTRECORDPRE=$(echo "$LISTRES" | jq ".[] | select(.conceptrecid==\"$conceptrecid\" and .state!=\"done\")")
-	LATESTID=$(echo "$LATESTRECORDPRE" | jq .id)
-	LATESTRECORD=$(curl --header "$hauth" "$DEPLOY2ZENODO_API_URL/deposit/depositions/$LATESTID")
-	LATESTDRAFTRAW=$(echo "$LATESTRECORD" | jq .links.latest_draft)
-	test "$LATESTDRAFTRAW" != "null"
-	LATESTDRAFT=$(echo "$LATESTDRAFTRAW" | sed 's/"//g')
-	BUCKETURLRAW=$(echo "$LATESTRECORD" | jq .links.bucket)
-	test "$BUCKETURLRAW" != "null"
-	BUCKETURL=$(echo "$BUCKETURLRAW" | sed 's/"//g')
+        echo "#########################################"
+        echo "# --> Creating new version is skipped!  #"
+        echo "# --> Try to find latest draft.         #"
+        echo "#########################################"
+        conceptrecidraw=$(echo "$RECORD" | jq .conceptrecid)
+        conceptrecid=$(echo "$conceptrecidraw" | sed 's/"//g')
+        LISTRES=$(curlauth "$DEPLOY2ZENODO_API_URL"/deposit/depositions?conceptrecid="$conceptrecid")
+        LATESTRECORDPRE=$(echo "$LISTRES" | jq -c ".[] | select(.conceptrecid==\"$conceptrecid\" and .state!=\"done\")")
+        LATESTID=$(echo "$LATESTRECORDPRE" | jq .id)
+        LATESTRECORD=$(curlauth "$DEPLOY2ZENODO_API_URL/deposit/depositions/$LATESTID")
+        LATESTDRAFTRAW=$(echo "$LATESTRECORD" | jq .links.latest_draft)
+        test "$LATESTDRAFTRAW" != "null"
+        LATESTDRAFT=$(echo "$LATESTDRAFTRAW" | sed 's/"//g')
+        BUCKETURLRAW=$(echo "$LATESTRECORD" | jq .links.bucket)
+        test "$BUCKETURLRAW" != "null"
+        BUCKETURL=$(echo "$BUCKETURLRAW" | sed 's/"//g')
     else
-	NEWVERSION=$(curl --header "$hauth" --request POST "$NEWVERSIONURL")
-	echo "$NEWVERSION" | jq -C .
-	LATESTDRAFTRAW=$(echo "$NEWVERSION" | jq .links.latest_draft)
-	test "$LATESTDRAFTRAW" != "null"
-	LATESTDRAFT=$(echo "$LATESTDRAFTRAW" | sed 's/"//g')
-	BUCKETURLRAW=$(echo "$NEWVERSION" | jq .links.bucket)
-	test "$BUCKETURLRAW" != "null"
-	BUCKETURL=$(echo "$BUCKETURLRAW" | sed 's/"//g')
-	LATESTID=$(echo "$NEWVERSION" | jq .id)
+        NEWVERSION=$(curlauth --request POST "$NEWVERSIONURL")
+        echojq "$NEWVERSION"
+        LATESTDRAFTRAW=$(echo "$NEWVERSION" | jq .links.latest_draft)
+        test "$LATESTDRAFTRAW" != "null"
+        LATESTDRAFT=$(echo "$LATESTDRAFTRAW" | sed 's/"//g')
+        BUCKETURLRAW=$(echo "$NEWVERSION" | jq .links.bucket)
+        test "$BUCKETURLRAW" != "null"
+        BUCKETURL=$(echo "$BUCKETURLRAW" | sed 's/"//g')
+        LATESTID=$(echo "$NEWVERSION" | jq .id)
     fi
 
     #   * update metadata
-    UPLOADMETADATA=$(curl --header "$hauth" --header "$hjson" --request PUT --data-binary "$(cat "$DEPLOY2ZENODO_JSON")" "$LATESTDRAFT")
-    echo "$UPLOADMETADATA" | jq -C .
+    UPLOADMETADATA=$(curlauth --header "$hjson" --request PUT --data-binary "$(cat "$DEPLOY2ZENODO_JSON")" "$LATESTDRAFT")
+    echojq "$UPLOADMETADATA"
 
     #   * remove all files from new version
     for id in $(echo "$UPLOADMETADATA" | jq ".files[] | .id"); do
-	id=$(echo "$id" | sed 's/"//g')
-	echo "$id"
-	DELETEFILE=$(curl --header "$hauth" --request DELETE "$LATESTDRAFT"/files/"$id")
-	echo "$DELETEFILE" | jq -C .
+        id=$(echo "$id" | sed 's/"//g')
+        echo "$id"
+        DELETEFILE=$(curlauth --request DELETE "$LATESTDRAFT"/files/"$id")
+        echojq "$DELETEFILE"
     done
 
     #   * upload files/archives
     if [ -n "$DEPLOY2ZENODO_SKIP_UPLOAD" ]; then
-	echo "##############################"
-	echo "# skip upload files/archives #"
-	echo "##############################"
+        echo "##############################"
+        echo "# skip upload files/archives #"
+        echo "##############################"
     else
-	for filename in $DEPLOY2ZENODO_UPLOAD; do
-	    FILEUPLOAD=$(curl --header "$hauth" --upload-file "$filename" "$BUCKETURL"/"$(basename "$filename")")
-	    echo "$FILEUPLOAD" | jq -C .
-	    CHECKSUM=$(echo "$FILEUPLOAD" | jq .checksum)
-	    test "$CHECKSUM" != "null"
-	    CHECKSUM=$(echo "$CHECKSUM" | sed 's/"//g')
-	    CHECKSUM=$(echo "$CHECKSUM" | cut -d ':' -f 2)
-	    if [ -n "$DEPLOY2ZENODO_DRYRUN" ] || [ -n "$DEPLOY2ZENODO_SKIPRUN" ]; then
-		echo "Skip testing checksum due to DRYRUN or SKIPRUN."
-	    else
-		echo "$CHECKSUM  $filename" | md5sum -c -
-	    fi
-	done
+        for filename in $DEPLOY2ZENODO_UPLOAD; do
+            FILEUPLOAD=$(curlauth --upload-file "$filename" "$BUCKETURL"/"$(basename "$filename")")
+            echojq "$FILEUPLOAD"
+            CHECKSUM=$(echo "$FILEUPLOAD" | jq .checksum)
+            test "$CHECKSUM" != "null"
+            CHECKSUM=$(echo "$CHECKSUM" | sed 's/"//g')
+            CHECKSUM=$(echo "$CHECKSUM" | cut -d ':' -f 2)
+            if [ -n "$DEPLOY2ZENODO_DRYRUN" ] || [ -n "$DEPLOY2ZENODO_SKIPRUN" ]; then
+                echo "Skip testing checksum due to DRYRUN or SKIPRUN."
+            else
+                echo "$CHECKSUM  $filename" | md5sum -c -
+            fi
+        done
     fi
 
     #   * publish
     if [ -n "$DEPLOY2ZENODO_SKIP_PUBLISH" ]; then
-	echo "#################################################"
-	echo "# --> Publishing is skipped!                    #"
-	echo "# --> You have to publish this record manually! #"
-	echo "#################################################"
+        echo "#################################################"
+        echo "# --> Publishing is skipped!                    #"
+        echo "# --> You have to publish this record manually! #"
+        echo "#################################################"
     else
-	PUBLISHRECORD=$(curl --max-time 300 --header "$hauth" --request POST "$LATESTDRAFT"/actions/publish)
-	echo "$PUBLISHRECORD" | jq -C .
-	if [ -n "$DEPLOY2ZENODO_DRYRUN" ] || [ -n "$DEPLOY2ZENODO_SKIPRUN" ]; then
-	    echo "Skip testing result due to DRYRUN or SKIPRUN."
-	else
-	    test "$(echo "$PUBLISHRECORD" | jq .state)" = '"done"'
-	    test "$(echo "$PUBLISHRECORD" | jq .submitted)" = "true"
-	fi
-	LATESTID=$(echo "$PUBLISHRECORD" | jq .id)
+        PUBLISHRECORD=$(curlauth --max-time 300 --request POST "$LATESTDRAFT"/actions/publish)
+        echojq "$PUBLISHRECORD"
+        if [ -n "$DEPLOY2ZENODO_DRYRUN" ] || [ -n "$DEPLOY2ZENODO_SKIPRUN" ]; then
+            echo "Skip testing result due to DRYRUN or SKIPRUN."
+        else
+            test "$(echo "$PUBLISHRECORD" | jq .state)" = '"done"'
+            test "$(echo "$PUBLISHRECORD" | jq .submitted)" = "true"
+        fi
+        LATESTID=$(echo "$PUBLISHRECORD" | jq .id)
     fi
 fi
 if [ -n "$DEPLOY2ZENODO_GET_METADATA" ]; then
-    LATESTMETADATA=$(curl --header "$hauth" "$DEPLOY2ZENODO_API_URL"/deposit/depositions/"$LATESTID" | tee "$DEPLOY2ZENODO_GET_METADATA")
-    echo "$LATESTMETADATA" | jq -C .
+    LATESTMETADATA=$(curlauth "$DEPLOY2ZENODO_API_URL"/deposit/depositions/"$LATESTID" | tee "$DEPLOY2ZENODO_GET_METADATA")
+    echojq "$LATESTMETADATA"
     test "$(echo "$LATESTMETADATA" | jq .id)" = "$LATESTID"
 fi
 

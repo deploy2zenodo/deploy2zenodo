@@ -1,6 +1,6 @@
 ---
 author: Daniel Mohr
-date: 2023-10-30
+date: 2023-11-02
 license: Apache-2.0
 home: https://gitlab.com/deploy2zenodo/deploy2zenodo
 mirror: ?
@@ -8,6 +8,8 @@ latest_release: https://gitlab.com/deploy2zenodo/deploy2zenodo/-/releases/permal
 ---
 
 # `deploy2zenodo`
+
+[[_TOC_]]
 
 `deploy2zenodo` is a
 [shell](https://en.wikipedia.org/wiki/Bourne_shell) script to deploy

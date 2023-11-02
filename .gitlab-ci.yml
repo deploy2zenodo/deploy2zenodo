@@ -26,6 +26,8 @@ pre-commit:
     - ./create_deploy2zenodo_script
     - cat $FILE_NAME.sh
     - pre-commit run --all-files
+    # ensure no tab used
+    - grep $'\t' deploy2zenodo deploy2zenodo.sh deploy2zenodo.yaml && exit 1
   artifacts:
     expire_in: 1 hrs
     paths:
