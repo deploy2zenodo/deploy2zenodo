@@ -171,7 +171,11 @@ else
         LISTRES=$(curlauth "$DEPLOY2ZENODO_API_URL"/deposit/depositions?conceptrecid="$conceptrecid")
         LATESTRECORDPRE=$(echo "$LISTRES" | jq -c ".[] | select(.conceptrecid==\"$conceptrecid\" and .state!=\"done\")")
         LATESTID=$(echo "$LATESTRECORDPRE" | jq .id)
+	echo "#############################"
+	echo "# found latest id: $LATESTID"
+	echo "#############################"
         LATESTRECORD=$(curlauth "$DEPLOY2ZENODO_API_URL/deposit/depositions/$LATESTID")
+	echojq "$LATESTRECORD"
         LATESTDRAFTRAW=$(echo "$LATESTRECORD" | jq .links.latest_draft)
         test "$LATESTDRAFTRAW" != "null"
         LATESTDRAFT=$(echo "$LATESTDRAFTRAW" | sed 's/"//g')
@@ -188,6 +192,9 @@ else
         test "$BUCKETURLRAW" != "null"
         BUCKETURL=$(echo "$BUCKETURLRAW" | sed 's/"//g')
         LATESTID=$(echo "$NEWVERSION" | jq .id)
+	echo "#############################"
+	echo "# found latest id: $LATESTID"
+	echo "#############################"
     fi
 
     #   * update metadata
@@ -239,6 +246,9 @@ else
             test "$(echo "$PUBLISHRECORD" | jq .submitted)" = "true"
         fi
         LATESTID=$(echo "$PUBLISHRECORD" | jq .id)
+	echo "#############################"
+	echo "# found latest id: $LATESTID"
+	echo "#############################"
     fi
 fi
 if [ -n "$DEPLOY2ZENODO_GET_METADATA" ]; then
