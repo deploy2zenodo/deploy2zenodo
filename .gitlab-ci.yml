@@ -28,7 +28,9 @@ pre-commit:
     - md5sum $BASE_FILE_NAME $CI_FILE_NAME $FILE_NAME.sh
     - pre-commit run --all-files
     # ensure no tab used
-    - grep $'\t' deploy2zenodo deploy2zenodo.sh deploy2zenodo.yaml && exit 1
+    - awk '{exit !/\t/}' $BASE_FILE_NAME
+    - awk '{exit !/\t/}' $CI_FILE_NAME
+    - awk '{exit !/\t/}' $FILE_NAME.sh
   artifacts:
     expire_in: 1 hrs
     paths:
