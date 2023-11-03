@@ -130,3 +130,21 @@ trigger2:
     - apk add --no-cache curl
     - curl -X POST --fail -F token="${script_trigger_token:?}" -F ref=main -F "variables[TRIGGERSOURCE]=$CI_COMMIT_BRANCH" "$script_trigger_url"
     - curl -X POST --fail -F token="${complex_script_trigger_token:?}" -F ref=main -F "variables[TRIGGERSOURCE]=$CI_COMMIT_BRANCH" "$complex_script_trigger_url"
+
+deploy_to_github:
+  stage: .post
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+  image:
+    name: alpine:latest
+  script:
+    - date
+    - apk add --no-cache git openssh
+    - mkdir ~/.ssh && chmod 700 ~/.ssh
+    - ssh-keyscan -H github.com >> ~/.ssh/known_hosts
+    - mv $github_deploy_key ~/.ssh/id_ed25519 && chmod 600 ~/.ssh/id_ed25519
+    - repopath=$(mktemp -d)
+    - git clone --bare --mirror ${CI_REPOSITORY_URL} $repopath
+    - (cd $repopath && git for-each-ref --format 'delete %(refname)' refs/merge-requests | tee >(git update-ref --stdin))
+    - (cd $repopath && git for-each-ref --format 'delete %(refname)' refs/pipelines | tee >(git update-ref --stdin))
+    - (cd $repopath && git push --prune --mirror git@github.com:deploy2zenodo/deploy2zenodo.git)
