@@ -1,6 +1,6 @@
 ---
 author: Daniel Mohr
-date: 2023-11-02
+date: 2023-11-03
 license: Apache-2.0
 home: https://gitlab.com/deploy2zenodo/deploy2zenodo
 mirror: ?
@@ -11,10 +11,48 @@ latest_release: https://gitlab.com/deploy2zenodo/deploy2zenodo/-/releases/permal
 
 [[_TOC_]]
 
+## preamble
+
 `deploy2zenodo` is a
 [shell](https://en.wikipedia.org/wiki/Bourne_shell) script to deploy
 your data to [zenodo](https://zenodo.org/).
-You can use it in a [CI pipeline](https://docs.gitlab.com/ee/ci/pipelines/).
+You can use it in a [CI pipeline](https://docs.gitlab.com/ee/ci/pipelines/) as
+an automatic workflow.
+
+Environmental variables allow very flexible use.
+Depending on the selected flags, the data can be curated before deployment
+in a merge request, in the zenodo web interface or not curated at all.
+
+## intention
+
+To satisfy the FAIR[^fair1] principles[^fair2], publications should be
+deployed to an open repository. In this way the publication gets a PID
+([persistent identifier](https://en.wikipedia.org/wiki/Persistent_identifier))
+and at least the metadata is public accessible, findable and citable.
+Furthermore, current discussions about KPIs
+([key performance indicator](https://en.wikipedia.org/wiki/Performance_indicator))
+for software and data publications also lead to the need to generate PIDs
+for software and data.
+
+[^fair1]: [FAIR Principles](https://www.go-fair.org/fair-principles/)
+
+[^fair2]: [An interpretation of the FAIR principles to guide implementations in the HMC digital ecosystem.](https://doi.org/10.3289/HMC_publ_01)
+
+Especially for software usually it is not citable by a PID.
+To overcome this and make software academic significant we provide here a
+tool for automatic publication to the open repository [zenodo](https://zenodo.org/).
+
+In principal the same is true for all kind of scientific data
+(measurements, software and results such as papers).
+For every data managed in a version control system an automatic publication
+to an open repository is useful[^versioning].
+
+[^versioning]: [Guidance on Versioning of Digital Assets.](https://doi.org/10.3289/HMC_publ_04)
+
+Software in particular is subject to frequent changes, resulting in many
+versions. This leads to the urge to automate the publishing process.
+This is not only about making the software usable through software repositories,
+but also about the citability of individual versions.
 
 ## how-to
 
@@ -32,10 +70,12 @@ Store it in a [GitLab CI/CD variable](https://docs.gitlab.com/ee/ci/variables/)
 as `DEPLOY2ZENODO_ACCESS_TOKEN`. Use the flags
 [Mask variable](https://docs.gitlab.com/ee/ci/variables/index.html#mask-a-cicd-variable)
 and [Protect variable](https://docs.gitlab.com/ee/ci/variables/index.html#protect-a-cicd-variable).
+Keep in mind the token is sensitive and private information.
+Therefore you should not share it or make it public available.
 
 Then the [GitLab CI/CD pipeline](https://docs.gitlab.com/ee/ci/pipelines/)
 could look like (we use here [sandbox.zenodo.org](https://sandbox.zenodo.org/)
-instead of [zenodo](https://zenodo.org/) for testing purpose):
+instead of [zenodo.org](https://zenodo.org/) for testing purpose):
 
 ```yaml
 include:
@@ -115,6 +155,10 @@ After the first run of the above pipeline (job `deploy2zenodo`) adapt
 `DEPLOY2ZENODO_DEPOSITION_ID` to store the record id. Only then you are
 able to release new versions to zenodo.
 
+In this example, `prepare_release_and_deploy2zenodo` always runs
+while the other jobs only run when the default branch is changed.
+This makes it possible to check the artifacts during a merge request.
+
 The used environment variables (see [script parameter](#script-parameter)) can
 be provided in many different ways as a
 [GitLab CI/CD variable](https://docs.gitlab.com/ee/ci/variables/), e. g.:
@@ -138,6 +182,13 @@ Here a few simple considerations:
 | DEPLOY2ZENODO_DEPOSITION_ID | no | Should a user find your publication? |
 | DEPLOY2ZENODO_JSON | ? | Is the publication public? |
 | DEPLOY2ZENODO_UPLOAD | ? | Is the publication public? |
+
+There are also optional variables that can help to adapt the workflow to the
+the individual use case.
+For example, [DEPLOY2ZENODO_SKIP_PUBLISH](#deploy2zenodo_skip_publish) allows
+you to curate the upload to zenodo in the zenodo web interface before
+publishing. This is especially useful if you are setting up the workflow for
+the first time in your own project -- but can also be used at any time.
 
 ### triggered workflow
 
@@ -164,6 +215,9 @@ trigger:
 In the project `B` you can use deploy2zenodo as normal, e. g.:
 
 ```yaml
+include:
+  - remote: 'https://gitlab.com/deploy2zenodo/deploy2zenodo/-/releases/permalink/latest/downloads/deploy2zenodo.yaml'
+
 prepare_deploy2zenodo:
   image:
     name: alpine:latest
@@ -182,7 +236,6 @@ prepare_deploy2zenodo:
 
 deploy2zenodo:
   variables:
-    DEPLOY2ZENODO_API_URL: https://sandbox.zenodo.org/api
     DEPLOY2ZENODO_DEPOSITION_ID: "create NEW record"
 ```
 
@@ -192,7 +245,7 @@ job from project `B`. This could lead to security concerns.
 Maybe [Restrict who can override variables](https://docs.gitlab.com/ee/ci/variables/index.html#restrict-who-can-override-variables)
 could help to overcome this.
 
-Another possibility is too use
+Another possibility is to use
 [Secrets management providers](https://docs.gitlab.com/ee/ci/pipelines/pipeline_security.html#secrets-management-providers).
 
 ### complex workflow
@@ -201,6 +254,9 @@ This workflow splits the deploying to zenodo in steps. This allows to use
 the zenodo record (e. g. the DOI) already in the data to publish.
 
 ```yaml
+include:
+  - remote: 'https://gitlab.com/deploy2zenodo/deploy2zenodo/-/releases/permalink/latest/downloads/deploy2zenodo.yaml'
+
 deploy2zenodo:
   rules:
     - if: '"0" == "1"'
@@ -341,7 +397,8 @@ cffconvert -i CITATION.cff -f zenodo | \
 
 As `description` you can use HTML. For example you could use
 [pandoc](https://pandoc.org/) to convert your `README.md` to HTML and
-[jq](https://github.com/jqlang/jq) to add the HTML code as JSON value:
+[jq](https://github.com/jqlang/jq) to add the HTML code as JSON
+value (`jq` will escape appropriate characters if necessary):
 
 ```sh
 pandoc -o README.html README.md
@@ -384,6 +441,7 @@ You can see what will be published as a preview in the web interface of zenodo
 and initiate the publishing by pressing the button in the web interface.
 
 This helps to integrate `deploy2zenodo` in your project.
+But you may also want to curate the upload each time before it is published.
 
 Together with DEPLOY2ZENODO_SKIP_NEW_VERSION this allows to split deploying
 to zenodo in steps.
@@ -483,6 +541,29 @@ deploy2zenodo:
     name: almalinux:latest
   before_script:
     - echo "nothing to do"
+```
+
+## script
+
+You can use the script directly. But that is not our focus of `deploy2zenodo`,
+so we keep it short. For example:
+
+```sh
+SCRIPTURL=https://gitlab.com/deploy2zenodo/deploy2zenodo/-/releases/permalink/latest/downloads/deploy2zenodo
+export DEPLOY2ZENODO_API_URL=https://sandbox.zenodo.org/api
+export DEPLOY2ZENODO_ACCESS_TOKEN=***
+export DEPLOY2ZENODO_DEPOSITION_ID="create NEW record"
+export DEPLOY2ZENODO_JSON=metadata.json
+export DEPLOY2ZENODO_UPLOAD="foo.zip bar.md"
+export DEPLOY2ZENODO_SKIP_PUBLISH="true"
+export DEPLOY2ZENODO_DRYRUN=""
+export DEPLOY2ZENODO_SKIPRUN=""
+export DEPLOY2ZENODO_SKIP_NEW_VERSION=""
+export DEPLOY2ZENODO_GET_METADATA="upload.json"
+export DEPLOY2ZENODO_SKIP_UPLOAD=""
+export DEPLOY2ZENODO_CURL_MAX_TIME=""
+export DEPLOY2ZENODO_CURL_MAX_TIME_PUBLISH=""
+curl -L $SCRIPTURL | tee deploy2zenodo.sh | sh
 ```
 
 ## license: Apache-2.0
