@@ -28,7 +28,7 @@ in a merge request, in the zenodo web interface or not curated at all.
 To satisfy the FAIR[^fair1] principles[^fair2], publications should be
 deployed to an open repository. In this way the publication gets a PID
 ([persistent identifier](https://en.wikipedia.org/wiki/Persistent_identifier))
-and at least the metadata is public accessible, findable and citable.
+and at least the metadata is publicly accessible, findable and citable.
 Furthermore, current discussions about KPIs
 ([key performance indicator](https://en.wikipedia.org/wiki/Performance_indicator))
 for software and data publications also lead to the need to generate PIDs
@@ -39,11 +39,11 @@ for software and data.
 [^fair2]: [An interpretation of the FAIR principles to guide implementations in the HMC digital ecosystem.](https://doi.org/10.3289/HMC_publ_01)
 
 Especially for software usually it is not citable by a PID.
-To overcome this and make software academic significant we provide here a
+To overcome this and make software academically significant we provide here a
 tool for automatic publication to the open repository [zenodo](https://zenodo.org/).
 
 In principal the same is true for all kind of scientific data
-(measurements, software and results such as papers).
+(e. g. measurements, software and results such as papers).
 For every data managed in a version control system an automatic publication
 to an open repository is useful[^versioning].
 
@@ -100,8 +100,8 @@ prepare_release_and_deploy2zenodo:
     - echo "TAG=$TAG" >> variables.env
     # prepare deploy2zenodo
     - echo "DEPLOY2ZENODO_JSON=$DEPLOY2ZENODO_JSON" >> variables.env
-    - DEPLOY2ZENODO_UPLOAD=v$TAG.zip
-    - git archive --format zip --output v$TAG.zip $TAG
+    - DEPLOY2ZENODO_UPLOAD="v$TAG.zip"
+    - git archive --format zip --output "$DEPLOY2ZENODO_UPLOAD" "$TAG"
     - echo "DEPLOY2ZENODO_UPLOAD=$DEPLOY2ZENODO_UPLOAD" >> variables.env
   artifacts:
     reports:
