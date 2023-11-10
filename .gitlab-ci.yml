@@ -107,7 +107,7 @@ deploy_ci_template:
     name: alpine:latest
   extends: .display_env
   script:
-    - apk add --no-cache curl pandoc py3-pip texlive yq
+    - apk add --no-cache curl jq pandoc py3-pip texlive yq
     - pip install cffconvert
     # $DOI and $DEPLOY2ZENODO_DEPOSITION_ID available
     # create CITATION.cff
