@@ -1,0 +1,31 @@
+cff-version: 1.2.0
+title: deploy2zenodo
+message: If you use this software, please cite it using the metadata from this file.
+type: software
+authors:
+  - given-names: Daniel
+    family-names: Mohr
+    orcid: https://orcid.org/0000-0002-9382-6586
+    affiliation: Deutsches Zentrum für Luft- und Raumfahrt e. V.
+repository-code: https://gitlab.com/deploy2zenodo/deploy2zenodo
+url: https://gitlab.com/deploy2zenodo/deploy2zenodo
+repository: https://github.com/deploy2zenodo/deploy2zenodo
+abstract: |-
+  deploy2zenodo is a shell script to deploy your data to
+  zenodo. You can use it in a CI pipeline as an automatic
+  workflow.
+
+  Environmental variables allow very flexible use. Depending
+  on the selected flags, the data can be curated before
+  deployment in a merge request, in the zenodo web interface
+  or not curated at all.
+keywords:
+  - software-citation
+  - DOI
+  - zenodo
+  - CI pipeline
+  - GitLab
+  - shell-script
+  - automatic workflow
+  - deploy
+license: Apache-2.0
