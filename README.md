@@ -1,6 +1,6 @@
 ---
 author: Daniel Mohr
-date: 2023-11-03
+date: 2023-11-10
 license: Apache-2.0
 home: https://gitlab.com/deploy2zenodo/deploy2zenodo
 mirror: https://github.com/deploy2zenodo/deploy2zenodo
@@ -13,7 +13,7 @@ latest_release: https://gitlab.com/deploy2zenodo/deploy2zenodo/-/releases/permal
 
 ## preamble
 
-`deploy2zenodo` is a
+[`deploy2zenodo`](https://gitlab.com/deploy2zenodo/deploy2zenodo) is a
 [shell](https://en.wikipedia.org/wiki/Bourne_shell) script to deploy
 your data to [zenodo](https://zenodo.org/).
 You can use it in a [CI pipeline](https://docs.gitlab.com/ee/ci/pipelines/) as
@@ -391,9 +391,13 @@ e. g.:
 
 ```sh
 cffconvert -i CITATION.cff -f zenodo | \
-  jq -c '{"metadata": .}' | jq '.metadata += {"upload_type": "software"}' | \
+  jq '{"metadata": .} | .metadata += {"upload_type": "software"}' | \
   tee CITATION.json
 ```
+
+Since you need to adapt the output of the conversion you can also use more
+general tools like [yq](https://mikefarah.gitbook.io/yq/) to convert
+a CITATION.cff file to JSON format.
 
 As `description` you can use HTML. For example you could use
 [pandoc](https://pandoc.org/) to convert your `README.md` to HTML and

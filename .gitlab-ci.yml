@@ -5,6 +5,11 @@ variables:
   CI_FILE_NAME: $BASE_FILE_NAME.yaml
   FILE_URL: "$PACKAGE_REGISTRY_URL/$BASE_FILE_NAME-$TAG"
   FILE_NAME: $BASE_FILE_NAME
+  CITATION: CITATION.cff
+  CITATION_FILE_URL: "$PACKAGE_REGISTRY_URL/$CITATION"
+  README: README.md
+  PDFREADME: README.pdf
+  PDFREADME_URL: "$PACKAGE_REGISTRY_URL/$PDFREADME"
 
 .display_env:
   before_script:
@@ -13,13 +18,18 @@ variables:
 
 pre-commit:
   stage: build
+  rules:
+    - if: $CI_COMMIT_TAG
+      when: never
+    - if: $CI_PIPELINE_SOURCE != "pipeline"
   image:
     name: alpine:latest
   extends: .display_env
   script:
     - apk add --no-cache bash gcc git libc-dev npm py3-pip python3-dev
-    - pip3 install pre-commit
+    - pip3 install pre-commit cffconvert
     - pre-commit --version
+    - cffconvert --version
     - pre-commit run --all-files
     - ./create_deploy2zenodo_gitlab_ci_pipeline
     - cat $CI_FILE_NAME
@@ -27,60 +37,117 @@ pre-commit:
     - cat $FILE_NAME.sh
     - md5sum $BASE_FILE_NAME $CI_FILE_NAME $FILE_NAME.sh
     - pre-commit run --all-files
+    - cffconvert -i "$CITATION" --validate
   artifacts:
     expire_in: 1 hrs
     paths:
       - $CI_FILE_NAME
       - $FILE_NAME.sh
 
-prepare_release:
+prepare_release_step1:
   stage: build
+  rules:
+    - if: $CI_COMMIT_TAG
+      when: never
   image:
-    # https://hub.docker.com/_/alpine
     name: alpine:latest
   extends: .display_env
   script:
-    - echo "DESCRIPTION=README.md" > variables.env
+    - echo "DESCRIPTION=$README" > variables.env
     - TAG=$(sed -n 's/^.*Version:\s*\(\S*\)$/\1/p' $BASE_FILE_NAME)
     - echo "TAG=$TAG" >> variables.env
+    - TAG_COMMIT_TIMESTAMP=$(echo $CI_COMMIT_TIMESTAMP | cut -d "T" -f 1)
+    - echo "TAG_COMMIT_TIMESTAMP=$TAG_COMMIT_TIMESTAMP" >> variables.env
     - cat variables.env
   artifacts:
     expire_in: 1 hrs
     reports:
       dotenv: variables.env
 
+prepare_release_step2:
+  stage: build
+  rules:
+    - if: $CI_COMMIT_TAG
+      when: never
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_PIPELINE_SOURCE != "pipeline"
+  needs:
+    - job: pre-commit
+      artifacts: true
+    - job: prepare_release_step1
+      artifacts: true
+  inherit:
+    variables: false
+  variables:
+    STEP: "1"
+    TAG: $TAG
+    TAG_COMMIT_SHA: $CI_COMMIT_SHA
+    TAG_COMMIT_TIMESTAMP: $TAG_COMMIT_TIMESTAMP
+  trigger:
+    project: daniel_mohr/deploy_deploy2zenodo_to_zenodo
+    strategy: depend
+    forward:
+      yaml_variables: true
+      pipeline_variables: false
+
 deploy_ci_template:
   stage: deploy
   rules:
     - if: $CI_COMMIT_TAG
       when: never
-    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_PIPELINE_SOURCE == "pipeline" && $STEP == "2"
   needs:
     - job: pre-commit
       artifacts: true
-    - job: prepare_release
+    - job: prepare_release_step1
       artifacts: true
   image:
-    # https://hub.docker.com/_/alpine
     name: alpine:latest
   extends: .display_env
   script:
-    - apk add --no-cache curl
+    - apk add --no-cache curl pandoc py3-pip texlive yq
+    - pip install cffconvert
+    # $DOI and $DEPLOY2ZENODO_DEPOSITION_ID available
+    # create CITATION.cff
+    - TMPCITATION=$(mktemp)
+    - yq ".url = \"$CI_PROJECT_URL/-/releases/$TAG\" | .commit = \"$TAG_COMMIT_SHA\" | .version = \"$TAG\" | .\"date-released\" = \"$TAG_COMMIT_TIMESTAMP\" | .identifiers[0].description = \"The DOI of this release.\" | .identifiers[0].value = \"$DOI\" | .identifiers[0].type = \"doi\"" "$CITATION" | tee "$TMPCITATION"
+    - mv "$TMPCITATION" "$CITATION"
+    - cffconvert -i "$CITATION" --validate
+    # create README.pdf
+    - pandocmetadatatmpfile=$(mktemp)
+    - sed -n '/^---$/,/^---$/p' "$README" | grep -v -e "---" | tee > "$pandocmetadatatmpfile"
+    - title=$(grep "^# " "$README" | cut -d " " -f 2-)
+    - |
+      echo "title: \"$title\"" | tee -a "$pandocmetadatatmpfile"
+    - |
+      echo "abstract: \"deploy2zenodo is a script to deploy your data to zenodo providing automatic workflow via ci pipeline\"" | tee -a "$pandocmetadatatmpfile"
+    - jsontmpcitation=$(mktemp)
+    - |
+      cffconvert -i "$CITATION" -f zenodo | jq -c '{"metadata": .} | .metadata += {"upload_type": "software"}' | tee "$jsontmpcitation" | jq -C
+    - keywords=$(jq -c .metadata.keywords "$jsontmpcitation" | sed 's/"//g' | sed 's/\[//g' | sed 's/\]//g' | sed 's/,/, /g')
+    - |
+      echo "keywords: $keywords" | tee -a "$pandocmetadatatmpfile"
+    - grep -v "[[_TOC_]]" "$README" | pandoc -V papersize:a4 -V colorlinks:true -V margin-left=3cm -V margin-right=3cm -V margin-top=3cm --metadata-file="$pandocmetadatatmpfile" -s --toc -f markdown -o $PDFREADME
     - |
       curl --header "JOB-TOKEN: ${CI_JOB_TOKEN}" --upload-file $CI_FILE_NAME $CI_FILE_URL
     - |
       curl --header "JOB-TOKEN: ${CI_JOB_TOKEN}" --upload-file $FILE_NAME.sh $FILE_URL
+    # upload CITATION.cff
+    - |
+      curl --header "JOB-TOKEN: ${CI_JOB_TOKEN}" --upload-file $CITATION $CITATION_FILE_URL
+    # upload README.pdf
+    - |
+      curl --header "JOB-TOKEN: ${CI_JOB_TOKEN}" --upload-file $PDFREADME $PDFREADME_URL
 
 release_job:
   stage: deploy
   rules:
     - if: $CI_COMMIT_TAG
       when: never
-    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_PIPELINE_SOURCE == "pipeline" && $STEP == "2"
   needs:
     - job: pre-commit
       artifacts: true
-    - job: prepare_release
+    - job: prepare_release_step1
       artifacts: true
     - job: deploy_ci_template
   image:
@@ -93,7 +160,7 @@ release_job:
     name: '$BASE_FILE_NAME v$TAG'
     description: '$DESCRIPTION'
     tag_name: '$TAG'
-    ref: '$CI_COMMIT_SHA'
+    ref: '$TAG_COMMIT_SHA'
     assets:
       links:
         - name: $CI_FILE_NAME
@@ -104,13 +171,49 @@ release_job:
           filepath: /$FILE_NAME
           url: $FILE_URL
           link_type: other
+        - name: $CITATION
+          filepath: /$CITATION
+          url: $CITATION_FILE_URL
+          link_type: other
+        - name: $PDFREADME
+          filepath: /$PDFREADME
+          url: $PDFREADME_URL
+          link_type: other
+
+post_release_job:
+  stage: deploy
+  rules:
+    - if: $CI_COMMIT_TAG
+      when: never
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_PIPELINE_SOURCE == "pipeline" && $STEP == "2"
+  needs:
+    - job: pre-commit
+      artifacts: true
+    - job: prepare_release_step1
+      artifacts: true
+    - job: deploy_ci_template
+    - job: release_job
+  variables:
+    TAG: $TAG
+    TAG_COMMIT_SHA: $TAG_COMMIT_SHA
+    TAG_COMMIT_TIMESTAMP: $TAG_COMMIT_TIMESTAMP
+    STEP: "3"
+    TAG: $TAG
+    DOI: $DOI
+    DEPLOY2ZENODO_DEPOSITION_ID: $DEPLOY2ZENODO_DEPOSITION_ID
+  trigger:
+    project: daniel_mohr/deploy_deploy2zenodo_to_zenodo
+    strategy: depend
+    forward:
+      yaml_variables: true
+      pipeline_variables: false
 
 trigger1:
   stage: .post
   rules:
     - if: $CI_COMMIT_TAG
       when: never
-    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_PIPELINE_SOURCE == "pipeline" && $STEP == "2"
   image:
     name: alpine:latest
   script:
@@ -122,7 +225,8 @@ trigger2:
   rules:
     - if: $CI_COMMIT_TAG
       when: never
-    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_PIPELINE_SOURCE == "pipeline" && $STEP == "2"
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_PIPELINE_SOURCE != "pipeline"
     - if: $CI_COMMIT_BRANCH == "mohr"
   image:
     name: alpine:latest
@@ -134,7 +238,7 @@ trigger2:
 deploy_to_github:
   stage: .post
   rules:
-    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_PIPELINE_SOURCE == "pipeline" && $STEP == "2"
   image:
     name: alpine:latest
   script:
