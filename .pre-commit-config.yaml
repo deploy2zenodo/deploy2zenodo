@@ -9,9 +9,7 @@ repos:
       - id: check-shebang-scripts-are-executable
       - id: check-merge-conflict
       - id: check-symlinks
-      #- id: check-yaml
-      # yaml check not working due to
-      # https://gitlab.com/deploy2zenodo/deploy2zenodo/-/jobs/5512027097
+      - id: check-yaml
       - id: detect-private-key
       - id: end-of-file-fixer
       - id: mixed-line-ending
