@@ -1,10 +1,11 @@
 ---
 author: Daniel Mohr
-date: 2023-11-10
+date: 2023-11-13
 license: Apache-2.0
 home: https://gitlab.com/deploy2zenodo/deploy2zenodo
 mirror: https://github.com/deploy2zenodo/deploy2zenodo
 latest_release: https://gitlab.com/deploy2zenodo/deploy2zenodo/-/releases/permalink/latest
+doi: 10.5281/zenodo.10112959
 ---
 
 # `deploy2zenodo`
@@ -190,6 +191,52 @@ you to curate the upload to zenodo in the zenodo web interface before
 publishing. This is especially useful if you are setting up the workflow for
 the first time in your own project -- but can also be used at any time.
 
+### very simple workflow
+
+It is not necessary to create a release for publication. But we think this
+is the typically use case for software publication.
+
+For a very simple workflow running when creating a tag,
+you could use something like:
+
+```yaml
+include:
+  - remote: 'https://gitlab.com/deploy2zenodo/deploy2zenodo/-/releases/permalink/latest/downloads/deploy2zenodo.yaml'
+
+deploy2zenodo:
+  stage: deploy
+  rules:
+    - if: $CI_COMMIT_TAG != ""
+  variables:
+    DEPLOY2ZENODO_API_URL: https://sandbox.zenodo.org/api
+    DEPLOY2ZENODO_JSON: "CITATION.json"
+    DEPLOY2ZENODO_DEPOSITION_ID: "create NEW record"
+    DEPLOY2ZENODO_UPLOAD: "$CI_PROJECT_NAME-$CI_COMMIT_TAG.zip"
+    DEPLOY2ZENODO_ADD_IsCompiledBy_DEPLOY2ZENODO: "yes"
+    DEPLOY2ZENODO_GET_METADATA: "result.json"
+  before_script:
+    - env
+    - apk add --no-cache curl jq py3-pip
+    - pip install cffconvert
+    - |
+      cffconvert -i CITATION.cff -f zenodo | \
+        jq -c '{"metadata": .} | .metadata += {"upload_type": "software"}' | \
+        jq -c ".metadata.related_identifiers += [
+          {\"relation\": \"isDerivedFrom\",
+          \"identifier\": \"$CI_PROJECT_URL\"}] |
+          .metadata.version = \"$CI_COMMIT_TAG\" |
+          .metadata.publication_date = \"$TAG_COMMIT_TIMESTAMP\"" | \
+        tee $DEPLOY2ZENODO_JSON | jq -C .
+    - git archive --format zip --output "$DEPLOY2ZENODO_UPLOAD" "$CI_COMMIT_TAG"
+  artifacts:
+    paths:
+      - $DEPLOY2ZENODO_JSON
+      - $DEPLOY2ZENODO_GET_METADATA
+```
+
+Such a simple workflow uses [deploy_deploy2zenodo_to_zenodo](https://gitlab.com/daniel_mohr/deploy_deploy2zenodo_to_zenodo)
+to publish itself.
+
 ### triggered workflow
 
 In many projects there are more than one maintainer. Therefore it is not
@@ -305,6 +352,12 @@ to extract data. For example the preserved DOI is available by:
 jq .metadata.prereserve_doi.doi "$DEPLOY2ZENODO_GET_METADATA"
 ```
 
+### very complex workflow
+
+`deploy2zenodo` uses a combination of the [triggered workflow](https://gitlab.com/deploy2zenodo/deploy2zenodo#triggered-workflow)
+and the [complex workflow](https://gitlab.com/deploy2zenodo/deploy2zenodo#complex-workflow)
+to publish itself. This is described in [deploy_deploy2zenodo_to_zenodo](https://gitlab.com/daniel_mohr/deploy_deploy2zenodo_to_zenodo).
+
 ## script parameter
 
 Instead of command line parameters we use environment variables.
@@ -331,6 +384,7 @@ There are other optional variables:
 | DEPLOY2ZENODO_SKIP_UPLOAD | skip upload of data |
 | DEPLOY2ZENODO_CURL_MAX_TIME | max time for curl |
 | DEPLOY2ZENODO_CURL_MAX_TIME_PUBLISH | max time for curl during publishing |
+| DEPLOY2ZENODO_ADD_IsCompiledBy_DEPLOY2ZENODO | reference deploy2zenodo |
 
 ### DEPLOY2ZENODO_API_URL
 
@@ -431,6 +485,18 @@ Each individual block represents a file and these files will be uploaded.
 The reason not supporting spaces is that
 [you cannot create a CI/CD variable that is an array](https://docs.gitlab.com/ee/ci/variables/index.html#store-multiple-values-in-one-variable).
 
+If you really not want to provide data set `DEPLOY2ZENODO_UPLOAD` to
+`do NOT provide data`, e. g. `DEPLOY2ZENODO_UPLOAD="do NOT provide data"`.
+If you want to upload 4 files with these names change the order.
+
+Not every zenodo instance supports metadata-only records
+(configured by `canHaveMetadataOnlyRecords`?).
+For example the official [zenodo instance](https://about.zenodo.org/)
+does not allow metadata-only records (as far as I know).
+In this case an empty dummy file is uploaded.
+If this is the case, you should think about respecting the implicit request
+of the used zenodo instance to provide some data.
+
 ### DEPLOY2ZENODO_SKIP_PUBLISH
 
 If this variable is not empty the publishing step is skipped, e. g.:
@@ -503,6 +569,27 @@ Default value is 60.
 
 Max time for curl (`--max-time` flag) in seconds during publishing.
 Default value is 300.
+
+### DEPLOY2ZENODO_ADD_IsCompiledBy_DEPLOY2ZENODO
+
+If this variable is not empty a reference to deploy2zenodo is added.
+Something like (but with the DOI of the used version) will be added to your
+provided JSON file:
+
+```json
+{
+  "metadata": {
+    "related_identifiers": [
+      {
+        "relation": "IsCompiledBy",
+        "identifier": "10.5281/zenodo.10112959",
+        "scheme": "doi",
+        "resource_type": "software"
+      }
+    ]
+  }
+}
+```
 
 ## CI pipeline
 
