@@ -112,13 +112,15 @@ deploy_ci_template:
     # $DOI and $DEPLOY2ZENODO_DEPOSITION_ID available
     # create CITATION.cff
     - TMPCITATION=$(mktemp)
-    - yq ".url = \"$CI_PROJECT_URL/-/releases/$TAG\" | .commit = \"$TAG_COMMIT_SHA\" | .version = \"$TAG\" | .\"date-released\" = \"$TAG_COMMIT_TIMESTAMP\" | .identifiers[0].description = \"The DOI of this release.\" | .identifiers[0].value = \"$DOI\" | .identifiers[0].type = \"doi\"" "$CITATION" | tee "$TMPCITATION"
+    - yq ".url = \"$CI_PROJECT_URL/-/releases/$TAG\" | .commit = \"$TAG_COMMIT_SHA\" | .version = \"$TAG\" | .\"date-released\" = \"$TAG_COMMIT_TIMESTAMP\" | .identifiers[0].description = \"The DOI of this release.\" | .identifiers[0].value = \"$DOI\" | .identifiers[0].type = \"doi\" | .doi = \"$DOI\"" "$CITATION" | tee "$TMPCITATION"
     - mv "$TMPCITATION" "$CITATION"
     - cffconvert -i "$CITATION" --validate
     # create README.pdf
+    - tmpreadme=$(mktemp)
+    - sed "s 10.5281/zenodo.10112959 $DOI g" "$README" > "$tmpreadme"
     - pandocmetadatatmpfile=$(mktemp)
-    - sed -n '/^---$/,/^---$/p' "$README" | grep -v -e "---" | tee > "$pandocmetadatatmpfile"
-    - title=$(grep "^# " "$README" | cut -d " " -f 2-)
+    - sed -n '/^---$/,/^---$/p' "$tmpreadme" | grep -v -e "---" | tee > "$pandocmetadatatmpfile"
+    - title=$(grep "^# " "$tmpreadme" | cut -d " " -f 2-)
     - |
       echo "title: \"$title\"" | tee -a "$pandocmetadatatmpfile"
     - |
@@ -129,7 +131,7 @@ deploy_ci_template:
     - keywords=$(jq -c .metadata.keywords "$jsontmpcitation" | sed 's/"//g' | sed 's/\[//g' | sed 's/\]//g' | sed 's/,/, /g')
     - |
       echo "keywords: $keywords" | tee -a "$pandocmetadatatmpfile"
-    - grep -v "[[_TOC_]]" "$README" | pandoc -V papersize:a4 -V colorlinks:true -V margin-left=3cm -V margin-right=3cm -V margin-top=3cm --metadata-file="$pandocmetadatatmpfile" -s --toc -f markdown -o $PDFREADME
+    - grep -v "[[_TOC_]]" "$tmpreadme" | pandoc -V papersize:a4 -V colorlinks:true -V margin-left=3cm -V margin-right=3cm -V margin-top=3cm --metadata-file="$pandocmetadatatmpfile" -s --toc -f markdown -o $PDFREADME
     - |
       curl --header "JOB-TOKEN: ${CI_JOB_TOKEN}" --upload-file $CI_FILE_NAME $CI_FILE_URL
     - |

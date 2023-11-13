@@ -5,6 +5,7 @@ license: Apache-2.0
 home: https://gitlab.com/deploy2zenodo/deploy2zenodo
 mirror: https://github.com/deploy2zenodo/deploy2zenodo
 latest_release: https://gitlab.com/deploy2zenodo/deploy2zenodo/-/releases/permalink/latest
+doi: 10.5281/zenodo.10112959
 ---
 
 # `deploy2zenodo`

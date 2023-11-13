@@ -11,9 +11,23 @@ OUT=deploy2zenodo.sh
 
 VERSION=$(sed -n 's/^.*Version:\s*\(\S*\)$/\1/p' $IN)
 URL=$(sed -n 's/^home:\s*\(https:\S*\)$/\1/p' README.md)
+script=$(sed '/^VERSION=.*$/d' $IN | \
+             sed "s#v\$VERSION#v$VERSION $URL-/releases/$VERSION#g" | \
+             sed '/^DEPLOY2ZENODO_DOI=.*$/d' | \
+             sed '/^\s*$/d')
 
-sed '/^VERSION=.*$/d' $IN | \
-    sed "s#v\$VERSION#v$VERSION $URL-/releases/$VERSION#g" | \
-    sed '/^\s*$/d' > $OUT
+if [ -n "$DOI" ]; then
+    # replace concept DOI by actual DOI given in the variable DOI:
+    CONCEPTDOI="10.5281/zenodo.10112959"
+    # since 'space' can not be part of a DOI we use space as separator in sed:
+    script=$(echo "$script" | sed "s $CONCEPTDOI $DOI g" | \
+                 sed "s#\$DEPLOY2ZENODO_DOI#$DOI#g")
+else
+    DEPLOY2ZENODO_DOI=$(sed -n 's/^#.*DOI:\s*\(\S*\)$/\1/p' "$IN")
+    script=$(echo "$script" sed '/^DEPLOY2ZENODO_DOI=.*$/d' | \
+                 sed "s#\$DEPLOY2ZENODO_DOI#$DEPLOY2ZENODO_DOI#g")
+fi
+
+echo "$script" > $OUT
 
 chmod +x $OUT
