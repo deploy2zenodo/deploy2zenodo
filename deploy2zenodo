@@ -124,6 +124,9 @@ if [ "$DEPLOY2ZENODO_DEPOSITION_ID" = "create NEW record" ]; then
     echo "#                                                                #"
     echo "# DEPLOY2ZENODO_DEPOSITION_ID=$DEPLOY2ZENODO_DEPOSITION_ID"
     echo "##################################################################"
+    LATESTDRAFTRAW=$(echo "$NEWRECORD" | jq .links.latest_draft)
+    test "$LATESTDRAFTRAW" != "null"
+    LATESTDRAFT=$(echo "$LATESTDRAFTRAW" | sed 's/"//g')
     BUCKETURLRAW=$(echo "$NEWRECORD" | jq .links.bucket)
     test "$BUCKETURLRAW" != "null"
     BUCKETURL=$(echo "$BUCKETURLRAW" | sed 's/"//g')
@@ -161,7 +164,7 @@ if [ "$DEPLOY2ZENODO_DEPOSITION_ID" = "create NEW record" ]; then
         echo "# --> You have to publish this record manually! #"
         echo "#################################################"
     else
-        PUBLISHRECORD=$(curlauth --max-time 300 --request POST "$DEPLOY2ZENODO_API_URL"/deposit/depositions/"$DEPLOY2ZENODO_DEPOSITION_ID"/actions/publish)
+        PUBLISHRECORD=$(curlauth --max-time "$CURL_MAX_TIME_PUBLISH" --request POST "$LATESTDRAFT"/actions/publish)
         echojq "$PUBLISHRECORD"
         if [ -n "$DEPLOY2ZENODO_DRYRUN" ] || [ -n "$DEPLOY2ZENODO_SKIPRUN" ]; then
             echo "Skip testing result due to DRYRUN or SKIPRUN."
