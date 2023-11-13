@@ -221,12 +221,12 @@ deploy2zenodo:
     - |
       cffconvert -i CITATION.cff -f zenodo | \
         jq -c '{"metadata": .} | .metadata += {"upload_type": "software"}' | \
-	jq -c ".metadata.related_identifiers += [
+        jq -c ".metadata.related_identifiers += [
           {\"relation\": \"isDerivedFrom\", 
           \"identifier\": \"$CI_PROJECT_URL\"}] | 
           .metadata.version = \"$CI_COMMIT_TAG\" | 
           .metadata.publication_date = \"$TAG_COMMIT_TIMESTAMP\"" | \
-	tee $DEPLOY2ZENODO_JSON | jq -C .
+        tee $DEPLOY2ZENODO_JSON | jq -C .
     - git archive --format zip --output "$DEPLOY2ZENODO_UPLOAD" "$CI_COMMIT_TAG"
   artifacts:
     paths:
