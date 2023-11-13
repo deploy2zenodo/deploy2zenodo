@@ -206,7 +206,7 @@ include:
 deploy2zenodo:
   stage: deploy
   rules:
-    - if: $CI_COMMIT_TAG != ""
+    - if: $CI_COMMIT_TAG
   variables:
     DEPLOY2ZENODO_API_URL: https://sandbox.zenodo.org/api
     DEPLOY2ZENODO_JSON: "CITATION.json"
@@ -225,7 +225,7 @@ deploy2zenodo:
           {\"relation\": \"isDerivedFrom\",
           \"identifier\": \"$CI_PROJECT_URL\"}] |
           .metadata.version = \"$CI_COMMIT_TAG\" |
-          .metadata.publication_date = \"$TAG_COMMIT_TIMESTAMP\"" | \
+          .metadata.publication_date = \"$CI_COMMIT_TIMESTAMP\"" | \
         tee $DEPLOY2ZENODO_JSON | jq -C .
     - git archive --format zip --output "$DEPLOY2ZENODO_UPLOAD" "$CI_COMMIT_TAG"
   artifacts:

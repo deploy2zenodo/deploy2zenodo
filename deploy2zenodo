@@ -168,7 +168,7 @@ if [ "$DEPLOY2ZENODO_DEPOSITION_ID" = "create NEW record" ]; then
         else
             if [ "$DEPLOY2ZENODO_UPLOAD" = "do NOT provide data" ]; then
                 # Check for error 'Missing uploaded files.'
-                if [ "$(echo "$PUBLISHRECORD" | jq .status)" = 400 ] && [ "$(echo "$PUBLISHRECORD" | jq .errors.field)" = "files.enabled" ]; then
+                if [ "$(echo "$PUBLISHRECORD" | jq .status)" = 400 ] && [ "$(echo "$PUBLISHRECORD" | jq .errors[].field)" = "\"files.enabled\"" ]; then
                     # Seems used zenodo instance does not support
                     # metadata-only records. Try to use empty dummy file.
                     dummyfile="$(mktemp)"
