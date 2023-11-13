@@ -489,6 +489,14 @@ If you really not want to provide data set `DEPLOY2ZENODO_UPLOAD` to
 `do NOT provide data`, e. g. `DEPLOY2ZENODO_UPLOAD="do NOT provide data"`.
 If you want to upload 4 files with these names change the order.
 
+Not every zenodo instance supports metadata-only records
+(configured by `canHaveMetadataOnlyRecords`?).
+For example the official [zenodo instance](https://about.zenodo.org/)
+does not allow metadata-only records (as far as I know).
+In this case an empty dummy file is uploaded.
+If this is the case, you should think about respecting the implicit request
+of the used zenodo instance to provide some data.
+
 ### DEPLOY2ZENODO_SKIP_PUBLISH
 
 If this variable is not empty the publishing step is skipped, e. g.:

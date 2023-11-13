@@ -94,20 +94,26 @@ echojq() {
 set -x
 
 jq -C . "$DEPLOY2ZENODO_JSON"
+DEPLOY2ZENODO_JSON_DATA="$(jq -c . "$DEPLOY2ZENODO_JSON")"
 
 if [ -n "$DEPLOY2ZENODO_ADD_IsCompiledBy_DEPLOY2ZENODO" ]; then
     IsCompiledBy="{\"relation\":\"IsCompiledBy\",\"identifier\":\"$DEPLOY2ZENODO_DOI\",\"scheme\":\"doi\",\"resource_type\":\"software\"}"
     echo "add IsCompiledBy:"
     echojq "$IsCompiledBy"
-    DEPLOY2ZENODO_JSON=$(echo "$DEPLOY2ZENODO_JSON" | jq -c ".metadata.related_identifiers += [$IsCompiledBy]")
-    echojq "$DEPLOY2ZENODO_JSON"
+    DEPLOY2ZENODO_JSON_DATA=$(echo "$DEPLOY2ZENODO_JSON_DATA" | jq -c ".metadata.related_identifiers += [$IsCompiledBy]")
+    echojq "$DEPLOY2ZENODO_JSON_DATA"
+fi
+
+if [ "$DEPLOY2ZENODO_UPLOAD" = "do NOT provide data" ]; then
+    DEPLOY2ZENODO_JSON_DATA=$(echo "$DEPLOY2ZENODO_JSON_DATA" | jq '.files = {"enabled": false}')
+    echojq "$DEPLOY2ZENODO_JSON_DATA"
 fi
 
 if [ "$DEPLOY2ZENODO_DEPOSITION_ID" = "create NEW record" ]; then
     # create new record
     echo "create new record"
     #   * create new record and upload metadata
-    NEWRECORD="$(curlauth --header "$hjson" --request POST --data-binary "$(cat "$DEPLOY2ZENODO_JSON")" "$DEPLOY2ZENODO_API_URL"/deposit/depositions)"
+    NEWRECORD="$(curlauth --header "$hjson" --request POST --data-binary "$DEPLOY2ZENODO_JSON_DATA" "$DEPLOY2ZENODO_API_URL"/deposit/depositions)"
     echojq "$NEWRECORD"
     DEPLOY2ZENODO_DEPOSITION_ID=$(echo "$NEWRECORD" | jq .id)
     LATESTID=$DEPLOY2ZENODO_DEPOSITION_ID
@@ -160,6 +166,26 @@ if [ "$DEPLOY2ZENODO_DEPOSITION_ID" = "create NEW record" ]; then
         if [ -n "$DEPLOY2ZENODO_DRYRUN" ] || [ -n "$DEPLOY2ZENODO_SKIPRUN" ]; then
             echo "Skip testing result due to DRYRUN or SKIPRUN."
         else
+            if [ "$DEPLOY2ZENODO_UPLOAD" = "do NOT provide data" ]; then
+                # Check for error 'Missing uploaded files.'
+                if [ "$(echo "$PUBLISHRECORD" | jq .status)" = 400 ] && [ "$(echo "$PUBLISHRECORD" | jq .errors.field)" = "files.enabled" ]; then
+                    # Seems used zenodo instance does not support
+                    # metadata-only records. Try to use empty dummy file.
+                    dummyfile="$(mktemp)"
+                    FILEUPLOAD=$(curlauth --upload-file "$dummyfile" "$BUCKETURL/dummy")
+                    echojq "$FILEUPLOAD"
+                    CHECKSUM=$(echo "$FILEUPLOAD" | jq .checksum)
+                    test "$CHECKSUM" != "null"
+                    CHECKSUM=$(echo "$CHECKSUM" | sed 's/"//g' | cut -d ':' -f 2)
+                    if [ -n "$DEPLOY2ZENODO_DRYRUN" ] || [ -n "$DEPLOY2ZENODO_SKIPRUN" ]; then
+                        echo "Skip testing checksum due to DRYRUN or SKIPRUN."
+                    else
+                        echo "$CHECKSUM  $dummyfile" | md5sum -c -
+                    fi
+                    PUBLISHRECORD=$(curlauth --max-time "$CURL_MAX_TIME_PUBLISH" --request POST "$LATESTDRAFT"/actions/publish)
+                    echojq "$PUBLISHRECORD"
+                fi
+            fi
             test "$(echo "$PUBLISHRECORD" | jq .state)" = '"done"'
             test "$(echo "$PUBLISHRECORD" | jq .submitted)" = "true"
         fi
@@ -218,7 +244,7 @@ else
     fi
 
     #   * update metadata
-    UPLOADMETADATA=$(curlauth --header "$hjson" --request PUT --data-binary "$(cat "$DEPLOY2ZENODO_JSON")" "$LATESTDRAFT")
+    UPLOADMETADATA=$(curlauth --header "$hjson" --request PUT --data-binary "$DEPLOY2ZENODO_JSON_DATA" "$LATESTDRAFT")
     echojq "$UPLOADMETADATA"
 
     #   * remove all files from new version
@@ -268,6 +294,26 @@ else
         if [ -n "$DEPLOY2ZENODO_DRYRUN" ] || [ -n "$DEPLOY2ZENODO_SKIPRUN" ]; then
             echo "Skip testing result due to DRYRUN or SKIPRUN."
         else
+            if [ "$DEPLOY2ZENODO_UPLOAD" = "do NOT provide data" ]; then
+                # Check for error 'Missing uploaded files.'
+                if [ "$(echo "$PUBLISHRECORD" | jq .status)" = 400 ] && [ "$(echo "$PUBLISHRECORD" | jq .errors[].field)" = "\"files.enabled\"" ]; then
+                    # Seems used zenodo instance does not support
+                    # metadata-only records. Try to use empty dummy file.
+                    dummyfile="$(mktemp)"
+                    FILEUPLOAD=$(curlauth --upload-file "$dummyfile" "$BUCKETURL/dummy")
+                    echojq "$FILEUPLOAD"
+                    CHECKSUM=$(echo "$FILEUPLOAD" | jq .checksum)
+                    test "$CHECKSUM" != "null"
+                    CHECKSUM=$(echo "$CHECKSUM" | sed 's/"//g' | cut -d ':' -f 2)
+                    if [ -n "$DEPLOY2ZENODO_DRYRUN" ] || [ -n "$DEPLOY2ZENODO_SKIPRUN" ]; then
+                        echo "Skip testing checksum due to DRYRUN or SKIPRUN."
+                    else
+                        echo "$CHECKSUM  $dummyfile" | md5sum -c -
+                    fi
+                    PUBLISHRECORD=$(curlauth --max-time "$CURL_MAX_TIME_PUBLISH" --request POST "$LATESTDRAFT"/actions/publish)
+                    echojq "$PUBLISHRECORD"
+                fi
+            fi
             test "$(echo "$PUBLISHRECORD" | jq .state)" = '"done"'
             test "$(echo "$PUBLISHRECORD" | jq .submitted)" = "true"
         fi
