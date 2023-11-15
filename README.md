@@ -39,7 +39,7 @@ for software and data.
 
 [^fair2]: [An interpretation of the FAIR principles to guide implementations in the HMC digital ecosystem.](https://doi.org/10.3289/HMC_publ_01)
 
-Especially for software usually it is not citable by a PID.
+Especially software usually is not citable by a PID.
 To overcome this and make software academically significant we provide here a
 tool for automatic publication to the open repository [zenodo](https://zenodo.org/).
 
@@ -439,7 +439,7 @@ You can find the necessary and possible fields on
 [zenodo: Deposit metadata](https://developers.zenodo.org/#representation).
 
 Or [cffconvert](https://github.com/citation-file-format/cffconvert) can help
-you to create the necessary metadata in JSON format from a
+harvesting the necessary metadata in JSON format from a
 [CITATION.cff file](https://github.com/citation-file-format/citation-file-format).
 Unfortunately we need [jq](https://github.com/jqlang/jq) to correct the format,
 e. g.:
@@ -621,7 +621,8 @@ deploy2zenodo:
 
 The provided GitLab CI template of `deploy2zenodo` uses
 [`alpine:latest`](https://hub.docker.com/_/alpine)
-and installs necessary software in `before_script`.
+and installs necessary software [curl](https://curl.se/) and
+[jq](https://github.com/jqlang/jq) in `before_script`.
 To use other images you must adapt it, e. g.:
 
 ```yaml
