@@ -1,6 +1,6 @@
 ---
 author: Daniel Mohr
-date: 2023-11-13
+date: 2023-11-14
 license: Apache-2.0
 home: https://gitlab.com/deploy2zenodo/deploy2zenodo
 mirror: https://github.com/deploy2zenodo/deploy2zenodo
@@ -218,6 +218,7 @@ deploy2zenodo:
     - env
     - apk add --no-cache curl jq py3-pip
     - pip install cffconvert
+    - publication_date=$(echo "$CI_COMMIT_TIMESTAMP" | grep -Eo "^[0-9]{4}-[0-9]{2}-[0-9]{2}")
     - |
       cffconvert -i CITATION.cff -f zenodo | \
         jq -c '{"metadata": .} | .metadata += {"upload_type": "software"}' | \
@@ -225,7 +226,7 @@ deploy2zenodo:
           {\"relation\": \"isDerivedFrom\",
           \"identifier\": \"$CI_PROJECT_URL\"}] |
           .metadata.version = \"$CI_COMMIT_TAG\" |
-          .metadata.publication_date = \"$CI_COMMIT_TIMESTAMP\"" | \
+          .metadata.publication_date = \"$publication_date\"" | \
         tee $DEPLOY2ZENODO_JSON | jq -C .
     - git archive --format zip --output "$DEPLOY2ZENODO_UPLOAD" "$CI_COMMIT_TAG"
   artifacts:
