@@ -53,17 +53,17 @@ if [ "$edate" != "$publication_date" ]; then
     # go in edit mode
     dopublish=""
     if [ "$(echo "$RECORD" | jq '.submitted')" = true ] && [ "$(echo "$RECORD" | jq -r '.state')" = "done" ]; then
-	# record is published
-	EDITRECORD=$(curl --header "Authorization: Bearer $DEPLOY2ZENODO_ACCESS_TOKEN" --max-time 60 --request POST "$DEPLOY2ZENODO_API_URL/deposit/depositions/$DEPOSITION_ID/actions/edit")
+        # record is published
+        EDITRECORD=$(curl --header "Authorization: Bearer $DEPLOY2ZENODO_ACCESS_TOKEN" --max-time 60 --request POST "$DEPLOY2ZENODO_API_URL/deposit/depositions/$DEPOSITION_ID/actions/edit")
         echo "$EDITRECORD" | jq -C .
-	dopublish="yes"
+        dopublish="yes"
     fi
     # upload new metadata
     UPLOADMETADATA=$(curl --header "Authorization: Bearer $DEPLOY2ZENODO_ACCESS_TOKEN" --max-time 60 --header 'Content-Type: application/json' --request PUT --data-binary "$JSON_DATA" "$DEPLOY2ZENODO_API_URL/deposit/depositions/$DEPOSITION_ID")
     echo "$UPLOADMETADATA" | jq -C .
     if [ -n "$dopublish" ]; then
-	PUBLISH=$(curl --header "Authorization: Bearer $DEPLOY2ZENODO_ACCESS_TOKEN" --max-time 300 --request POST "$DEPLOY2ZENODO_API_URL/deposit/depositions/$DEPOSITION_ID/actions/publish")
-	echo "$PUBLISH" | jq -C .
+        PUBLISH=$(curl --header "Authorization: Bearer $DEPLOY2ZENODO_ACCESS_TOKEN" --max-time 300 --request POST "$DEPLOY2ZENODO_API_URL/deposit/depositions/$DEPOSITION_ID/actions/publish")
+        echo "$PUBLISH" | jq -C .
     fi
 else
     echo "date '$publication_date' seems to be fine"
