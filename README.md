@@ -1,6 +1,6 @@
 ---
 author: Daniel Mohr
-date: 2023-11-13
+date: 2023-11-16
 license: Apache-2.0
 home: https://gitlab.com/deploy2zenodo/deploy2zenodo
 mirror: https://github.com/deploy2zenodo/deploy2zenodo
@@ -39,7 +39,7 @@ for software and data.
 
 [^fair2]: [An interpretation of the FAIR principles to guide implementations in the HMC digital ecosystem.](https://doi.org/10.3289/HMC_publ_01)
 
-Especially for software usually it is not citable by a PID.
+Especially software usually is not citable by a PID.
 To overcome this and make software academically significant we provide here a
 tool for automatic publication to the open repository [zenodo](https://zenodo.org/).
 
@@ -218,6 +218,7 @@ deploy2zenodo:
     - env
     - apk add --no-cache curl jq py3-pip
     - pip install cffconvert
+    - publication_date=$(echo "$CI_COMMIT_TIMESTAMP" | grep -Eo "^[0-9]{4}-[0-9]{2}-[0-9]{2}")
     - |
       cffconvert -i CITATION.cff -f zenodo | \
         jq -c '{"metadata": .} | .metadata += {"upload_type": "software"}' | \
@@ -225,7 +226,7 @@ deploy2zenodo:
           {\"relation\": \"isDerivedFrom\",
           \"identifier\": \"$CI_PROJECT_URL\"}] |
           .metadata.version = \"$CI_COMMIT_TAG\" |
-          .metadata.publication_date = \"$CI_COMMIT_TIMESTAMP\"" | \
+          .metadata.publication_date = \"$publication_date\"" | \
         tee $DEPLOY2ZENODO_JSON | jq -C .
     - git archive --format zip --output "$DEPLOY2ZENODO_UPLOAD" "$CI_COMMIT_TAG"
   artifacts:
@@ -438,7 +439,7 @@ You can find the necessary and possible fields on
 [zenodo: Deposit metadata](https://developers.zenodo.org/#representation).
 
 Or [cffconvert](https://github.com/citation-file-format/cffconvert) can help
-you to create the necessary metadata in JSON format from a
+harvesting the necessary metadata in JSON format from a
 [CITATION.cff file](https://github.com/citation-file-format/citation-file-format).
 Unfortunately we need [jq](https://github.com/jqlang/jq) to correct the format,
 e. g.:
@@ -451,7 +452,17 @@ cffconvert -i CITATION.cff -f zenodo | \
 
 Since you need to adapt the output of the conversion you can also use more
 general tools like [yq](https://mikefarah.gitbook.io/yq/) to convert
-a CITATION.cff file to JSON format.
+a CITATION.cff file (YAML format) to JSON format.
+
+The JSON format zenodo accepts is much more general and provides many more
+options than the Citation File Format. For many purposes the CITATION.cff
+is enough, but otherwise you can see a description of the metadata in the
+GitHub integration of zenodo[^githubintegration] using `zenodo.json` and
+in the description of the metadata in InvenioRDM[^metadatareference].
+
+[^githubintegration] [developers.zenodo.org GitHub](https://developers.zenodo.org/#github)
+
+[^metadatareference] [InvenioRDM: Metadata reference](https://inveniordm.docs.cern.ch/reference/metadata/)
 
 As `description` you can use HTML. For example you could use
 [pandoc](https://pandoc.org/) to convert your `README.md` to HTML and
@@ -620,7 +631,8 @@ deploy2zenodo:
 
 The provided GitLab CI template of `deploy2zenodo` uses
 [`alpine:latest`](https://hub.docker.com/_/alpine)
-and installs necessary software in `before_script`.
+and installs necessary software [curl](https://curl.se/) and
+[jq](https://github.com/jqlang/jq) in `before_script`.
 To use other images you must adapt it, e. g.:
 
 ```yaml

@@ -1,0 +1,70 @@
+#!/usr/bin/env sh
+set -e
+
+#    fix_my_zenodo_record_publication_date
+#    Copyright (C) 2023  Daniel Mohr
+#
+# fix_my_zenodo_record_publication_date [record id] [new publication_date]
+#
+# [new publication_date] is optional
+#                        if not given try to get from actual publication_date
+#
+# You have to provide the following environment variables:
+#   * DEPLOY2ZENODO_API_URL
+#   * DEPLOY2ZENODO_ACCESS_TOKEN
+#
+# Copyright 2023 Daniel Mohr and
+#    Deutsches Zentrum fuer Luft- und Raumfahrt e. V., D-51170 Koeln
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+echo "record: $1"
+
+DEPOSITION_ID="$1"
+RECORD=$(curl --header "Authorization: Bearer $DEPLOY2ZENODO_ACCESS_TOKEN" "$DEPLOY2ZENODO_API_URL/deposit/depositions/$DEPOSITION_ID")
+echo "$RECORD" | jq -C .
+
+if [ "$#" = 1 ]; then
+    echo "try to get new date form old one"
+    publication_date=$(echo "$RECORD" | jq -r ".metadata.publication_date")
+    test "$publication_date" != "null"
+    edate=$(echo "$publication_date" | grep -Eo "^[0-9]{4}-[0-9]{2}-[0-9]{2}")
+else
+    edate=$2
+fi
+if [ -z "$edate" ]; then
+    echo "do not understand new date: '$edate'"
+    exit 1
+fi
+if [ "$edate" != "$publication_date" ]; then
+    echo "adapt date"
+    JSON_DATA=$(echo "$RECORD" | jq ".metadata" | jq ".publication_date = \"$edate\"" | jq '{"metadata": .}' | jq 'del(.metadata.doi)')
+    echo "$JSON_DATA" | jq -C .
+    # go in edit mode
+    dopublish=""
+    if [ "$(echo "$RECORD" | jq '.submitted')" = true ] && [ "$(echo "$RECORD" | jq -r '.state')" = "done" ]; then
+        # record is published
+        EDITRECORD=$(curl --header "Authorization: Bearer $DEPLOY2ZENODO_ACCESS_TOKEN" --max-time 60 --request POST "$DEPLOY2ZENODO_API_URL/deposit/depositions/$DEPOSITION_ID/actions/edit")
+        echo "$EDITRECORD" | jq -C .
+        dopublish="yes"
+    fi
+    # upload new metadata
+    UPLOADMETADATA=$(curl --header "Authorization: Bearer $DEPLOY2ZENODO_ACCESS_TOKEN" --max-time 60 --header 'Content-Type: application/json' --request PUT --data-binary "$JSON_DATA" "$DEPLOY2ZENODO_API_URL/deposit/depositions/$DEPOSITION_ID")
+    echo "$UPLOADMETADATA" | jq -C .
+    if [ -n "$dopublish" ]; then
+        PUBLISH=$(curl --header "Authorization: Bearer $DEPLOY2ZENODO_ACCESS_TOKEN" --max-time 300 --request POST "$DEPLOY2ZENODO_API_URL/deposit/depositions/$DEPOSITION_ID/actions/publish")
+        echo "$PUBLISH" | jq -C .
+    fi
+else
+    echo "date '$publication_date' seems to be fine"
+fi
