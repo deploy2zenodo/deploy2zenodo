@@ -1,0 +1,36 @@
+{
+    "metadata": {
+	"related_identifiers": [
+	    {
+		"relation": "References",
+		"identifier": "https://www.go-fair.org/fair-principles/",
+		"scheme": "url",
+		"resource_type": "other"
+	    },
+	    {
+		"relation": "References",
+		"identifier": "10.3289/HMC_publ_01",
+		"scheme": "doi",
+		"resource_type": "publication-report"
+	    },
+	    {
+		"relation": "References",
+		"identifier": "10.25495/7GXK-RD71",
+		"scheme": "doi",
+		"resource_type": "other"
+	    },
+	    {
+		"relation": "References",
+		"identifier": "10.5281/zenodo.5171937",
+		"scheme": "doi",
+		"resource_type": "software"
+	    },
+	    {
+		"relation": "References",
+		"identifier": "10.5281/zenodo.10137957",
+		"scheme": "doi",
+		"resource_type": "poster"
+	    }
+	]
+    }
+}

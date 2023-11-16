@@ -125,10 +125,7 @@ deploy_ci_template:
       echo "title: \"$title\"" | tee -a "$pandocmetadatatmpfile"
     - |
       echo "abstract: \"deploy2zenodo is a script to deploy your data to zenodo providing automatic workflow via ci pipeline\"" | tee -a "$pandocmetadatatmpfile"
-    - jsontmpcitation=$(mktemp)
-    - |
-      cffconvert -i "$CITATION" -f zenodo | jq -c '{"metadata": .} | .metadata += {"upload_type": "software"}' | tee "$jsontmpcitation" | jq -C
-    - keywords=$(jq -c .metadata.keywords "$jsontmpcitation" | sed 's/"//g' | sed 's/\[//g' | sed 's/\]//g' | sed 's/,/, /g')
+    - keywords=$(cffconvert -i "$CITATION" -f zenodo | jq -cr '.keywords | @csv' | sed 's/"//g' | sed 's/,/, /g')
     - |
       echo "keywords: $keywords" | tee -a "$pandocmetadatatmpfile"
     - grep -v "[[_TOC_]]" "$tmpreadme" | pandoc -V papersize:a4 -V colorlinks:true -V margin-left=3cm -V margin-right=3cm -V margin-top=3cm --metadata-file="$pandocmetadatatmpfile" -s --toc -f markdown -o $PDFREADME
