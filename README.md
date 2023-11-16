@@ -1,6 +1,6 @@
 ---
 author: Daniel Mohr
-date: 2023-11-14
+date: 2023-11-16
 license: Apache-2.0
 home: https://gitlab.com/deploy2zenodo/deploy2zenodo
 mirror: https://github.com/deploy2zenodo/deploy2zenodo
@@ -452,7 +452,17 @@ cffconvert -i CITATION.cff -f zenodo | \
 
 Since you need to adapt the output of the conversion you can also use more
 general tools like [yq](https://mikefarah.gitbook.io/yq/) to convert
-a CITATION.cff file to JSON format.
+a CITATION.cff file (YAML format) to JSON format.
+
+The JSON format zenodo accepts is much more general and provides many more
+options than the Citation File Format. For many purposes the CITATION.cff
+is enough, but otherwise you can see a description of the metadata in the
+GitHub integration of zenodo[^githubintegration] using `zenodo.json` and
+in the description of the metadata in InvenioRDM[^metadatareference].
+
+[^githubintegration] [developers.zenodo.org GitHub](https://developers.zenodo.org/#github)
+
+[^metadatareference] [InvenioRDM: Metadata reference](https://inveniordm.docs.cern.ch/reference/metadata/)
 
 As `description` you can use HTML. For example you could use
 [pandoc](https://pandoc.org/) to convert your `README.md` to HTML and
