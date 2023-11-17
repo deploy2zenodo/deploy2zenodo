@@ -1,6 +1,6 @@
 ---
 author: Daniel Mohr
-date: 2023-11-16
+date: 2023-11-17
 license: Apache-2.0
 home: https://gitlab.com/deploy2zenodo/deploy2zenodo
 mirror: https://github.com/deploy2zenodo/deploy2zenodo
@@ -190,6 +190,8 @@ For example, [DEPLOY2ZENODO_SKIP_PUBLISH](#deploy2zenodo_skip_publish) allows
 you to curate the upload to zenodo in the zenodo web interface before
 publishing. This is especially useful if you are setting up the workflow for
 the first time in your own project -- but can also be used at any time.
+
+An example test project is [deploy2zenodo_test_simple_workflow_update](https://gitlab.com/daniel_mohr/deploy2zenodo_test_simple_workflow_update).
 
 ### very simple workflow
 
