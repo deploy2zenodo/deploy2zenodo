@@ -184,6 +184,20 @@ Here a few simple considerations:
 | DEPLOY2ZENODO_JSON | ? | Is the publication public? |
 | DEPLOY2ZENODO_UPLOAD | ? | Is the publication public? |
 
+Sometimes it is easier to change the variable in the UI.
+For example in your first step you should set
+`DEPLOY2ZENODO_API_URL="https://sandbox.zenodo.org/api"` and
+`DEPLOY2ZENODO_DEPOSITION_ID="create NEW record"` to initiate and test your
+pipeline. After success you should change to
+`DEPLOY2ZENODO_API_URL="https://zenodo.org/api"`.
+And after creating your first record you also would change
+`DEPLOY2ZENODO_DEPOSITION_ID` to the returned value to update your record
+next time. If you store these variables in the UI you can change them
+without touching your repository. On the other side the provided metadata
+via `DEPLOY2ZENODO_JSON` and the provided data via `DEPLOY2ZENODO_UPLOAD`
+may be created dynamically and therefore it could make sense to create these
+variables dynamically, too.
+
 There are also optional variables that can help to adapt the workflow to the
 the individual use case.
 For example, [DEPLOY2ZENODO_SKIP_PUBLISH](#deploy2zenodo_skip_publish) allows
@@ -238,7 +252,7 @@ deploy2zenodo:
 ```
 
 Such a simple workflow uses [deploy_deploy2zenodo_to_zenodo](https://gitlab.com/daniel_mohr/deploy_deploy2zenodo_to_zenodo)
-to publish itself.
+in the job `deploy2zenodo` to publish itself.
 
 ### triggered workflow
 
