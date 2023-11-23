@@ -190,13 +190,14 @@ For example in your first step you should set
 `DEPLOY2ZENODO_DEPOSITION_ID="create NEW record"` to initiate and test your
 pipeline. After success you should change to
 `DEPLOY2ZENODO_API_URL="https://zenodo.org/api"`.
-And after creating your first record you also would change
-`DEPLOY2ZENODO_DEPOSITION_ID` to the returned value to update your record
-next time. If you store these variables in the UI you can change them
-without touching your repository. On the other side the provided metadata
-via `DEPLOY2ZENODO_JSON` and the provided data via `DEPLOY2ZENODO_UPLOAD`
-may be created dynamically and therefore it could make sense to create these
-variables dynamically, too.
+And after you have created your first record, also change
+`DEPLOY2ZENODO_DEPOSITION_ID` to the returned value to update your dataset
+next time (and not create a new one). If you store these variables in the user
+interface, you can change them without touching your repository.
+On the other hand, the metadata provided via `DEPLOY2ZENODO_JSON` and the
+data provided via `DEPLOY2ZENODO_UPLOAD` may be created dynamically and
+it could therefore make sense to create these variables variables dynamically
+as well.
 
 There are also optional variables that can help to adapt the workflow to the
 the individual use case.
