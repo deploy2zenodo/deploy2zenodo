@@ -1,6 +1,6 @@
 ---
 author: Daniel Mohr
-date: 2023-11-17
+date: 2023-11-23
 license: Apache-2.0
 home: https://gitlab.com/deploy2zenodo/deploy2zenodo
 mirror: https://github.com/deploy2zenodo/deploy2zenodo
@@ -684,6 +684,44 @@ export DEPLOY2ZENODO_CURL_MAX_TIME=""
 export DEPLOY2ZENODO_CURL_MAX_TIME_PUBLISH=""
 curl -L $SCRIPTURL | tee deploy2zenodo.sh | sh
 ```
+
+## harvesting
+
+As already mention you have to provide the metadata and the data to upload.
+
+In my opinion, this is very dependent on the project.
+In many programming languages, there is a convention to store metadata such
+as name, author, description, version and license in certain
+files (`pyproject.toml`, `library.properties`, ...).
+In order to deploy this information to zenodo, it must be available in a
+certain format and with a certain vocabulary. The already mentioned
+[cffconvert](https://github.com/citation-file-format/cffconvert) tries to do
+this at least for cff files.
+Other tools such as [somesy](https://github.com/Materials-Data-Science-and-Informatics/somesy)
+have a somewhat different focus, but they can also help in a pipeline.
+For example, you could use it to convert a typical python `pyproject.toml`
+into `CITATION.cff` and then use
+[cffconvert](https://github.com/citation-file-format/cffconvert) and
+[jq](https://github.com/jqlang/jq) to get metadata for zenodo.
+However, [hermes](https://docs.software-metadata.pub/en/latest/) should also
+be mentioned here. hermes tries to merge metadata from different sources and
+to provided it for zenodo.
+
+## curating
+
+You have various options for curating the data for publication.
+
+The typical workflow in software development is to work in developer or
+feature branches and then merge them with the default branch (e. g. `main`).
+This is usually done in a merge request. If the harvesting of metadata and
+data is already taking place in a CI pipeline at this point, this can also
+be checked in the merge request.
+
+If publishing is prevented by using `DEPLOY2ZENODO_SKIP_PUBLISH`,
+the preview in the zenodo web interface can be used to check the result.
+
+If you have implemented a stable, functioning process, curation can also be
+omitted and publishing can be fully automated.
 
 ## license: Apache-2.0
 
