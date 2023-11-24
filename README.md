@@ -1,6 +1,6 @@
 ---
 author: Daniel Mohr
-date: 2023-11-23
+date: 2023-11-24
 license: Apache-2.0
 home: https://gitlab.com/deploy2zenodo/deploy2zenodo
 mirror: https://github.com/deploy2zenodo/deploy2zenodo
@@ -196,8 +196,7 @@ next time (and not create a new one). If you store these variables in the user
 interface, you can change them without touching your repository.
 On the other hand, the metadata provided via `DEPLOY2ZENODO_JSON` and the
 data provided via `DEPLOY2ZENODO_UPLOAD` may be created dynamically and
-it could therefore make sense to create these variables variables dynamically
-as well.
+it could therefore make sense to create these variables dynamically as well.
 
 There are also optional variables that can help to adapt the workflow to the
 the individual use case.
@@ -688,7 +687,7 @@ curl -L $SCRIPTURL | tee deploy2zenodo.sh | sh
 
 ## harvesting
 
-As already mention you have to provide the metadata and the data to upload.
+As already mentioned you have to provide the metadata and the data to upload.
 
 In my opinion, this is very dependent on the project.
 In many programming languages, there is a convention to store metadata such
@@ -699,14 +698,14 @@ certain format and with a certain vocabulary. The already mentioned
 [cffconvert](https://github.com/citation-file-format/cffconvert) tries to do
 this at least for cff files.
 Other tools such as [somesy](https://github.com/Materials-Data-Science-and-Informatics/somesy)
-have a somewhat different focus, but they can also help in a pipeline.
+have a somewhat different focus, but they can also help in a pipeline/toolchain.
 For example, you could use it to convert a typical python `pyproject.toml`
 into `CITATION.cff` and then use
 [cffconvert](https://github.com/citation-file-format/cffconvert) and
 [jq](https://github.com/jqlang/jq) to get metadata for zenodo.
 However, [hermes](https://docs.software-metadata.pub/en/latest/) should also
 be mentioned here. hermes tries to merge metadata from different sources and
-to provided it for zenodo.
+to provide it for zenodo.
 
 ## curating
 
