@@ -225,7 +225,7 @@ else
         if [ -z "$DEPLOY2ZENODO_DRYRUN" ] && [ -z "$DEPLOY2ZENODO_SKIPRUN" ]; then
             test -n "$LATESTURL" -a "$LATESTURL" != "null"
         fi
-        LATESTRECORD=$(curlauth "$LATESTURL")
+        LATESTRECORD=$(curlauth -L "$LATESTURL")
         echojq "$LATESTRECORD"
         LATESTID=$(echo "$LATESTRECORD" | jq .id)
         if [ -z "$DEPLOY2ZENODO_DRYRUN" ] && [ -z "$DEPLOY2ZENODO_SKIPRUN" ]; then
