@@ -143,9 +143,9 @@ if [ "$DEPLOY2ZENODO_DEPOSITION_ID" = "create NEW record" ]; then
             for filename in $DEPLOY2ZENODO_UPLOAD; do
                 FILEUPLOAD=$(curlauth --upload-file "$filename" "$BUCKETURL"/"$(basename "$filename")")
                 echojq "$FILEUPLOAD"
-                CHECKSUM=$(echo "$FILEUPLOAD" | jq .checksum)
+                CHECKSUM=$(echo "$FILEUPLOAD" | jq -r .checksum)
                 test -n "$CHECKSUM" -a "$CHECKSUM" != "null"
-                CHECKSUM=$(echo "$CHECKSUM" | sed 's/"//g' | cut -d ':' -f 2)
+                CHECKSUM=$(echo "$CHECKSUM" | cut -d ':' -f 2)
                 if [ -n "$DEPLOY2ZENODO_DRYRUN" ] || [ -n "$DEPLOY2ZENODO_SKIPRUN" ]; then
                     echo "Skip testing checksum due to DRYRUN or SKIPRUN."
                 else
@@ -175,9 +175,9 @@ if [ "$DEPLOY2ZENODO_DEPOSITION_ID" = "create NEW record" ]; then
                     dummyfile="$(mktemp)"
                     FILEUPLOAD=$(curlauth --upload-file "$dummyfile" "$BUCKETURL/dummy")
                     echojq "$FILEUPLOAD"
-                    CHECKSUM=$(echo "$FILEUPLOAD" | jq .checksum)
+                    CHECKSUM=$(echo "$FILEUPLOAD" | jq -r .checksum)
                     test -n "$CHECKSUM" -a "$CHECKSUM" != "null"
-                    CHECKSUM=$(echo "$CHECKSUM" | sed 's/"//g' | cut -d ':' -f 2)
+                    CHECKSUM=$(echo "$CHECKSUM" | cut -d ':' -f 2)
                     if [ -n "$DEPLOY2ZENODO_DRYRUN" ] || [ -n "$DEPLOY2ZENODO_SKIPRUN" ]; then
                         echo "Skip testing checksum due to DRYRUN or SKIPRUN."
                     else
@@ -246,8 +246,7 @@ else
     echojq "$UPLOADMETADATA"
 
     #   * remove all files from new version
-    for id in $(echo "$UPLOADMETADATA" | jq ".files[] | .id"); do
-        id=$(echo "$id" | sed 's/"//g')
+    for id in $(echo "$UPLOADMETADATA" | jq -r ".files[] | .id"); do
         echo "$id"
         DELETEFILE=$(curlauth --request DELETE "$LATESTDRAFT"/files/"$id")
         echojq "$DELETEFILE"
@@ -267,9 +266,8 @@ else
             for filename in $DEPLOY2ZENODO_UPLOAD; do
                 FILEUPLOAD=$(curlauth --upload-file "$filename" "$BUCKETURL"/"$(basename "$filename")")
                 echojq "$FILEUPLOAD"
-                CHECKSUM=$(echo "$FILEUPLOAD" | jq .checksum)
+                CHECKSUM=$(echo "$FILEUPLOAD" | jq -r .checksum)
                 test -n "$CHECKSUM" -a "$CHECKSUM" != "null"
-                CHECKSUM=$(echo "$CHECKSUM" | sed 's/"//g')
                 CHECKSUM=$(echo "$CHECKSUM" | cut -d ':' -f 2)
                 if [ -n "$DEPLOY2ZENODO_DRYRUN" ] || [ -n "$DEPLOY2ZENODO_SKIPRUN" ]; then
                     echo "Skip testing checksum due to DRYRUN or SKIPRUN."
@@ -300,9 +298,9 @@ else
                     dummyfile="$(mktemp)"
                     FILEUPLOAD=$(curlauth --upload-file "$dummyfile" "$BUCKETURL/dummy")
                     echojq "$FILEUPLOAD"
-                    CHECKSUM=$(echo "$FILEUPLOAD" | jq .checksum)
+                    CHECKSUM=$(echo "$FILEUPLOAD" | jq -r .checksum)
                     test -n "$CHECKSUM" -a "$CHECKSUM" != "null"
-                    CHECKSUM=$(echo "$CHECKSUM" | sed 's/"//g' | cut -d ':' -f 2)
+                    CHECKSUM=$(echo "$CHECKSUM" | cut -d ':' -f 2)
                     if [ -n "$DEPLOY2ZENODO_DRYRUN" ] || [ -n "$DEPLOY2ZENODO_SKIPRUN" ]; then
                         echo "Skip testing checksum due to DRYRUN or SKIPRUN."
                     else
