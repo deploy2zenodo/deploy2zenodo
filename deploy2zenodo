@@ -116,8 +116,8 @@ if [ "$DEPLOY2ZENODO_DEPOSITION_ID" = "create NEW record" ]; then
     NEWRECORD="$(curlauth --header "$hjson" --request POST --data-binary "$DEPLOY2ZENODO_JSON_DATA" "$DEPLOY2ZENODO_API_URL"/deposit/depositions)"
     echojq "$NEWRECORD"
     DEPLOY2ZENODO_DEPOSITION_ID=$(echo "$NEWRECORD" | jq .id)
-    LATESTID=$DEPLOY2ZENODO_DEPOSITION_ID
     test -n "$DEPLOY2ZENODO_DEPOSITION_ID" -a "$DEPLOY2ZENODO_DEPOSITION_ID" != "null"
+    LATESTID=$DEPLOY2ZENODO_DEPOSITION_ID
     echo "##################################################################"
     echo "# add the id of the deposition/record on zenodo for the next run #"
     echo "# id: $DEPLOY2ZENODO_DEPOSITION_ID"
@@ -217,6 +217,7 @@ else
         LISTRES=$(curlauth "$DEPLOY2ZENODO_API_URL"/deposit/depositions?conceptrecid="$conceptrecid")
         LATESTRECORDPRE=$(echo "$LISTRES" | jq -c ".[] | select(.conceptrecid==\"$conceptrecid\" and .state!=\"done\")")
         LATESTID=$(echo "$LATESTRECORDPRE" | jq .id)
+        test -n "$LATESTID" -a "$LATESTID" != "null"
         echo "#############################"
         echo "# found latest id: $LATESTID"
         echo "#############################"
@@ -225,7 +226,7 @@ else
         LATESTDRAFT=$(echo "$LATESTRECORD" | jq -r .links.latest_draft)
         test -n "$LATESTDRAFT" -a "$LATESTDRAFT" != "null"
         BUCKETURL=$(echo "$LATESTRECORD" | jq -r .links.bucket)
-    test -n "$BUCKETURL" -a "$BUCKETURL" != "null"
+        test -n "$BUCKETURL" -a "$BUCKETURL" != "null"
     else
         NEWVERSION=$(curlauth --request POST "$NEWVERSIONURL")
         echojq "$NEWVERSION"
@@ -234,6 +235,7 @@ else
         BUCKETURL=$(echo "$NEWVERSION" | jq -r .links.bucket)
         test -n "$BUCKETURL" -a "$BUCKETURL" != "null"
         LATESTID=$(echo "$NEWVERSION" | jq .id)
+        test -n "$LATESTID" -a "$LATESTID" != "null"
         echo "#############################"
         echo "# found latest id: $LATESTID"
         echo "#############################"
@@ -314,6 +316,7 @@ else
             test "$(echo "$PUBLISHRECORD" | jq .submitted)" = "true"
         fi
         LATESTID=$(echo "$PUBLISHRECORD" | jq .id)
+        test -n "$LATESTID" -a "$LATESTID" != "null"
         echo "#############################"
         echo "# found latest id: $LATESTID"
         echo "#############################"
