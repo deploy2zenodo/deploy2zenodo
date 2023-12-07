@@ -216,7 +216,7 @@ else
         echo "# --> Creating new version is skipped!  #"
         echo "# --> Try to find latest draft.         #"
         echo "#########################################"
-        conceptrecid=$(echo "$RECORD" | jq .conceptrecid)
+        conceptrecid=$(echo "$RECORD" | jq -r .conceptrecid)
         test -n "$conceptrecid" -a "$conceptrecid" != "null"
         LISTRES=$(curlauth "$DEPLOY2ZENODO_API_URL"/deposit/depositions?conceptrecid="$conceptrecid")
         LATESTRECORDPRE=$(echo "$LISTRES" | jq -c ".[] | select(.conceptrecid==\"$conceptrecid\" and .state!=\"done\")")
