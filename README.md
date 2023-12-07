@@ -1,6 +1,6 @@
 ---
 author: Daniel Mohr
-date: 2023-11-24
+date: 2023-12-07
 license: Apache-2.0
 home: https://gitlab.com/deploy2zenodo/deploy2zenodo
 mirror: https://github.com/deploy2zenodo/deploy2zenodo
@@ -473,12 +473,16 @@ a CITATION.cff file (YAML format) to JSON format.
 The JSON format zenodo accepts is much more general and provides many more
 options than the Citation File Format. For many purposes the CITATION.cff
 is enough, but otherwise you can see a description of the metadata in the
-GitHub integration of zenodo[^githubintegration] using `zenodo.json` and
-in the description of the metadata in InvenioRDM[^metadatareference].
+GitHub integration of zenodo[^githubintegration] using `zenodo.json`,
+the description of the metadata in InvenioRDM[^metadatareference] and the
+unofficial description of
+zenodo upload metadata schema[^zenodouploadmetadataschema].
 
-[^githubintegration] [developers.zenodo.org GitHub](https://developers.zenodo.org/#github)
+[^githubintegration]: [developers.zenodo.org GitHub](https://developers.zenodo.org/#github)
 
-[^metadatareference] [InvenioRDM: Metadata reference](https://inveniordm.docs.cern.ch/reference/metadata/)
+[^metadatareference]: [InvenioRDM: Metadata reference](https://inveniordm.docs.cern.ch/reference/metadata/)
+
+[^zenodouploadmetadataschema]: [Zenodo upload metadata schema](https://github.com/zenodraft/metadata-schema-zenodo)
 
 As `description` you can use HTML. For example you could use
 [pandoc](https://pandoc.org/) to convert your `README.md` to HTML and
