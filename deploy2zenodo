@@ -221,7 +221,7 @@ else
         #LATESTID=$(echo "$LATESTRECORDPRE" | jq .id)
         #test -n "$LATESTID" -a "$LATESTID" != "null"
 
-        LATESTURL=$(echo "$RECORD" | jq -r links.latest)
+        LATESTURL=$(echo "$RECORD" | jq -r .links.latest)
         if [ -z "$DEPLOY2ZENODO_DRYRUN" ] && [ -z "$DEPLOY2ZENODO_SKIPRUN" ]; then
             test -n "$LATESTURL" -a "$LATESTURL" != "null"
         fi
