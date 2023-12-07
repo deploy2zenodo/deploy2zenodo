@@ -212,12 +212,20 @@ else
         echo "# --> Creating new version is skipped!  #"
         echo "# --> Try to find latest draft.         #"
         echo "#########################################"
-        conceptrecid=$(echo "$RECORD" | jq -r .conceptrecid)
-        test -n "$conceptrecid" -a "$conceptrecid" != "null"
-        LISTRES=$(curlauth "$DEPLOY2ZENODO_API_URL"/deposit/depositions?conceptrecid="$conceptrecid")
-        LATESTRECORDPRE=$(echo "$LISTRES" | jq -c ".[] | select(.conceptrecid==\"$conceptrecid\" and .state!=\"done\")")
-        LATESTID=$(echo "$LATESTRECORDPRE" | jq .id)
+        #conceptrecid=$(echo "$RECORD" | jq -r .conceptrecid)
+        #test -n "$conceptrecid" -a "$conceptrecid" != "null"
+        #LISTRES=$(curlauth "$DEPLOY2ZENODO_API_URL"/deposit/depositions?conceptrecid="$conceptrecid")
+        #LATESTRECORDPRE=$(echo "$LISTRES" | jq -c ".[] | select(.conceptrecid==\"$conceptrecid\" and .state!=\"done\")")
+        #LATESTID=$(echo "$LATESTRECORDPRE" | jq .id)
+        #test -n "$LATESTID" -a "$LATESTID" != "null"
+
+        LATESTURL=$(echo "$RECORD" | jq -r .latest)
+        test -n "$LATESTURL" -a "$LATESTURL" != "null"
+        LATESTRECORD=$(curlauth "$LATESTURL")
+        echojq "$LATESTRECORD"
+        LATESTID=$(echo "$LATESTRECORD" | jq .id)
         test -n "$LATESTID" -a "$LATESTID" != "null"
+
         echo "#############################"
         echo "# found latest id: $LATESTID"
         echo "#############################"
