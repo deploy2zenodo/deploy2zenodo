@@ -3,7 +3,7 @@ set -e
 
 #    deploy2zenodo
 #    Copyright (C) 2023  Daniel Mohr
-#    Version: 0.5.3
+#    Version: 0.5.4
 #    DOI: 10.5281/zenodo.10112959
 #
 # Instead of command line parameters we use environment variables.
@@ -61,7 +61,7 @@ if [ -n "$missing_variables" ]; then
     exit 1
 else
     for varname in DEPLOY2ZENODO_API_URL DEPLOY2ZENODO_DEPOSITION_ID DEPLOY2ZENODO_JSON DEPLOY2ZENODO_UPLOAD DEPLOY2ZENODO_SKIP_PUBLISH DEPLOY2ZENODO_DRYRUN DEPLOY2ZENODO_SKIPRUN DEPLOY2ZENODO_SKIP_NEW_VERSION DEPLOY2ZENODO_GET_METADATA DEPLOY2ZENODO_SKIP_UPLOAD DEPLOY2ZENODO_CURL_MAX_TIME DEPLOY2ZENODO_CURL_MAX_TIME_PUBLISH DEPLOY2ZENODO_ADD_IsCompiledBy_DEPLOY2ZENODO; do
-        echo "$varname: $(eval "echo \"\$$varname\"")"
+        echo "$varname: \"$(eval "echo \"\$$varname\"")\""
     done
 fi
 
@@ -88,7 +88,11 @@ hjson='Content-Type: application/json'
 alias curlauth='curl --header "Authorization: Bearer $DEPLOY2ZENODO_ACCESS_TOKEN"  --max-time "${DEPLOY2ZENODO_CURL_MAX_TIME:-60}"'
 
 echojq() {
-    echo "$1" | jq -C .
+    if [ -z "$1" ]; then
+        echo "$1"
+        exit 1
+    fi
+    echo "$1" | jq -C . || (echo "$1" && exit 1)
 }
 
 set -x
@@ -117,19 +121,17 @@ if [ "$DEPLOY2ZENODO_DEPOSITION_ID" = "create NEW record" ]; then
     echojq "$NEWRECORD"
     DEPLOY2ZENODO_DEPOSITION_ID=$(echo "$NEWRECORD" | jq .id)
     LATESTID=$DEPLOY2ZENODO_DEPOSITION_ID
-    test "$DEPLOY2ZENODO_DEPOSITION_ID" != "null"
+    test -n "$DEPLOY2ZENODO_DEPOSITION_ID" -a "$DEPLOY2ZENODO_DEPOSITION_ID" != "null"
     echo "##################################################################"
     echo "# add the id of the deposition/record on zenodo for the next run #"
     echo "# id: $DEPLOY2ZENODO_DEPOSITION_ID"
     echo "#                                                                #"
     echo "# DEPLOY2ZENODO_DEPOSITION_ID=$DEPLOY2ZENODO_DEPOSITION_ID"
     echo "##################################################################"
-    LATESTDRAFTRAW=$(echo "$NEWRECORD" | jq .links.latest_draft)
-    test "$LATESTDRAFTRAW" != "null"
-    LATESTDRAFT=$(echo "$LATESTDRAFTRAW" | sed 's/"//g')
-    BUCKETURLRAW=$(echo "$NEWRECORD" | jq .links.bucket)
-    test "$BUCKETURLRAW" != "null"
-    BUCKETURL=$(echo "$BUCKETURLRAW" | sed 's/"//g')
+    LATESTDRAFT=$(echo "$NEWRECORD" | jq -r .links.latest_draft)
+    test -n "$LATESTDRAFT" -a "$LATESTDRAFT" != "null"
+    BUCKETURL=$(echo "$NEWRECORD" | jq -r .links.bucket)
+    test -n "$BUCKETURL" -a "$BUCKETURL" != "null"
 
     #   * upload files/archives
     if [ -n "$DEPLOY2ZENODO_SKIP_UPLOAD" ]; then
@@ -146,7 +148,7 @@ if [ "$DEPLOY2ZENODO_DEPOSITION_ID" = "create NEW record" ]; then
                 FILEUPLOAD=$(curlauth --upload-file "$filename" "$BUCKETURL"/"$(basename "$filename")")
                 echojq "$FILEUPLOAD"
                 CHECKSUM=$(echo "$FILEUPLOAD" | jq .checksum)
-                test "$CHECKSUM" != "null"
+                test -n "$CHECKSUM" -a "$CHECKSUM" != "null"
                 CHECKSUM=$(echo "$CHECKSUM" | sed 's/"//g' | cut -d ':' -f 2)
                 if [ -n "$DEPLOY2ZENODO_DRYRUN" ] || [ -n "$DEPLOY2ZENODO_SKIPRUN" ]; then
                     echo "Skip testing checksum due to DRYRUN or SKIPRUN."
@@ -178,7 +180,7 @@ if [ "$DEPLOY2ZENODO_DEPOSITION_ID" = "create NEW record" ]; then
                     FILEUPLOAD=$(curlauth --upload-file "$dummyfile" "$BUCKETURL/dummy")
                     echojq "$FILEUPLOAD"
                     CHECKSUM=$(echo "$FILEUPLOAD" | jq .checksum)
-                    test "$CHECKSUM" != "null"
+                    test -n "$CHECKSUM" -a "$CHECKSUM" != "null"
                     CHECKSUM=$(echo "$CHECKSUM" | sed 's/"//g' | cut -d ':' -f 2)
                     if [ -n "$DEPLOY2ZENODO_DRYRUN" ] || [ -n "$DEPLOY2ZENODO_SKIPRUN" ]; then
                         echo "Skip testing checksum due to DRYRUN or SKIPRUN."
@@ -205,9 +207,8 @@ else
     #   * get data from record
     RECORD=$(curlauth "$DEPLOY2ZENODO_API_URL"/deposit/depositions/"$DEPLOY2ZENODO_DEPOSITION_ID")
     echojq "$RECORD"
-    NEWVERSIONURLRAW=$(echo "$RECORD" | jq .links.newversion)
-    test "$NEWVERSIONURLRAW" != "null"
-    NEWVERSIONURL=$(echo "$NEWVERSIONURLRAW" | sed 's/"//g')
+    NEWVERSIONURL=$(echo "$RECORD" | jq -r .links.newversion)
+    test -n "$NEWVERSIONURL" -a "$NEWVERSIONURL" != "null"
 
     #   * create new version
     if [ -n "$DEPLOY2ZENODO_SKIP_NEW_VERSION" ]; then
@@ -215,8 +216,8 @@ else
         echo "# --> Creating new version is skipped!  #"
         echo "# --> Try to find latest draft.         #"
         echo "#########################################"
-        conceptrecidraw=$(echo "$RECORD" | jq .conceptrecid)
-        conceptrecid=$(echo "$conceptrecidraw" | sed 's/"//g')
+        conceptrecid=$(echo "$RECORD" | jq .conceptrecid)
+        test -n "$conceptrecid" -a "$conceptrecid" != "null"
         LISTRES=$(curlauth "$DEPLOY2ZENODO_API_URL"/deposit/depositions?conceptrecid="$conceptrecid")
         LATESTRECORDPRE=$(echo "$LISTRES" | jq -c ".[] | select(.conceptrecid==\"$conceptrecid\" and .state!=\"done\")")
         LATESTID=$(echo "$LATESTRECORDPRE" | jq .id)
@@ -225,21 +226,17 @@ else
         echo "#############################"
         LATESTRECORD=$(curlauth "$DEPLOY2ZENODO_API_URL/deposit/depositions/$LATESTID")
         echojq "$LATESTRECORD"
-        LATESTDRAFTRAW=$(echo "$LATESTRECORD" | jq .links.latest_draft)
-        test "$LATESTDRAFTRAW" != "null"
-        LATESTDRAFT=$(echo "$LATESTDRAFTRAW" | sed 's/"//g')
-        BUCKETURLRAW=$(echo "$LATESTRECORD" | jq .links.bucket)
-        test "$BUCKETURLRAW" != "null"
-        BUCKETURL=$(echo "$BUCKETURLRAW" | sed 's/"//g')
+        LATESTDRAFT=$(echo "$LATESTRECORD" | jq -r .links.latest_draft)
+        test -n "$LATESTDRAFT" -a "$LATESTDRAFT" != "null"
+        BUCKETURL=$(echo "$LATESTRECORD" | jq -r .links.bucket)
+    test -n "$BUCKETURL" -a "$BUCKETURL" != "null"
     else
         NEWVERSION=$(curlauth --request POST "$NEWVERSIONURL")
         echojq "$NEWVERSION"
-        LATESTDRAFTRAW=$(echo "$NEWVERSION" | jq .links.latest_draft)
-        test "$LATESTDRAFTRAW" != "null"
-        LATESTDRAFT=$(echo "$LATESTDRAFTRAW" | sed 's/"//g')
-        BUCKETURLRAW=$(echo "$NEWVERSION" | jq .links.bucket)
-        test "$BUCKETURLRAW" != "null"
-        BUCKETURL=$(echo "$BUCKETURLRAW" | sed 's/"//g')
+        LATESTDRAFT=$(echo "$NEWVERSION" | jq -r .links.latest_draft)
+        test -n "$LATESTDRAFT" -a "$LATESTDRAFT" != "null"
+        BUCKETURL=$(echo "$NEWVERSION" | jq -r .links.bucket)
+        test -n "$BUCKETURL" -a "$BUCKETURL" != "null"
         LATESTID=$(echo "$NEWVERSION" | jq .id)
         echo "#############################"
         echo "# found latest id: $LATESTID"
@@ -273,7 +270,7 @@ else
                 FILEUPLOAD=$(curlauth --upload-file "$filename" "$BUCKETURL"/"$(basename "$filename")")
                 echojq "$FILEUPLOAD"
                 CHECKSUM=$(echo "$FILEUPLOAD" | jq .checksum)
-                test "$CHECKSUM" != "null"
+                test -n "$CHECKSUM" -a "$CHECKSUM" != "null"
                 CHECKSUM=$(echo "$CHECKSUM" | sed 's/"//g')
                 CHECKSUM=$(echo "$CHECKSUM" | cut -d ':' -f 2)
                 if [ -n "$DEPLOY2ZENODO_DRYRUN" ] || [ -n "$DEPLOY2ZENODO_SKIPRUN" ]; then
@@ -306,7 +303,7 @@ else
                     FILEUPLOAD=$(curlauth --upload-file "$dummyfile" "$BUCKETURL/dummy")
                     echojq "$FILEUPLOAD"
                     CHECKSUM=$(echo "$FILEUPLOAD" | jq .checksum)
-                    test "$CHECKSUM" != "null"
+                    test -n "$CHECKSUM" -a "$CHECKSUM" != "null"
                     CHECKSUM=$(echo "$CHECKSUM" | sed 's/"//g' | cut -d ':' -f 2)
                     if [ -n "$DEPLOY2ZENODO_DRYRUN" ] || [ -n "$DEPLOY2ZENODO_SKIPRUN" ]; then
                         echo "Skip testing checksum due to DRYRUN or SKIPRUN."
