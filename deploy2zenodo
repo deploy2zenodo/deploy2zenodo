@@ -143,12 +143,12 @@ if [ "$DEPLOY2ZENODO_DEPOSITION_ID" = "create NEW record" ]; then
             for filename in $DEPLOY2ZENODO_UPLOAD; do
                 FILEUPLOAD=$(curlauth --upload-file "$filename" "$BUCKETURL"/"$(basename "$filename")")
                 echojq "$FILEUPLOAD"
-                CHECKSUM=$(echo "$FILEUPLOAD" | jq -r .checksum)
-                test -n "$CHECKSUM" -a "$CHECKSUM" != "null"
-                CHECKSUM=$(echo "$CHECKSUM" | cut -d ':' -f 2)
+                CHECKSUMRAW=$(echo "$FILEUPLOAD" | jq -r .checksum)
+                CHECKSUM=$(echo "$CHECKSUMRAW" | cut -d ':' -f 2)
                 if [ -n "$DEPLOY2ZENODO_DRYRUN" ] || [ -n "$DEPLOY2ZENODO_SKIPRUN" ]; then
                     echo "Skip testing checksum due to DRYRUN or SKIPRUN."
                 else
+                    test -n "$CHECKSUMRAW" -a "$CHECKSUMRAW" != "null"
                     echo "$CHECKSUM  $filename" | md5sum -c -
                 fi
             done
@@ -175,14 +175,10 @@ if [ "$DEPLOY2ZENODO_DEPOSITION_ID" = "create NEW record" ]; then
                     dummyfile="$(mktemp)"
                     FILEUPLOAD=$(curlauth --upload-file "$dummyfile" "$BUCKETURL/dummy")
                     echojq "$FILEUPLOAD"
-                    CHECKSUM=$(echo "$FILEUPLOAD" | jq -r .checksum)
-                    test -n "$CHECKSUM" -a "$CHECKSUM" != "null"
-                    CHECKSUM=$(echo "$CHECKSUM" | cut -d ':' -f 2)
-                    if [ -n "$DEPLOY2ZENODO_DRYRUN" ] || [ -n "$DEPLOY2ZENODO_SKIPRUN" ]; then
-                        echo "Skip testing checksum due to DRYRUN or SKIPRUN."
-                    else
-                        echo "$CHECKSUM  $dummyfile" | md5sum -c -
-                    fi
+                    CHECKSUMRAW=$(echo "$FILEUPLOAD" | jq -r .checksum)
+                    test -n "$CHECKSUMRAW" -a "$CHECKSUMRAW" != "null"
+                    CHECKSUM=$(echo "$CHECKSUMRAW" | cut -d ':' -f 2)
+                    echo "$CHECKSUM  $dummyfile" | md5sum -c -
                     PUBLISHRECORD=$(curlauth --max-time "$CURL_MAX_TIME_PUBLISH" --request POST "$LATESTDRAFT"/actions/publish)
                     echojq "$PUBLISHRECORD"
                 fi
@@ -204,7 +200,9 @@ else
     RECORD=$(curlauth "$DEPLOY2ZENODO_API_URL"/deposit/depositions/"$DEPLOY2ZENODO_DEPOSITION_ID")
     echojq "$RECORD"
     NEWVERSIONURL=$(echo "$RECORD" | jq -r .links.newversion)
-    if [ -z "$DEPLOY2ZENODO_DRYRUN" ] && [ -z "$DEPLOY2ZENODO_SKIPRUN" ]; then
+    if [ -n "$DEPLOY2ZENODO_DRYRUN" ] || [ -n "$DEPLOY2ZENODO_SKIPRUN" ]; then
+        echo "Skip testing result due to DRYRUN or SKIPRUN."
+    else
         test -n "$NEWVERSIONURL" -a "$NEWVERSIONURL" != "null"
     fi
 
@@ -214,50 +212,39 @@ else
         echo "# --> Creating new version is skipped!  #"
         echo "# --> Try to find latest draft.         #"
         echo "#########################################"
-        #conceptrecid=$(echo "$RECORD" | jq -r .conceptrecid)
-        #test -n "$conceptrecid" -a "$conceptrecid" != "null"
-        #LISTRES=$(curlauth "$DEPLOY2ZENODO_API_URL"/deposit/depositions?conceptrecid="$conceptrecid")
-        #LATESTRECORDPRE=$(echo "$LISTRES" | jq -c ".[] | select(.conceptrecid==\"$conceptrecid\" and .state!=\"done\")")
-        #LATESTID=$(echo "$LATESTRECORDPRE" | jq .id)
-        #test -n "$LATESTID" -a "$LATESTID" != "null"
-
-        LATESTURL=$(echo "$RECORD" | jq -r .links.latest)
-        if [ -z "$DEPLOY2ZENODO_DRYRUN" ] && [ -z "$DEPLOY2ZENODO_SKIPRUN" ]; then
-            test -n "$LATESTURL" -a "$LATESTURL" != "null"
-        fi
-        LATESTRECORD=$(curlauth -L "$LATESTURL")
-        echojq "$LATESTRECORD"
-        LATESTID=$(echo "$LATESTRECORD" | jq .id)
-        if [ -z "$DEPLOY2ZENODO_DRYRUN" ] && [ -z "$DEPLOY2ZENODO_SKIPRUN" ]; then
+        conceptrecid=$(echo "$RECORD" | jq -r .conceptrecid)
+        LISTRES=$(curlauth "$DEPLOY2ZENODO_API_URL"/deposit/depositions?conceptrecid="$conceptrecid")
+        LATESTRECORDPRE=$(echo "$LISTRES" | jq -c ".[] | select(.conceptrecid==\"$conceptrecid\" and .state!=\"done\")")
+        LATESTID=$(echo "$LATESTRECORDPRE" | jq .id)
+        if [ -n "$DEPLOY2ZENODO_DRYRUN" ] || [ -n "$DEPLOY2ZENODO_SKIPRUN" ]; then
+            echo "Skip testing result due to DRYRUN or SKIPRUN."
+        else
             test -n "$LATESTID" -a "$LATESTID" != "null"
         fi
-
         echo "#############################"
         echo "# found latest id: $LATESTID"
         echo "#############################"
         LATESTRECORD=$(curlauth "$DEPLOY2ZENODO_API_URL/deposit/depositions/$LATESTID")
         echojq "$LATESTRECORD"
         LATESTDRAFT=$(echo "$LATESTRECORD" | jq -r .links.latest_draft)
-        if [ -z "$DEPLOY2ZENODO_DRYRUN" ] && [ -z "$DEPLOY2ZENODO_SKIPRUN" ]; then
-            test -n "$LATESTDRAFT" -a "$LATESTDRAFT" != "null"
-        fi
         BUCKETURL=$(echo "$LATESTRECORD" | jq -r .links.bucket)
-        if [ -z "$DEPLOY2ZENODO_DRYRUN" ] && [ -z "$DEPLOY2ZENODO_SKIPRUN" ]; then
+        if [ -n "$DEPLOY2ZENODO_DRYRUN" ] || [ -n "$DEPLOY2ZENODO_SKIPRUN" ]; then
+            echo "Skip testing result due to DRYRUN or SKIPRUN."
+        else
+            test -n "$LATESTDRAFT" -a "$LATESTDRAFT" != "null"
             test -n "$BUCKETURL" -a "$BUCKETURL" != "null"
         fi
     else
         NEWVERSION=$(curlauth --request POST "$NEWVERSIONURL")
         echojq "$NEWVERSION"
         LATESTDRAFT=$(echo "$NEWVERSION" | jq -r .links.latest_draft)
-        if [ -z "$DEPLOY2ZENODO_DRYRUN" ] && [ -z "$DEPLOY2ZENODO_SKIPRUN" ]; then
-            test -n "$LATESTDRAFT" -a "$LATESTDRAFT" != "null"
-        fi
         BUCKETURL=$(echo "$NEWVERSION" | jq -r .links.bucket)
-        if [ -z "$DEPLOY2ZENODO_DRYRUN" ] && [ -z "$DEPLOY2ZENODO_SKIPRUN" ]; then
-            test -n "$BUCKETURL" -a "$BUCKETURL" != "null"
-        fi
         LATESTID=$(echo "$NEWVERSION" | jq .id)
-        if [ -z "$DEPLOY2ZENODO_DRYRUN" ] && [ -z "$DEPLOY2ZENODO_SKIPRUN" ]; then
+        if [ -n "$DEPLOY2ZENODO_DRYRUN" ] || [ -n "$DEPLOY2ZENODO_SKIPRUN" ]; then
+            echo "Skip testing result due to DRYRUN or SKIPRUN."
+        else
+            test -n "$LATESTDRAFT" -a "$LATESTDRAFT" != "null"
+            test -n "$BUCKETURL" -a "$BUCKETURL" != "null"
             test -n "$LATESTID" -a "$LATESTID" != "null"
         fi
         echo "#############################"
@@ -290,14 +277,12 @@ else
             for filename in $DEPLOY2ZENODO_UPLOAD; do
                 FILEUPLOAD=$(curlauth --upload-file "$filename" "$BUCKETURL"/"$(basename "$filename")")
                 echojq "$FILEUPLOAD"
-                CHECKSUM=$(echo "$FILEUPLOAD" | jq -r .checksum)
-                if [ -z "$DEPLOY2ZENODO_DRYRUN" ] && [ -z "$DEPLOY2ZENODO_SKIPRUN" ]; then
-                    test -n "$CHECKSUM" -a "$CHECKSUM" != "null"
-                fi
-                CHECKSUM=$(echo "$CHECKSUM" | cut -d ':' -f 2)
+                CHECKSUMRAW=$(echo "$FILEUPLOAD" | jq -r .checksum)
+                CHECKSUM=$(echo "$CHECKSUMRAW" | cut -d ':' -f 2)
                 if [ -n "$DEPLOY2ZENODO_DRYRUN" ] || [ -n "$DEPLOY2ZENODO_SKIPRUN" ]; then
                     echo "Skip testing checksum due to DRYRUN or SKIPRUN."
                 else
+                    test -n "$CHECKSUMRAW" -a "$CHECKSUMRAW" != "null"
                     echo "$CHECKSUM  $filename" | md5sum -c -
                 fi
             done
@@ -324,24 +309,16 @@ else
                     dummyfile="$(mktemp)"
                     FILEUPLOAD=$(curlauth --upload-file "$dummyfile" "$BUCKETURL/dummy")
                     echojq "$FILEUPLOAD"
-                    CHECKSUM=$(echo "$FILEUPLOAD" | jq -r .checksum)
-                    if [ -z "$DEPLOY2ZENODO_DRYRUN" ] && [ -z "$DEPLOY2ZENODO_SKIPRUN" ]; then
-                        test -n "$CHECKSUM" -a "$CHECKSUM" != "null"
-                    fi
-                    CHECKSUM=$(echo "$CHECKSUM" | cut -d ':' -f 2)
-                    if [ -n "$DEPLOY2ZENODO_DRYRUN" ] || [ -n "$DEPLOY2ZENODO_SKIPRUN" ]; then
-                        echo "Skip testing checksum due to DRYRUN or SKIPRUN."
-                    else
-                        echo "$CHECKSUM  $dummyfile" | md5sum -c -
-                    fi
+                    CHECKSUMRAW=$(echo "$FILEUPLOAD" | jq -r .checksum)
+                    test -n "$CHECKSUMRAW" -a "$CHECKSUMRAW" != "null"
+                    CHECKSUM=$(echo "$CHECKSUMRAW" | cut -d ':' -f 2)
+                    echo "$CHECKSUM  $dummyfile" | md5sum -c -
                     PUBLISHRECORD=$(curlauth --max-time "$CURL_MAX_TIME_PUBLISH" --request POST "$LATESTDRAFT"/actions/publish)
                     echojq "$PUBLISHRECORD"
                 fi
             fi
-            if [ -z "$DEPLOY2ZENODO_DRYRUN" ] && [ -z "$DEPLOY2ZENODO_SKIPRUN" ]; then
-                test "$(echo "$PUBLISHRECORD" | jq .state)" = '"done"'
-                test "$(echo "$PUBLISHRECORD" | jq .submitted)" = "true"
-            fi
+            test "$(echo "$PUBLISHRECORD" | jq .state)" = '"done"'
+            test "$(echo "$PUBLISHRECORD" | jq .submitted)" = "true"
         fi
         LATESTID=$(echo "$PUBLISHRECORD" | jq .id)
         if [ -z "$DEPLOY2ZENODO_DRYRUN" ] && [ -z "$DEPLOY2ZENODO_SKIPRUN" ]; then
@@ -355,7 +332,9 @@ fi
 if [ -n "$DEPLOY2ZENODO_GET_METADATA" ]; then
     LATESTMETADATA=$(curlauth "$DEPLOY2ZENODO_API_URL"/deposit/depositions/"$LATESTID" | tee "$DEPLOY2ZENODO_GET_METADATA")
     echojq "$LATESTMETADATA"
-    if [ -z "$DEPLOY2ZENODO_DRYRUN" ] && [ -z "$DEPLOY2ZENODO_SKIPRUN" ]; then
+    if [ -n "$DEPLOY2ZENODO_DRYRUN" ] || [ -n "$DEPLOY2ZENODO_SKIPRUN" ]; then
+        echo "Skip testing result due to DRYRUN or SKIPRUN."
+    else
         test "$(echo "$LATESTMETADATA" | jq .id)" = "$LATESTID"
     fi
 fi
