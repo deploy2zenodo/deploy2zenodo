@@ -234,7 +234,7 @@ else
         LISTRES=$(curlauth "$DEPLOY2ZENODO_API_URL"/deposit/depositions?conceptrecid="$conceptrecid")
         # echojq LISTRES "$LISTRES"
         LATESTRECORDPRE=$(echo "$LISTRES" | jq -c ".[] | select(.conceptrecid==\"$conceptrecid\" and .state!=\"done\")")
-	echojq LATESTRECORDPRE "$LATESTRECORDPRE"
+        echojq LATESTRECORDPRE "$LATESTRECORDPRE"
         LATESTID=$(echo "$LATESTRECORDPRE" | jq .id)
         if [ -n "$DEPLOY2ZENODO_DRYRUN" ] || [ -n "$DEPLOY2ZENODO_SKIPRUN" ]; then
             log "Skip testing result due to DRYRUN or SKIPRUN."
