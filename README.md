@@ -582,6 +582,26 @@ file with this name.
 To get these data at the end of the script an additional communication
 with the DEPLOY2ZENODO_API_URL server is done.
 
+In the CI pipeline you could store the result as artifacts, e. g.:
+
+```yaml
+deploy2zenodo:
+  variables:
+    DEPLOY2ZENODO_GET_METADATA: "result.json"
+  artifacts:
+    paths:
+      - $DEPLOY2ZENODO_GET_METADATA
+```
+
+You can extract values from the metadata. For example to get the DOI
+to site all versions:
+
+```yaml
+deploy2zenodo:
+  after_script:
+    - jq -r .conceptdoi $DEPLOY2ZENODO_GET_METADATA
+```
+
 ### DEPLOY2ZENODO_SKIP_UPLOAD
 
 If this variable is not empty skip uploading the data. This is only
