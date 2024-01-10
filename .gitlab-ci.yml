@@ -27,8 +27,10 @@ pre-commit:
     name: alpine:latest
   extends: .display_env
   script:
-    - apk add --no-cache bash gcc git libc-dev npm py3-pip python3-dev
-    - pip3 install pre-commit cffconvert
+    - apk add --no-cache bash git npm pipx
+    - PATH=$PATH:$HOME/.local/bin
+    - pipx install pre-commit
+    - pipx install cffconvert
     - pre-commit --version
     - cffconvert --version
     - pre-commit run --all-files
@@ -107,8 +109,9 @@ deploy_ci_template:
     name: alpine:latest
   extends: .display_env
   script:
-    - apk add --no-cache curl jq pandoc py3-pip texlive yq
-    - pip install cffconvert
+    - apk add --no-cache curl jq pandoc pipx texlive yq
+    - PATH=$PATH:$HOME/.local/bin
+    - pipx install cffconvert
     # $DOI and $DEPLOY2ZENODO_DEPOSITION_ID available
     # create CITATION.cff
     - TMPCITATION=$(mktemp)
