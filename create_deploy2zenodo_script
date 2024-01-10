@@ -2,7 +2,7 @@
 set -e
 
 #    create_deploy2zenodo_script
-#    Copyright (C) 2023  Daniel Mohr
+#    Copyright (C) 2023, 2024 Daniel Mohr
 
 echo "run create_deploy2zenodo_script"
 
@@ -16,6 +16,7 @@ script=$(sed '/^VERSION=.*$/d' $IN | \
              sed '/^DEPLOY2ZENODO_DOI=.*$/d' | \
              sed '/^\s*$/d')
 
+# the echo command in the following needs to run in POSIX sh:
 if [ -n "$DOI" ]; then
     # replace concept DOI by actual DOI given in the variable DOI:
     CONCEPTDOI="10.5281/zenodo.10112959"

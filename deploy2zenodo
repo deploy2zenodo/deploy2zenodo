@@ -2,7 +2,7 @@
 set -e -v
 
 #    deploy2zenodo
-#    Copyright (C) 2023  Daniel Mohr
+#    Copyright (C) 2023, 2024  Daniel Mohr
 #    Version: 0.5.4
 #    DOI: 10.5281/zenodo.10112959
 #

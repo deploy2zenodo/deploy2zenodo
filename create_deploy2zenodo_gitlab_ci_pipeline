@@ -2,7 +2,7 @@
 set -e
 
 #    create_deploy2zenodo_gitlab_ci_pipeline
-#    Copyright (C) 2023  Daniel Mohr
+#    Copyright (C) 2023, 2024 Daniel Mohr
 
 echo "run create_deploy2zenodo_gitlab_ci_pipeline"
 
@@ -19,6 +19,7 @@ script=$(sed -n '/^#    deploy2zenodo$/,/^# stop deploy2zenodo$/p' $IN | \
              sed '/^\s*$/d' | \
              sed 's/^/      /')
 
+# the echo command in the following needs to run in POSIX sh:
 if [ -n "$DOI" ]; then
     # replace concept DOI by actual DOI given in the variable DOI:
     CONCEPTDOI="10.5281/zenodo.10112959"
