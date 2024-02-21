@@ -301,7 +301,7 @@ prepare_deploy2zenodo:
 deploy2zenodo:
   variables:
     DEPLOY2ZENODO_DEPOSITION_ID: "create NEW record"
-    DEPLOY2ZENODO_API_URL="https://sandbox.zenodo.org/api"
+    DEPLOY2ZENODO_API_URL: "https://sandbox.zenodo.org/api"
 ```
 
 Be careful:
