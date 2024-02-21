@@ -301,6 +301,7 @@ prepare_deploy2zenodo:
 deploy2zenodo:
   variables:
     DEPLOY2ZENODO_DEPOSITION_ID: "create NEW record"
+    DEPLOY2ZENODO_API_URL="https://sandbox.zenodo.org/api"
 ```
 
 Be careful:
@@ -308,6 +309,22 @@ The trigger job from project `A` may overwrite variables in the triggered
 job from project `B`. This could lead to security concerns.
 Maybe [Restrict who can override variables](https://docs.gitlab.com/ee/ci/variables/index.html#restrict-who-can-override-variables)
 could help to overcome this.
+
+More details:
+In project `A` something exists that should be published on zenodo.
+In project `B` the content of project `A` is published on zenodo.
+The pipeline in project `B` can be triggered so that this happens
+automatically when corresponding changes are made in project `A`
+(e. g. merge to default branch).
+Project `B` should rely as little as possible on project `A`.
+Unfortunately, variables can be transferred when triggering (from project `A`)
+and these are not trustworthy.
+For example, a maintainer from project `A` could pass `DEPLOY2ZENODO_API_URL`
+in this way and thus force communication to another server.
+This could cause the user token to flow away.
+However, it is no problem to save the user token in project `B` as
+CI variable `DEPLOY2ZENODO_ACCESS_TOKEN`.
+This variable could then be overwritten from project `A`, but not read out.
 
 Another possibility is to use
 [Secrets management providers](https://docs.gitlab.com/ee/ci/pipelines/pipeline_security.html#secrets-management-providers).
