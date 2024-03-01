@@ -15,6 +15,30 @@
       },
       {
         "relation": "References",
+        "identifier": "10.3289/HMC_publ_04",
+        "scheme": "doi",
+        "resource_type": "publication-report"
+      },
+      {
+        "relation": "References",
+        "identifier": "https://developers.zenodo.org/#harvesting-with-multiple-filters",
+        "scheme": "url",
+        "resource_type": "publication-softwaredocumentation"
+      },
+      {
+        "relation": "References",
+        "identifier": "https://inveniordm.docs.cern.ch/reference/metadata/",
+        "scheme": "url",
+        "resource_type": "publication-softwaredocumentation"
+      },
+      {
+        "relation": "References",
+        "identifier": "https://github.com/zenodraft/metadata-schema-zenodo",
+        "scheme": "url",
+        "resource_type": "other"
+      },
+      {
+        "relation": "References",
         "identifier": "10.25495/7GXK-RD71",
         "scheme": "doi",
         "resource_type": "other"
