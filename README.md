@@ -14,7 +14,7 @@ doi: 10.5281/zenodo.10112959
 
 ## preamble
 
-[`deploy2zenodo`](https://gitlab.com/deploy2zenodo/deploy2zenodo) is a
+[`deploy2zenodo`](https://gitlab.com/projects/51392274) is a
 [shell](https://en.wikipedia.org/wiki/Bourne_shell) script to deploy
 your data to [zenodo](https://zenodo.org/).
 You can use it in a [CI pipeline](https://docs.gitlab.com/ee/ci/pipelines/) as
@@ -205,7 +205,7 @@ you to curate the upload to zenodo in the zenodo web interface before
 publishing. This is especially useful if you are setting up the workflow for
 the first time in your own project -- but can also be used at any time.
 
-An example test project is [deploy2zenodo_test_simple_workflow_update](https://gitlab.com/daniel_mohr/deploy2zenodo_test_simple_workflow_update).
+An example test project is [deploy2zenodo_test_simple_workflow_update](https://gitlab.com/projects/51647607).
 
 ### very simple workflow
 
@@ -232,8 +232,8 @@ deploy2zenodo:
     DEPLOY2ZENODO_GET_METADATA: "result.json"
   before_script:
     - env
-    - apk add --no-cache curl jq py3-pip
-    - pip install cffconvert
+    - apk add --no-cache curl git jq pipx
+    - pipx install cffconvert
     - publication_date=$(echo "$CI_COMMIT_TIMESTAMP" | grep -Eo "^[0-9]{4}-[0-9]{2}-[0-9]{2}")
     - |
       cffconvert -i CITATION.cff -f zenodo | \
@@ -251,7 +251,7 @@ deploy2zenodo:
       - $DEPLOY2ZENODO_GET_METADATA
 ```
 
-Such a simple workflow uses [deploy_deploy2zenodo_to_zenodo](https://gitlab.com/daniel_mohr/deploy_deploy2zenodo_to_zenodo)
+Such a simple workflow uses [deploy_deploy2zenodo_to_zenodo](https://gitlab.com/projects/52008252)
 in the job `deploy2zenodo` to publish itself.
 
 ### triggered workflow
@@ -406,7 +406,7 @@ jq .metadata.prereserve_doi.doi "$DEPLOY2ZENODO_GET_METADATA"
 
 `deploy2zenodo` uses a combination of the [triggered workflow](https://gitlab.com/deploy2zenodo/deploy2zenodo#triggered-workflow)
 and the [complex workflow](https://gitlab.com/deploy2zenodo/deploy2zenodo#complex-workflow)
-to publish itself. This is described in [deploy_deploy2zenodo_to_zenodo](https://gitlab.com/daniel_mohr/deploy_deploy2zenodo_to_zenodo).
+to publish itself. This is described in [deploy_deploy2zenodo_to_zenodo](https://gitlab.com/projects/52008252).
 
 ## script parameter
 
