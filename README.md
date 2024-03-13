@@ -1,6 +1,6 @@
 ---
 author: Daniel Mohr
-date: 2024-01-10
+date: 2024-03-13
 license: Apache-2.0
 home: https://gitlab.com/deploy2zenodo/deploy2zenodo
 mirror: https://github.com/deploy2zenodo/deploy2zenodo
@@ -276,6 +276,9 @@ trigger:
     - curl -X POST --fail -F token="$TRIGGER_TOKEN" -F ref=main $TRIGGER_URL
 ```
 
+Storing the `TRIGGER_TOKEN` as protected and masked CI variable in
+project `A` allows any maintainer to use it and trigger the pipeline.
+
 In the project `B` you can use deploy2zenodo as normal, e. g.:
 
 ```yaml
@@ -303,6 +306,11 @@ deploy2zenodo:
     DEPLOY2ZENODO_DEPOSITION_ID: "create NEW record"
     DEPLOY2ZENODO_API_URL: "https://sandbox.zenodo.org/api"
 ```
+
+There are various ways to trigger a pipeline, e. g:
+
+* [trigger a pipeline by trigger token](https://docs.gitlab.com/ee/ci/triggers/)
+* trigger using [Multi-project pipelines](https://docs.gitlab.com/ee/ci/pipelines/downstream_pipelines.html#multi-project-pipelines)
 
 Be careful:
 The trigger job from project `A` may overwrite variables in the triggered
