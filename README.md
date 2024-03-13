@@ -1,6 +1,6 @@
 ---
 author: Daniel Mohr
-date: 2024-01-10
+date: 2024-03-13
 license: Apache-2.0
 home: https://gitlab.com/deploy2zenodo/deploy2zenodo
 mirror: https://github.com/deploy2zenodo/deploy2zenodo
@@ -14,7 +14,7 @@ doi: 10.5281/zenodo.10112959
 
 ## preamble
 
-[`deploy2zenodo`](https://gitlab.com/deploy2zenodo/deploy2zenodo) is a
+[`deploy2zenodo`](https://gitlab.com/projects/51392274) is a
 [shell](https://en.wikipedia.org/wiki/Bourne_shell) script to deploy
 your data to [zenodo](https://zenodo.org/).
 You can use it in a [CI pipeline](https://docs.gitlab.com/ee/ci/pipelines/) as
@@ -205,7 +205,7 @@ you to curate the upload to zenodo in the zenodo web interface before
 publishing. This is especially useful if you are setting up the workflow for
 the first time in your own project -- but can also be used at any time.
 
-An example test project is [deploy2zenodo_test_simple_workflow_update](https://gitlab.com/daniel_mohr/deploy2zenodo_test_simple_workflow_update).
+An example test project is [deploy2zenodo_test_simple_workflow_update](https://gitlab.com/projects/51647607).
 
 ### very simple workflow
 
@@ -232,15 +232,15 @@ deploy2zenodo:
     DEPLOY2ZENODO_GET_METADATA: "result.json"
   before_script:
     - env
-    - apk add --no-cache curl jq py3-pip
-    - pip install cffconvert
+    - apk add --no-cache curl git jq pipx
+    - pipx install cffconvert
     - publication_date=$(echo "$CI_COMMIT_TIMESTAMP" | grep -Eo "^[0-9]{4}-[0-9]{2}-[0-9]{2}")
     - |
       cffconvert -i CITATION.cff -f zenodo | \
         jq -c '{"metadata": .} | .metadata += {"upload_type": "software"}' | \
         jq -c ".metadata.related_identifiers += [
           {\"relation\": \"isDerivedFrom\",
-          \"identifier\": \"$CI_PROJECT_URL\"}] |
+          \"identifier\": \"$CI_SERVER_URL/projects/$CI_PROJECT_ID\"}] |
           .metadata.version = \"$CI_COMMIT_TAG\" |
           .metadata.publication_date = \"$publication_date\"" | \
         tee $DEPLOY2ZENODO_JSON | jq -C .
@@ -251,13 +251,17 @@ deploy2zenodo:
       - $DEPLOY2ZENODO_GET_METADATA
 ```
 
-Such a simple workflow uses [deploy_deploy2zenodo_to_zenodo](https://gitlab.com/daniel_mohr/deploy_deploy2zenodo_to_zenodo)
+Such a simple workflow uses [deploy_deploy2zenodo_to_zenodo](https://gitlab.com/projects/52008252)
 in the job `deploy2zenodo` to publish itself.
 
 ### triggered workflow
 
-In many projects there are more than one maintainer. Therefore it is not
+In many projects there is more than one maintainer. Therefore it is not
 possible to store the user token for zenodo as CI variable in the project.
+Otherwise, the user token would be shared with the other maintainers.
+
+Using this triggered workflow allows to restrict the use of the user token
+to a specific zenodo record for other maintainers.
 
 But the project `A` with more than one maintainer can trigger a pipeline in
 another (private) project `B` with only one maintainer, e. g.:
@@ -275,6 +279,9 @@ trigger:
     - apk add --no-cache curl
     - curl -X POST --fail -F token="$TRIGGER_TOKEN" -F ref=main $TRIGGER_URL
 ```
+
+Storing the `TRIGGER_TOKEN` as protected and masked CI variable in
+project `A` allows any maintainer to use it and trigger the pipeline.
 
 In the project `B` you can use deploy2zenodo as normal, e. g.:
 
@@ -301,13 +308,39 @@ prepare_deploy2zenodo:
 deploy2zenodo:
   variables:
     DEPLOY2ZENODO_DEPOSITION_ID: "create NEW record"
+    DEPLOY2ZENODO_API_URL: "https://sandbox.zenodo.org/api"
 ```
 
-Be careful:
+There are various ways to trigger a pipeline, e. g:
+
+* [trigger a pipeline by trigger token](https://docs.gitlab.com/ee/ci/triggers/)
+* trigger using [Multi-project pipelines](https://docs.gitlab.com/ee/ci/pipelines/downstream_pipelines.html#multi-project-pipelines)
+
+In the CI pipeline above the token method is used. In the
+[CI pipeline of deploy2zenodo](https://gitlab.com/deploy2zenodo/deploy2zenodo/-/blob/main/.gitlab-ci.yml?ref_type=heads)
+the multi-project pipeline is used.
+
+**Be careful**:
 The trigger job from project `A` may overwrite variables in the triggered
 job from project `B`. This could lead to security concerns.
 Maybe [Restrict who can override variables](https://docs.gitlab.com/ee/ci/variables/index.html#restrict-who-can-override-variables)
 could help to overcome this.
+
+More details:
+In project `A` something exists that should be published on zenodo.
+In project `B` the content of project `A` is published on zenodo.
+The pipeline in project `B` can be triggered so that this happens
+automatically when corresponding changes are made in project `A`
+(e. g. merge to default branch).
+Project `B` should rely as little as possible on project `A`.
+Unfortunately, variables can be transferred when triggering (from project `A`)
+and these are not trustworthy.
+For example, a maintainer from project `A` could pass `DEPLOY2ZENODO_API_URL`
+in this way and thus force communication to another server.
+This could cause the user token to be leaked.
+However, it is no problem to save the user token in project `B` as
+CI variable `DEPLOY2ZENODO_ACCESS_TOKEN`.
+This variable could then be overwritten from project `A`, but not read out.
 
 Another possibility is to use
 [Secrets management providers](https://docs.gitlab.com/ee/ci/pipelines/pipeline_security.html#secrets-management-providers).
@@ -373,7 +406,7 @@ jq .metadata.prereserve_doi.doi "$DEPLOY2ZENODO_GET_METADATA"
 
 `deploy2zenodo` uses a combination of the [triggered workflow](https://gitlab.com/deploy2zenodo/deploy2zenodo#triggered-workflow)
 and the [complex workflow](https://gitlab.com/deploy2zenodo/deploy2zenodo#complex-workflow)
-to publish itself. This is described in [deploy_deploy2zenodo_to_zenodo](https://gitlab.com/daniel_mohr/deploy_deploy2zenodo_to_zenodo).
+to publish itself. This is described in [deploy_deploy2zenodo_to_zenodo](https://gitlab.com/projects/52008252).
 
 ## script parameter
 
