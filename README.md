@@ -261,7 +261,7 @@ possible to store the user token for zenodo as CI variable in the project.
 Otherwise, the user token would be shared with the other maintainers.
 
 Using this triggered workflow allows to restrict the use of the user token
-to one zenodo record for other maintainers.
+to a specific zenodo record for other maintainers.
 
 But the project `A` with more than one maintainer can trigger a pipeline in
 another (private) project `B` with only one maintainer, e. g.:
