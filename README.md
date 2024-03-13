@@ -256,8 +256,12 @@ in the job `deploy2zenodo` to publish itself.
 
 ### triggered workflow
 
-In many projects there are more than one maintainer. Therefore it is not
+In many projects there is more than one maintainer. Therefore it is not
 possible to store the user token for zenodo as CI variable in the project.
+Otherwise, the user token would be shared with the other maintainers.
+
+Using this triggered workflow allows to restrict the use of the user token
+to one zenodo record for other maintainers.
 
 But the project `A` with more than one maintainer can trigger a pipeline in
 another (private) project `B` with only one maintainer, e. g.:
@@ -312,7 +316,11 @@ There are various ways to trigger a pipeline, e. g:
 * [trigger a pipeline by trigger token](https://docs.gitlab.com/ee/ci/triggers/)
 * trigger using [Multi-project pipelines](https://docs.gitlab.com/ee/ci/pipelines/downstream_pipelines.html#multi-project-pipelines)
 
-Be careful:
+In the CI pipeline above the token method is used. In the
+[CI pipeline of deploy2zenodo](https://gitlab.com/deploy2zenodo/deploy2zenodo/-/blob/main/.gitlab-ci.yml?ref_type=heads)
+the multi-project pipeline is used.
+
+**Be careful**:
 The trigger job from project `A` may overwrite variables in the triggered
 job from project `B`. This could lead to security concerns.
 Maybe [Restrict who can override variables](https://docs.gitlab.com/ee/ci/variables/index.html#restrict-who-can-override-variables)
@@ -329,7 +337,7 @@ Unfortunately, variables can be transferred when triggering (from project `A`)
 and these are not trustworthy.
 For example, a maintainer from project `A` could pass `DEPLOY2ZENODO_API_URL`
 in this way and thus force communication to another server.
-This could cause the user token to flow away.
+This could cause the user token to be leaked.
 However, it is no problem to save the user token in project `B` as
 CI variable `DEPLOY2ZENODO_ACCESS_TOKEN`.
 This variable could then be overwritten from project `A`, but not read out.
