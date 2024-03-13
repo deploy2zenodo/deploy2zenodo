@@ -351,16 +351,16 @@ else
             test "$(echo "$PUBLISHRECORD" | jq .submitted)" = "true" || (errlog "submitted=\"$(echo "$PUBLISHRECORD" | jq .submitted)\""; exit 21)
         fi
         LATESTID=$(echo "$PUBLISHRECORD" | jq .id)
-	HTMLURL=$(echo "$PUBLISHRECORD" | jq .links.html)
+        HTMLURL=$(echo "$PUBLISHRECORD" | jq .links.html)
         if [ -n "$DEPLOY2ZENODO_DRYRUN" ] || [ -n "$DEPLOY2ZENODO_SKIPRUN" ]; then
             log "Skip testing result due to DRYRUN or SKIPRUN."
         else
             test -n "$LATESTID" -a "$LATESTID" != "null" || (errlog "LATESTID=\"$LATESTID\""; exit 22)
-	     test -n "$HTMLURL" -a "$HTMLURL" != "null" || (errlog "HTMLURL=\"$HTMLURL\""; exit 22)
+            test -n "$HTMLURL" -a "$HTMLURL" != "null" || (errlog "HTMLURL=\"$HTMLURL\""; exit 22)
         fi
         log "#############################"
         log "# found latest id: $LATESTID"
-	log "# $HTMLURL"
+        log "# $HTMLURL"
         log "#############################"
     fi
 fi
