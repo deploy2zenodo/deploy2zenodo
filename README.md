@@ -240,7 +240,7 @@ deploy2zenodo:
         jq -c '{"metadata": .} | .metadata += {"upload_type": "software"}' | \
         jq -c ".metadata.related_identifiers += [
           {\"relation\": \"isDerivedFrom\",
-          \"identifier\": \"$CI_PROJECT_URL\"}] |
+          \"identifier\": \"$CI_SERVER_URL/projects/$CI_PROJECT_ID\"}] |
           .metadata.version = \"$CI_COMMIT_TAG\" |
           .metadata.publication_date = \"$publication_date\"" | \
         tee $DEPLOY2ZENODO_JSON | jq -C .
