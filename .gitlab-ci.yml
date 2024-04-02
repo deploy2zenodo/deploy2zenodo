@@ -85,14 +85,14 @@ check_publication_date_check:
     - test "$(grep "RE_EDTF_LEVEL_0=" deploy2zenodo)" = "RE_EDTF_LEVEL_0=\"$(./check_edtf_level_0)\""
     - ./check_edtf_level_0
     - ./check_edtf_level_0 "2024-03-28" "2024-03" "2024" "2023-10-20/2024-04-02" "2023-10-20/2024-04" "2023-10-20/2024" "2023-10/2024-04-02" "2023/2024-04-02" "2023-10/2024-04" "2023/2024"
-    - ./check_edtf_level_0 "2024/03/13"; test $? = 1 && echo OK
-    - ./check_edtf_level_0 "2024-03-1"; test $? = 1 && echo OK
-    - ./check_edtf_level_0 "2024-03-"; test $? = 1 && echo OK
-    - ./check_edtf_level_0 "2024-0"; test $? = 1 && echo OK
-    - ./check_edtf_level_0 "2024-"; test $? = 1 && echo OK
-    - ./check_edtf_level_0 "2024-03-13T18:42:31.928651+00:00"; test $? = 1 && echo OK
-    - ./check_edtf_level_0 "2024-03-13T"; test $? = 1 && echo OK
-    - ./check_edtf_level_0 "20231020T155008"; test $? = 1 && echo OK
+    - (! ./check_edtf_level_0 "2024/03/13")
+    - (! ./check_edtf_level_0 "2024-03-1")
+    - (! ./check_edtf_level_0 "2024-03-")
+    - (! ./check_edtf_level_0 "2024-0")
+    - (! ./check_edtf_level_0 "2024-")
+    - (! ./check_edtf_level_0 "2024-03-13T18:42:31.928651+00:00")
+    - (! ./check_edtf_level_0 "2024-03-13T")
+    - (! ./check_edtf_level_0 "20231020T155008")
 
 prepare_release_step1:
   stage: build
