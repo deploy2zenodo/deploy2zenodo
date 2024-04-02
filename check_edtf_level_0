@@ -20,8 +20,8 @@ if [ $# -eq 0 ]; then
     echo "$RE_EDTF_LEVEL_0"
 else
     for df in "$@"; do
-	echo "$df" | grep -q -E "$RE_EDTF_LEVEL_0"
-	res=$(echo "$df" | grep -q -E "$RE_EDTF_LEVEL_0" && echo OK)
-	echo "$df: $res"
+        echo "$df" | grep -q -E "$RE_EDTF_LEVEL_0"
+        res=$(echo "$df" | grep -q -E "$RE_EDTF_LEVEL_0" && echo OK)
+        echo "$df: $res"
     done
 fi
