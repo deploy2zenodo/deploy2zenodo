@@ -40,9 +40,13 @@ pre-commit:
     - shellcheck "$BASE_FILE_NAME" "$FILE_NAME.sh"
     - CREATED_SCRIPTS=$(mktemp -d)
     - |
-      while IFS= read -r jobname; do
-        ./yaml2script.py .gitlab-ci.yml $jn | tee "$CREATED_SCRIPTS/$jn"
-      done < <(grep -E "^([^ ]+):$" < .gitlab-ci.yml | sed 's/://')
+      JOBNAMES="$(mktemp)"
+      grep -E "^([^ ]+):$" < .gitlab-ci.yml | sed 's/://' > "$JOBNAMES"
+      while IFS= read -r jobname
+      do
+        ./yaml2script.py .gitlab-ci.yml "$jobname" | tee "$CREATED_SCRIPTS/$jobname"
+      done < "$JOBNAMES"
+      rm "$JOBNAMES"
     - shellcheck -e SC2154 "$CREATED_SCRIPTS"/*
     - pre-commit run --all-files
     - cffconvert -i "$CITATION" --validate
@@ -81,8 +85,7 @@ check_publication_date_check:
     - test "$(grep "RE_EDTF_LEVEL_0=" deploy2zenodo)" = "RE_EDTF_LEVEL_0=\"$(./check_edtf_level_0)\""
     - ./check_edtf_level_0
     - ./check_edtf_level_0 "2024-03-28" "2024-03" "2024" "2023-10-20/2024-04-02" "2023-10-20/2024-04" "2023-10-20/2024" "2023-10/2024-04-02" "2023/2024-04-02" "2023-10/2024-04" "2023/2024"
-    - ! ./check_edtf_level_0 "2024/03/13"
-    - ! ./check_edtf_level_0 "2024/03/13"
+    - ./check_edtf_level_0 "2024/03/13" && exit 1 || exit 0
     - ! ./check_edtf_level_0 "2024-03-1"
     - ! ./check_edtf_level_0 "2024-03-"
     - ! ./check_edtf_level_0 "2024-0"
