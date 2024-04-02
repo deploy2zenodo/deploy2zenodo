@@ -3,7 +3,7 @@ set -e -v
 
 #    deploy2zenodo
 #    Copyright (C) 2023, 2024  Daniel Mohr
-#    Version: 0.5.5
+#    Version: 0.6.0
 #    DOI: 10.5281/zenodo.10112959
 #
 # Instead of command line parameters we use environment variables.
@@ -106,6 +106,18 @@ echojq() {
 echo "content of DEPLOY2ZENODO_JSON:"
 jq -C . "$DEPLOY2ZENODO_JSON"
 DEPLOY2ZENODO_JSON_DATA="$(jq -c . "$DEPLOY2ZENODO_JSON")"
+
+if [ -z "$DEPLOY2ZENODO_SKIPRUN" ]; then
+    PUBLICATION_DATE=$(echo "$DEPLOY2ZENODO_JSON_DATA" | jq .metadata.publication_date)
+    echo "check publication_date=\"$PUBLICATION_DATE\" in DEPLOY2ZENODO_JSON is EDTF Level 0"
+    if [ -n "$PUBLICATION_DATE" ] && [ "$PUBLICATION_DATE" != "null" ]; then
+        RE_EDTF_LEVEL_0="((^[0-9]{4}-[0-9]{2}-[0-9]{2}$)|(^[0-9]{4}-[0-9]{2}$)|(^[0-9]{4}$))|(((^[0-9]{4}-[0-9]{2}-[0-9]{2})|(^[0-9]{4}-[0-9]{2})|(^[0-9]{4}))/(([0-9]{4}-[0-9]{2}-[0-9]{2}$)|([0-9]{4}-[0-9]{2}$)|([0-9]{4}$)))"
+        echo "$PUBLICATION_DATE" | grep -q -E "$RE_EDTF_LEVEL_0"
+        echo "publication_date is EDTF Level 0"
+    else
+        echo "publication_date is empty or not given"
+    fi
+fi
 
 if [ -n "$DEPLOY2ZENODO_ADD_IsCompiledBy_DEPLOY2ZENODO" ]; then
     IsCompiledBy="{\"relation\":\"IsCompiledBy\",\"identifier\":\"$DEPLOY2ZENODO_DOI\",\"scheme\":\"doi\",\"resource_type\":\"software\"}"

@@ -27,18 +27,27 @@ pre-commit:
     name: alpine:latest
   extends: .display_env
   script:
-    - apk add --no-cache bash git npm pipx
-    - PATH=$PATH:$HOME/.local/bin
-    - pipx install pre-commit
-    - pipx install cffconvert
+    - echo https://dl-cdn.alpinelinux.org/alpine/edge/community >> /etc/apk/repositories
+    - apk add --no-cache cffconvert git npm pre-commit shellcheck
     - pre-commit --version
     - cffconvert --version
     - pre-commit run --all-files
     - ./create_deploy2zenodo_gitlab_ci_pipeline
-    - cat $CI_FILE_NAME
+    - cat "$CI_FILE_NAME"
     - ./create_deploy2zenodo_script
-    - cat $FILE_NAME.sh
-    - md5sum $BASE_FILE_NAME $CI_FILE_NAME $FILE_NAME.sh
+    - cat "$FILE_NAME.sh"
+    - md5sum "$BASE_FILE_NAME" "$CI_FILE_NAME" "$FILE_NAME.sh"
+    - shellcheck "$BASE_FILE_NAME" "$FILE_NAME.sh"
+    - CREATED_SCRIPTS=$(mktemp -d)
+    - |
+      JOBNAMES="$(mktemp)"
+      grep -E "^([^ ]+):$" < .gitlab-ci.yml | sed 's/://' > "$JOBNAMES"
+      while IFS= read -r jobname
+      do
+        ./yaml2script.py .gitlab-ci.yml "$jobname" | tee "$CREATED_SCRIPTS/$jobname"
+      done < "$JOBNAMES"
+      rm "$JOBNAMES"
+    - shellcheck -e SC2154 "$CREATED_SCRIPTS"/*
     - pre-commit run --all-files
     - cffconvert -i "$CITATION" --validate
   artifacts:
@@ -46,6 +55,44 @@ pre-commit:
     paths:
       - $CI_FILE_NAME
       - $FILE_NAME.sh
+
+pycodestyle_alpine:
+  stage: build
+  rules:
+    - if: $CI_COMMIT_TAG
+      when: never
+    - if: $CI_PIPELINE_SOURCE != "pipeline"
+    - if: $CI_PIPELINE_SOURCE == "pipeline"
+  image:
+    name: alpine:latest
+  extends: .display_env
+  script:
+    - apk add --no-cache py3-pycodestyle
+    - pycodestyle --version
+    - pycodestyle --show-source --show-pep8 --statistics .
+
+check_publication_date_check:
+  stage: build
+  rules:
+    - if: $CI_COMMIT_TAG
+      when: never
+    - if: $CI_PIPELINE_SOURCE != "pipeline"
+    - if: $CI_PIPELINE_SOURCE == "pipeline"
+  image:
+    name: alpine:latest
+  extends: .display_env
+  script:
+    - test "$(grep "RE_EDTF_LEVEL_0=" deploy2zenodo)" = "        RE_EDTF_LEVEL_0=\"$(./check_edtf_level_0)\""
+    - ./check_edtf_level_0
+    - ./check_edtf_level_0 "2024-03-28" "2024-03" "2024" "2023-10-20/2024-04-02" "2023-10-20/2024-04" "2023-10-20/2024" "2023-10/2024-04-02" "2023/2024-04-02" "2023-10/2024-04" "2023/2024"
+    - (! ./check_edtf_level_0 "2024/03/13")
+    - (! ./check_edtf_level_0 "2024-03-1")
+    - (! ./check_edtf_level_0 "2024-03-")
+    - (! ./check_edtf_level_0 "2024-0")
+    - (! ./check_edtf_level_0 "2024-")
+    - (! ./check_edtf_level_0 "2024-03-13T18:42:31.928651+00:00")
+    - (! ./check_edtf_level_0 "2024-03-13T")
+    - (! ./check_edtf_level_0 "20231020T155008")
 
 prepare_release_step1:
   stage: build
@@ -59,9 +106,9 @@ prepare_release_step1:
   extends: .display_env
   script:
     - echo "DESCRIPTION=$README" > variables.env
-    - TAG=$(sed -n 's/^.*Version:\s*\(\S*\)$/\1/p' $BASE_FILE_NAME)
+    - TAG=$(sed -n 's/^.*Version:\s*\(\S*\)$/\1/p' "$BASE_FILE_NAME")
     - echo "TAG=$TAG" >> variables.env
-    - TAG_COMMIT_TIMESTAMP=$(echo $CI_COMMIT_TIMESTAMP | cut -d "T" -f 1)
+    - TAG_COMMIT_TIMESTAMP=$(echo "$CI_COMMIT_TIMESTAMP" | cut -d "T" -f 1)
     - echo "TAG_COMMIT_TIMESTAMP=$TAG_COMMIT_TIMESTAMP" >> variables.env
     - cat variables.env
   artifacts:
@@ -78,6 +125,8 @@ prepare_release_step2:
   needs:
     - job: pre-commit
       artifacts: true
+    - job: pycodestyle_alpine
+    - job: check_publication_date_check
     - job: prepare_release_step1
       artifacts: true
   inherit:
@@ -103,15 +152,16 @@ deploy_ci_template:
   needs:
     - job: pre-commit
       artifacts: true
+    - job: pycodestyle_alpine
+    - job: check_publication_date_check
     - job: prepare_release_step1
       artifacts: true
   image:
     name: alpine:latest
   extends: .display_env
   script:
-    - apk add --no-cache curl jq pandoc pipx texlive yq
-    - PATH=$PATH:$HOME/.local/bin
-    - pipx install cffconvert
+    - echo https://dl-cdn.alpinelinux.org/alpine/edge/community >> /etc/apk/repositories
+    - apk add --no-cache cffconvert curl jq pandoc texlive yq
     # $DOI and $DEPLOY2ZENODO_DEPOSITION_ID available
     # create CITATION.cff
     - TMPCITATION=$(mktemp)
@@ -131,17 +181,17 @@ deploy_ci_template:
     - keywords=$(cffconvert -i "$CITATION" -f zenodo | jq -cr '.keywords | @csv' | sed 's/"//g' | sed 's/,/, /g')
     - |
       echo "keywords: $keywords" | tee -a "$pandocmetadatatmpfile"
-    - grep -v "[[_TOC_]]" "$tmpreadme" | pandoc -V papersize:a4 -V colorlinks:true -V margin-left=3cm -V margin-right=3cm -V margin-top=3cm --metadata-file="$pandocmetadatatmpfile" -s --toc -f markdown -o $PDFREADME
+    - grep -v "[[_TOC_]]" "$tmpreadme" | pandoc -V papersize:a4 -V colorlinks:true -V margin-left=3cm -V margin-right=3cm -V margin-top=3cm --metadata-file="$pandocmetadatatmpfile" -s --toc -f markdown -o "$PDFREADME"
     - |
-      curl --header "JOB-TOKEN: ${CI_JOB_TOKEN}" --upload-file $CI_FILE_NAME $CI_FILE_URL
+      curl --header "JOB-TOKEN: ${CI_JOB_TOKEN}" --upload-file "$CI_FILE_NAME" "$CI_FILE_URL"
     - |
-      curl --header "JOB-TOKEN: ${CI_JOB_TOKEN}" --upload-file $FILE_NAME.sh $FILE_URL
+      curl --header "JOB-TOKEN: ${CI_JOB_TOKEN}" --upload-file "$FILE_NAME.sh" "$FILE_URL"
     # upload CITATION.cff
     - |
-      curl --header "JOB-TOKEN: ${CI_JOB_TOKEN}" --upload-file $CITATION $CITATION_FILE_URL
+      curl --header "JOB-TOKEN: ${CI_JOB_TOKEN}" --upload-file "$CITATION" "$CITATION_FILE_URL"
     # upload README.pdf
     - |
-      curl --header "JOB-TOKEN: ${CI_JOB_TOKEN}" --upload-file $PDFREADME $PDFREADME_URL
+      curl --header "JOB-TOKEN: ${CI_JOB_TOKEN}" --upload-file "$PDFREADME" "$PDFREADME_URL"
 
 release_job:
   stage: deploy
@@ -152,6 +202,8 @@ release_job:
   needs:
     - job: pre-commit
       artifacts: true
+    - job: pycodestyle_alpine
+    - job: check_publication_date_check
     - job: prepare_release_step1
       artifacts: true
     - job: deploy_ci_template
@@ -194,6 +246,8 @@ post_release_job:
   needs:
     - job: pre-commit
       artifacts: true
+    - job: pycodestyle_alpine
+    - job: check_publication_date_check
     - job: prepare_release_step1
       artifacts: true
     - job: deploy_ci_template
@@ -249,9 +303,11 @@ deploy_to_github:
     - apk add --no-cache git openssh
     - mkdir ~/.ssh && chmod 700 ~/.ssh
     - ssh-keyscan -H github.com >> ~/.ssh/known_hosts
-    - mv $github_deploy_key ~/.ssh/id_ed25519 && chmod 600 ~/.ssh/id_ed25519
+    - mv "$github_deploy_key" ~/.ssh/id_ed25519 && chmod 600 ~/.ssh/id_ed25519
     - repopath=$(mktemp -d)
-    - git clone --bare --mirror ${CI_REPOSITORY_URL} $repopath
-    - (cd $repopath && git for-each-ref --format 'delete %(refname)' refs/merge-requests | tee >(git update-ref --stdin))
-    - (cd $repopath && git for-each-ref --format 'delete %(refname)' refs/pipelines | tee >(git update-ref --stdin))
-    - (cd $repopath && git push --prune --mirror git@github.com:deploy2zenodo/deploy2zenodo.git)
+    - git clone --bare --mirror "${CI_REPOSITORY_URL}" "$repopath"
+    - (cd "$repopath" && git for-each-ref --format 'delete %(refname)' refs/merge-requests)
+    - (cd "$repopath" && git for-each-ref --format 'delete %(refname)' refs/merge-requests | git update-ref --stdin)
+    - (cd "$repopath" && git for-each-ref --format 'delete %(refname)' refs/pipelines)
+    - (cd "$repopath" && git for-each-ref --format 'delete %(refname)' refs/pipelines | git update-ref --stdin)
+    - (cd "$repopath" && git push --prune --mirror git@github.com:deploy2zenodo/deploy2zenodo.git)
