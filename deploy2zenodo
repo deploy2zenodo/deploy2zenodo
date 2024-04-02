@@ -107,14 +107,16 @@ echo "content of DEPLOY2ZENODO_JSON:"
 jq -C . "$DEPLOY2ZENODO_JSON"
 DEPLOY2ZENODO_JSON_DATA="$(jq -c . "$DEPLOY2ZENODO_JSON")"
 
-PUBLICATION_DATE=$(echo "$DEPLOY2ZENODO_JSON_DATA" | jq .metadata.publication_date)
-echo "check publication_date=\"$PUBLICATION_DATE\" in DEPLOY2ZENODO_JSON is EDTF Level 0"
-if [ -n "$PUBLICATION_DATE" ]; then
-    RE_EDTF_LEVEL_0="((^[0-9]{4}-[0-9]{2}-[0-9]{2}$)|(^[0-9]{4}-[0-9]{2}$)|(^[0-9]{4}$))|(((^[0-9]{4}-[0-9]{2}-[0-9]{2})|(^[0-9]{4}-[0-9]{2})|(^[0-9]{4}))/(([0-9]{4}-[0-9]{2}-[0-9]{2}$)|([0-9]{4}-[0-9]{2}$)|([0-9]{4}$)))"
-    echo "$PUBLICATION_DATE" | grep -q -E "$RE_EDTF_LEVEL_0"
-    echo "publication_date is EDTF Level 0"
-else
-    echo "publication_date is empty"
+if [ -z "$DEPLOY2ZENODO_SKIPRUN" ]; then
+    PUBLICATION_DATE=$(echo "$DEPLOY2ZENODO_JSON_DATA" | jq .metadata.publication_date)
+    echo "check publication_date=\"$PUBLICATION_DATE\" in DEPLOY2ZENODO_JSON is EDTF Level 0"
+    if [ -n "$PUBLICATION_DATE" ] && [ "$PUBLICATION_DATE" != "null" ]; then
+        RE_EDTF_LEVEL_0="((^[0-9]{4}-[0-9]{2}-[0-9]{2}$)|(^[0-9]{4}-[0-9]{2}$)|(^[0-9]{4}$))|(((^[0-9]{4}-[0-9]{2}-[0-9]{2})|(^[0-9]{4}-[0-9]{2})|(^[0-9]{4}))/(([0-9]{4}-[0-9]{2}-[0-9]{2}$)|([0-9]{4}-[0-9]{2}$)|([0-9]{4}$)))"
+        echo "$PUBLICATION_DATE" | grep -q -E "$RE_EDTF_LEVEL_0"
+        echo "publication_date is EDTF Level 0"
+    else
+        echo "publication_date is empty or not given"
+    fi
 fi
 
 if [ -n "$DEPLOY2ZENODO_ADD_IsCompiledBy_DEPLOY2ZENODO" ]; then

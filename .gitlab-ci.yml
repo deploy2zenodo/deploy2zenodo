@@ -82,7 +82,7 @@ check_publication_date_check:
     name: alpine:latest
   extends: .display_env
   script:
-    - test "$(grep "RE_EDTF_LEVEL_0=" deploy2zenodo)" = "    RE_EDTF_LEVEL_0=\"$(./check_edtf_level_0)\""
+    - test "$(grep "RE_EDTF_LEVEL_0=" deploy2zenodo)" = "        RE_EDTF_LEVEL_0=\"$(./check_edtf_level_0)\""
     - ./check_edtf_level_0
     - ./check_edtf_level_0 "2024-03-28" "2024-03" "2024" "2023-10-20/2024-04-02" "2023-10-20/2024-04" "2023-10-20/2024" "2023-10/2024-04-02" "2023/2024-04-02" "2023-10/2024-04" "2023/2024"
     - (! ./check_edtf_level_0 "2024/03/13")
