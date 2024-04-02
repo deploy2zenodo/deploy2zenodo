@@ -1,0 +1,27 @@
+#!/bin/sh
+set -e
+
+#    check_edtf_level_0
+#    Copyright (C) 2024  Daniel Mohr
+#    Version: 0.1.0
+#
+# For zenodo publication_date has to be in a given format, cf.:
+# https://inveniordm.docs.cern.ch/reference/metadata/#publication-date-1
+# https://loc.gov/standards/datetime/
+
+# check for EDTF Level 0:
+
+red="(^[0-9]{4}-[0-9]{2}-[0-9]{2}$)|(^[0-9]{4}-[0-9]{2}$)|(^[0-9]{4}$)"
+rel="(^[0-9]{4}-[0-9]{2}-[0-9]{2})|(^[0-9]{4}-[0-9]{2})|(^[0-9]{4})"
+rer="([0-9]{4}-[0-9]{2}-[0-9]{2}$)|([0-9]{4}-[0-9]{2}$)|([0-9]{4}$)"
+RE_EDTF_LEVEL_0="($red)|(($rel)/($rer))"
+
+if [ $# -eq 0 ]; then
+    echo "$RE_EDTF_LEVEL_0"
+else
+    for df in "$@"; do
+	echo "$df" | grep -q -E "$RE_EDTF_LEVEL_0"
+	res=$(echo "$df" | grep -q -E "$RE_EDTF_LEVEL_0" && echo OK)
+	echo "$df: $res"
+    done
+fi

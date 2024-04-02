@@ -1,6 +1,6 @@
 cff-version: 1.2.0
 title: deploy2zenodo
-message: If you use this software, please cite it using the metadata from this file.
+message: Please cite this software using these metadata.
 type: software
 authors:
   - given-names: Daniel
@@ -11,9 +11,8 @@ identifiers:
   - description: The concept DOI of the work.
     type: doi
     value: 10.5281/zenodo.10112959
-repository-code: https://gitlab.com/deploy2zenodo/deploy2zenodo
+repository-code: https://gitlab.com/projects/51392274
 url: https://gitlab.com/deploy2zenodo/deploy2zenodo
-repository: https://github.com/deploy2zenodo/deploy2zenodo
 abstract: |-
   deploy2zenodo is a shell script to deploy your data to
   zenodo. You can use it in a CI pipeline as an automatic
