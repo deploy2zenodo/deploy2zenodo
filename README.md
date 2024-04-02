@@ -95,7 +95,7 @@ prepare_release_and_deploy2zenodo:
       echo '{"metadata":{"creators":[{"name":"family, given"}],\
         "license":{"id":"GPL-3.0-or-later"},"title":"test script alpine",\
         "version":"***","upload_type":"software"}}' | \
-        jq ".metadata.version = \"$TAG\"" | tee $DEPLOY2ZENODO_JSON
+        jq ".metadata.version = \"$TAG\"" | tee "$DEPLOY2ZENODO_JSON"
     # prepare release
     - echo "DESCRIPTION=README.md" > variables.env
     - echo "TAG=$TAG" >> variables.env
@@ -232,8 +232,8 @@ deploy2zenodo:
     DEPLOY2ZENODO_GET_METADATA: "result.json"
   before_script:
     - env
-    - apk add --no-cache curl git jq pipx
-    - pipx install cffconvert
+    - echo https://dl-cdn.alpinelinux.org/alpine/edge/community >> /etc/apk/repositories
+    - apk add --no-cache cffconvert curl git jq
     - publication_date=$(echo "$CI_COMMIT_TIMESTAMP" | grep -Eo "^[0-9]{4}-[0-9]{2}-[0-9]{2}")
     - |
       cffconvert -i CITATION.cff -f zenodo | \
@@ -243,7 +243,7 @@ deploy2zenodo:
           \"identifier\": \"$CI_SERVER_URL/projects/$CI_PROJECT_ID\"}] |
           .metadata.version = \"$CI_COMMIT_TAG\" |
           .metadata.publication_date = \"$publication_date\"" | \
-        tee $DEPLOY2ZENODO_JSON | jq -C .
+        tee "$DEPLOY2ZENODO_JSON" | jq -C .
     - git archive --format zip --output "$DEPLOY2ZENODO_UPLOAD" "$CI_COMMIT_TAG"
   artifacts:
     paths:
@@ -277,7 +277,7 @@ trigger:
     name: alpine:latest
   script:
     - apk add --no-cache curl
-    - curl -X POST --fail -F token="$TRIGGER_TOKEN" -F ref=main $TRIGGER_URL
+    - curl -X POST --fail -F token="$TRIGGER_TOKEN" -F ref=main "$TRIGGER_URL"
 ```
 
 Storing the `TRIGGER_TOKEN` as protected and masked CI variable in
@@ -294,12 +294,11 @@ prepare_deploy2zenodo:
     name: alpine:latest
   script:
     - PROJECT_A_REPO=$(mktemp -d)
-    - git clone --branch main --depth 1 $PROJECT_A_URL
+    - git clone --branch main --depth 1 "$PROJECT_A_URL"
     - |
-      (cd $PROJECT_A_REPO && \
-       git archive --format zip -o $DEPLOY2ZENODO_UPLOAD \
-       $(git tag | sort -t "." -n -k 3 | \
-       tail -n 1)
+      (cd "$PROJECT_A_REPO" && \
+       git archive --format zip -o "$DEPLOY2ZENODO_UPLOAD" \
+       "$(git tag | sort -t "." -n -k 3 | tail -n 1)")
   artifacts:
     expire_in: 1 hrs
     paths:
@@ -635,7 +634,7 @@ to site all versions:
 ```yaml
 deploy2zenodo:
   after_script:
-    - jq -r .conceptdoi $DEPLOY2ZENODO_GET_METADATA
+    - jq -r .conceptdoi "$DEPLOY2ZENODO_GET_METADATA"
 ```
 
 ### DEPLOY2ZENODO_SKIP_UPLOAD
@@ -742,7 +741,7 @@ export DEPLOY2ZENODO_GET_METADATA="upload.json"
 export DEPLOY2ZENODO_SKIP_UPLOAD=""
 export DEPLOY2ZENODO_CURL_MAX_TIME=""
 export DEPLOY2ZENODO_CURL_MAX_TIME_PUBLISH=""
-curl -L $SCRIPTURL | tee deploy2zenodo.sh | sh
+curl -L "$SCRIPTURL" | tee deploy2zenodo.sh | sh
 ```
 
 ## harvesting

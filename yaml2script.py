@@ -8,6 +8,7 @@
 # example with 'shellcheck'.
 
 import sys
+import warnings
 
 import yaml
 
@@ -21,8 +22,11 @@ def main():
     script = {}
     if 'extends' in data[sys.argv[2]]:
         for key in ['before_script', 'script', 'after_script']:
-            if key in data[data[sys.argv[2]]['extends']]:
-                script[key] = data[data[sys.argv[2]]['extends']][key]
+            if data[sys.argv[2]]['extends'] in data:
+                if key in data[data[sys.argv[2]]['extends']]:
+                    script[key] = data[data[sys.argv[2]]['extends']][key]
+            else:
+                warnings.warn('job to extend not available: ignoring')
     for key in ['before_script', 'script', 'after_script']:
         if key in data[sys.argv[2]]:
             script[key] = data[sys.argv[2]][key]
