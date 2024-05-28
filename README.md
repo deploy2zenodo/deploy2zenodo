@@ -1,6 +1,6 @@
 ---
 author: Daniel Mohr
-date: 2024-04-02
+date: 2024-05-28
 license: Apache-2.0
 home: https://gitlab.com/deploy2zenodo/deploy2zenodo
 mirror: https://github.com/deploy2zenodo/deploy2zenodo
@@ -508,12 +508,15 @@ is enough, but otherwise you can see a description of the metadata in the
 GitHub integration of
 zenodo[^githubintegration] [^githubintegration2] [^githubintegration3]
 using `zenodo.json`, the description of the metadata in
-InvenioRDM[^metadatareference] and the unofficial description of
+zenodo|Developers[^zenodoDevelopers] or InvenioRDM[^metadatareference] and
+the unofficial description of
 zenodo upload metadata schema[^zenodouploadmetadataschema].
 
 [^githubintegration]: [developers.zenodo.org GitHub](https://developers.zenodo.org/#github)
 [^githubintegration2]: [github.com Referencing and citing content](https://docs.github.com/en/repositories/archiving-a-github-repository/referencing-and-citing-content)
 [^githubintegration3]: [github: "import" past releases to Zenodo](https://github.com/zenodo/zenodo/issues/1463)
+
+[^zenodoDevelopers]: [zenodo|Developers](https://developers.zenodo.org/#deposit-metadata)
 
 [^metadatareference]: [InvenioRDM: Metadata reference](https://inveniordm.docs.cern.ch/reference/metadata/)
 

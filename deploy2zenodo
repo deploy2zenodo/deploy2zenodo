@@ -3,7 +3,7 @@ set -e -v
 
 #    deploy2zenodo
 #    Copyright (C) 2023, 2024  Daniel Mohr
-#    Version: 0.6.0
+#    Version: 0.6.1
 #    DOI: 10.5281/zenodo.10112959
 #
 # Instead of command line parameters we use environment variables.
