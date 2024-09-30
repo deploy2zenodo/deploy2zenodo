@@ -165,7 +165,7 @@ deploy_ci_template:
     - apt-get update
     - $APT_GET_INSTALL curl fonts-lmodern jq lmodern pandoc pipx texlive yq
     - pipx install cffconvert
-    - export PATH=$PATH:~/.local/bin
+    - export PATH="$PATH:~/.local/bin"
     # $DOI and $DEPLOY2ZENODO_DEPOSITION_ID available
     # create CITATION.cff
     - TMPCITATION=$(mktemp)
