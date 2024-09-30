@@ -435,6 +435,7 @@ There are other optional variables:
 | DEPLOY2ZENODO_CURL_MAX_TIME_PUBLISH | max time for curl during publishing |
 | DEPLOY2ZENODO_ADD_IsCompiledBy_DEPLOY2ZENODO | reference deploy2zenodo |
 | DEPLOY2ZENODO_ADD_IsNewVersionOf | reference previous version |
+| DEPLOY2ZENODO_ADD_IsPartOf | reference DOI for all versions |
 
 ### DEPLOY2ZENODO_API_URL
 
@@ -695,6 +696,28 @@ resource_type) will be added to your provided JSON file:
       {
         "relation": "IsNewVersionOf",
         "identifier": "10.5281/zenodo.10908332",
+        "scheme": "doi",
+        "resource_type": "software"
+      }
+    ]
+  }
+}
+```
+
+### DEPLOY2ZENODO_ADD_IsNewVersionOf
+
+If this variable is not empty a reference to all versions of your record is
+referenced.
+Something like (but with the DOI of all versions and the appropriate
+resource_type) will be added to your provided JSON file:
+
+```json
+{
+  "metadata": {
+    "related_identifiers": [
+      {
+        "relation": "IsPartOf",
+        "identifier": "10.5281/zenodo.10112959",
         "scheme": "doi",
         "resource_type": "software"
       }

@@ -26,6 +26,7 @@ set -e -v
 #   * DEPLOY2ZENODO_CURL_MAX_TIME_PUBLISH
 #   * DEPLOY2ZENODO_ADD_IsCompiledBy_DEPLOY2ZENODO
 #   * DEPLOY2ZENODO_ADD_IsNewVersionOf
+#   * DEPLOY2ZENODO_ADD_IsPartOf
 #
 # For more information see: https://gitlab.com/deploy2zenodo/deploy2zenodo
 #
@@ -72,7 +73,7 @@ if [ -n "$missing_variables" ]; then
     exit 1
 else
     log "available variables are looking fine"
-    for varname in DEPLOY2ZENODO_API_URL DEPLOY2ZENODO_DEPOSITION_ID DEPLOY2ZENODO_JSON DEPLOY2ZENODO_UPLOAD DEPLOY2ZENODO_SKIP_PUBLISH DEPLOY2ZENODO_DRYRUN DEPLOY2ZENODO_SKIPRUN DEPLOY2ZENODO_SKIP_NEW_VERSION DEPLOY2ZENODO_GET_METADATA DEPLOY2ZENODO_SKIP_UPLOAD DEPLOY2ZENODO_CURL_MAX_TIME DEPLOY2ZENODO_CURL_MAX_TIME_PUBLISH DEPLOY2ZENODO_ADD_IsCompiledBy_DEPLOY2ZENODO DEPLOY2ZENODO_ADD_IsNewVersionOf; do
+    for varname in DEPLOY2ZENODO_API_URL DEPLOY2ZENODO_DEPOSITION_ID DEPLOY2ZENODO_JSON DEPLOY2ZENODO_UPLOAD DEPLOY2ZENODO_SKIP_PUBLISH DEPLOY2ZENODO_DRYRUN DEPLOY2ZENODO_SKIPRUN DEPLOY2ZENODO_SKIP_NEW_VERSION DEPLOY2ZENODO_GET_METADATA DEPLOY2ZENODO_SKIP_UPLOAD DEPLOY2ZENODO_CURL_MAX_TIME DEPLOY2ZENODO_CURL_MAX_TIME_PUBLISH DEPLOY2ZENODO_ADD_IsCompiledBy_DEPLOY2ZENODO DEPLOY2ZENODO_ADD_IsNewVersionOf DEPLOY2ZENODO_ADD_IsPartOf; do
         echo "$varname: \"$(eval "echo \"\$$varname\"")\""
     done
 fi
@@ -263,6 +264,27 @@ else
         log "add IsNewVersionOf:"
         echojq IsNewVersionOf "$IsNewVersionOf"
         DEPLOY2ZENODO_JSON_DATA=$(echo "$DEPLOY2ZENODO_JSON_DATA" | jq -c ".metadata.related_identifiers += [$IsNewVersionOf]")
+	if [ -z "$DEPLOY2ZENODO_ADD_IsPartOf" ]; then
+            echojq DEPLOY2ZENODO_JSON_DATA "$DEPLOY2ZENODO_JSON_DATA"
+        fi
+    fi
+
+    #   * reference DOI for all versions
+    if [ -n "$DEPLOY2ZENODO_ADD_IsPartOf" ]; then
+	if [ -z "$LISTRES" ]; then
+            LISTRES=$(curlauth "$DEPLOY2ZENODO_API_URL"/deposit/depositions)
+            LATESTRECORDDONE=$(echo "$LISTRES" | jq -c ".[] | select(.conceptrecid==\"$conceptrecid\" and .state==\"done\")")
+        fi
+        CONCEPTDOI=$(echo "$LATESTRECORDDONE" | jq -r .conceptdoi)
+        if [ -n "$DEPLOY2ZENODO_DRYRUN" ] || [ -n "$DEPLOY2ZENODO_SKIPRUN" ]; then
+            log "Skip testing result due to DRYRUN or SKIPRUN."
+        else
+            test -n "$CONCEPTDOI" -a "$CONCEPTDOI" != "null" || (errlog "CONCEPTDOI=\"$CONCEPTDOI\""; exit 27)
+        fi
+        IsPartOf="{\"relation\":\"IsPartOf\",\"identifier\":\"$CONCEPTDOI\",\"scheme\":\"doi\",\"resource_type\":\"$LATESTUPLOADTYPE\"}"
+        log "add IsPartOf:"
+        echojq IsPartOf "$IsPartOf"
+        DEPLOY2ZENODO_JSON_DATA=$(echo "$DEPLOY2ZENODO_JSON_DATA" | jq -c ".metadata.related_identifiers += [$IsPartOf]")
         echojq DEPLOY2ZENODO_JSON_DATA "$DEPLOY2ZENODO_JSON_DATA"
     fi
 
