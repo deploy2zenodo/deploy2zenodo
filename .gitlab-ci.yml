@@ -24,10 +24,9 @@ pre-commit:
     - if: $CI_PIPELINE_SOURCE != "pipeline"
     - if: $CI_PIPELINE_SOURCE == "pipeline"
   image:
-    name: alpine:latest
+    name: alpine:edge
   extends: .display_env
   script:
-    - echo https://dl-cdn.alpinelinux.org/alpine/edge/community >> /etc/apk/repositories
     - apk add --no-cache cffconvert git npm pre-commit shellcheck
     - pre-commit --version
     - cffconvert --version

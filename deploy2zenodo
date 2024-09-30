@@ -3,7 +3,7 @@ set -e -v
 
 #    deploy2zenodo
 #    Copyright (C) 2023, 2024  Daniel Mohr
-#    Version: 0.6.0
+#    Version: 0.6.1
 #    DOI: 10.5281/zenodo.10112959
 #
 # Instead of command line parameters we use environment variables.
@@ -25,10 +25,12 @@ set -e -v
 #   * DEPLOY2ZENODO_CURL_MAX_TIME
 #   * DEPLOY2ZENODO_CURL_MAX_TIME_PUBLISH
 #   * DEPLOY2ZENODO_ADD_IsCompiledBy_DEPLOY2ZENODO
+#   * DEPLOY2ZENODO_ADD_IsNewVersionOf
+#   * DEPLOY2ZENODO_ADD_IsPartOf
 #
 # For more information see: https://gitlab.com/deploy2zenodo/deploy2zenodo
 #
-# Copyright 2023 Daniel Mohr and
+# Copyright 2023, 2024 Daniel Mohr and
 #    Deutsches Zentrum fuer Luft- und Raumfahrt e. V., D-51170 Koeln
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -71,7 +73,7 @@ if [ -n "$missing_variables" ]; then
     exit 1
 else
     log "available variables are looking fine"
-    for varname in DEPLOY2ZENODO_API_URL DEPLOY2ZENODO_DEPOSITION_ID DEPLOY2ZENODO_JSON DEPLOY2ZENODO_UPLOAD DEPLOY2ZENODO_SKIP_PUBLISH DEPLOY2ZENODO_DRYRUN DEPLOY2ZENODO_SKIPRUN DEPLOY2ZENODO_SKIP_NEW_VERSION DEPLOY2ZENODO_GET_METADATA DEPLOY2ZENODO_SKIP_UPLOAD DEPLOY2ZENODO_CURL_MAX_TIME DEPLOY2ZENODO_CURL_MAX_TIME_PUBLISH DEPLOY2ZENODO_ADD_IsCompiledBy_DEPLOY2ZENODO; do
+    for varname in DEPLOY2ZENODO_API_URL DEPLOY2ZENODO_DEPOSITION_ID DEPLOY2ZENODO_JSON DEPLOY2ZENODO_UPLOAD DEPLOY2ZENODO_SKIP_PUBLISH DEPLOY2ZENODO_DRYRUN DEPLOY2ZENODO_SKIPRUN DEPLOY2ZENODO_SKIP_NEW_VERSION DEPLOY2ZENODO_GET_METADATA DEPLOY2ZENODO_SKIP_UPLOAD DEPLOY2ZENODO_CURL_MAX_TIME DEPLOY2ZENODO_CURL_MAX_TIME_PUBLISH DEPLOY2ZENODO_ADD_IsCompiledBy_DEPLOY2ZENODO DEPLOY2ZENODO_ADD_IsNewVersionOf DEPLOY2ZENODO_ADD_IsPartOf; do
         echo "$varname: \"$(eval "echo \"\$$varname\"")\""
     done
 fi
@@ -140,7 +142,11 @@ if [ "$DEPLOY2ZENODO_DEPOSITION_ID" = "create NEW record" ]; then
     NEWRECORD="$(curlauth --header "$hjson" --request POST --data-binary "$DEPLOY2ZENODO_JSON_DATA" "$DEPLOY2ZENODO_API_URL"/deposit/depositions)"
     echojq NEWRECORD "$NEWRECORD"
     DEPLOY2ZENODO_DEPOSITION_ID=$(echo "$NEWRECORD" | jq .id)
-    test -n "$DEPLOY2ZENODO_DEPOSITION_ID" -a "$DEPLOY2ZENODO_DEPOSITION_ID" != "null" || (errlog "DEPLOY2ZENODO_DEPOSITION_ID=\"$DEPLOY2ZENODO_DEPOSITION_ID\""; exit 4)
+    if [ -n "$DEPLOY2ZENODO_DRYRUN" ] || [ -n "$DEPLOY2ZENODO_SKIPRUN" ]; then
+        log "Skip testing checksum due to DRYRUN or SKIPRUN."
+    else
+        test -n "$DEPLOY2ZENODO_DEPOSITION_ID" -a "$DEPLOY2ZENODO_DEPOSITION_ID" != "null" || (errlog "DEPLOY2ZENODO_DEPOSITION_ID=\"$DEPLOY2ZENODO_DEPOSITION_ID\""; exit 4)
+    fi
     LATESTID=$DEPLOY2ZENODO_DEPOSITION_ID
     log "##################################################################"
     log "# add the id of the deposition/record on zenodo for the next run #"
@@ -149,9 +155,13 @@ if [ "$DEPLOY2ZENODO_DEPOSITION_ID" = "create NEW record" ]; then
     log "# DEPLOY2ZENODO_DEPOSITION_ID=$DEPLOY2ZENODO_DEPOSITION_ID"
     log "##################################################################"
     LATESTDRAFT=$(echo "$NEWRECORD" | jq -r .links.latest_draft)
-    test -n "$LATESTDRAFT" -a "$LATESTDRAFT" != "null" || (errlog "LATESTDRAFT=\"$LATESTDRAFT\""; exit 5)
     BUCKETURL=$(echo "$NEWRECORD" | jq -r .links.bucket)
-    test -n "$BUCKETURL" -a "$BUCKETURL" != "null" || (errlog "BUCKETURL=\"$BUCKETURL\""; exit 6)
+    if [ -n "$DEPLOY2ZENODO_DRYRUN" ] || [ -n "$DEPLOY2ZENODO_SKIPRUN" ]; then
+        log "Skip testing checksum due to DRYRUN or SKIPRUN."
+    else
+        test -n "$LATESTDRAFT" -a "$LATESTDRAFT" != "null" || (errlog "LATESTDRAFT=\"$LATESTDRAFT\""; exit 5)
+        test -n "$BUCKETURL" -a "$BUCKETURL" != "null" || (errlog "BUCKETURL=\"$BUCKETURL\""; exit 6)
+    fi
 
     #   * upload files/archives
     if [ -n "$DEPLOY2ZENODO_SKIP_UPLOAD" ]; then
@@ -229,11 +239,53 @@ else
     #   * get data from record
     RECORD=$(curlauth "$DEPLOY2ZENODO_API_URL"/deposit/depositions/"$DEPLOY2ZENODO_DEPOSITION_ID")
     echojq RECORD "$RECORD"
+    conceptrecid=$(echo "$RECORD" | jq -r .conceptrecid)
     NEWVERSIONURL=$(echo "$RECORD" | jq -r .links.newversion)
     if [ -n "$DEPLOY2ZENODO_DRYRUN" ] || [ -n "$DEPLOY2ZENODO_SKIPRUN" ]; then
         log "Skip testing result due to DRYRUN or SKIPRUN."
     else
+        test -n "$conceptrecid" -a "$conceptrecid" != "null" || (errlog "conceptrecid=\"$conceptrecid\""; exit 24)
         test -n "$NEWVERSIONURL" -a "$NEWVERSIONURL" != "null" || (errlog "NEWVERSIONURL=\"$NEWVERSIONURL\""; exit 11)
+    fi
+
+    #   * reference previous version
+    if [ -n "$DEPLOY2ZENODO_ADD_IsNewVersionOf" ]; then
+        LISTRES=$(curlauth "$DEPLOY2ZENODO_API_URL"/deposit/depositions)
+        LATESTRECORDDONE=$(echo "$LISTRES" | jq -c ".[] | select(.conceptrecid==\"$conceptrecid\" and .state==\"done\")")
+        LATESTDOI=$(echo "$LATESTRECORDDONE" | jq -r .doi)
+        LATESTUPLOADTYPE=$(echo "$LATESTRECORDDONE" | jq -r .metadata.upload_type)
+        # It is not an error if LATESTDOI is empty:
+        # This could be the first version.
+        IsNewVersionOf="{\"relation\":\"IsNewVersionOf\",\"identifier\":\"$LATESTDOI\",\"scheme\":\"doi\",\"resource_type\":\"$LATESTUPLOADTYPE\"}"
+        log "add IsNewVersionOf:"
+        echojq IsNewVersionOf "$IsNewVersionOf"
+        if [ -n "$LATESTDOI" ] || [ -n "$LATESTUPLOADTYPE" ]; then
+            log "No LATESTDOI or no LATESTUPLOADTYPE found. IsNewVersionOf not added!"
+        else
+            DEPLOY2ZENODO_JSON_DATA=$(echo "$DEPLOY2ZENODO_JSON_DATA" | jq -c ".metadata.related_identifiers += [$IsNewVersionOf]")
+            if [ -z "$DEPLOY2ZENODO_ADD_IsPartOf" ]; then
+                echojq DEPLOY2ZENODO_JSON_DATA "$DEPLOY2ZENODO_JSON_DATA"
+            fi
+        fi
+    fi
+
+    #   * reference DOI for all versions
+    if [ -n "$DEPLOY2ZENODO_ADD_IsPartOf" ]; then
+        if [ -z "$LISTRES" ]; then
+            LISTRES=$(curlauth "$DEPLOY2ZENODO_API_URL"/deposit/depositions)
+        fi
+        LATESTRECORD=$(echo "$LISTRES" | jq -c ".[] | select(.conceptrecid==\"$conceptrecid\")")
+        CONCEPTDOI=$(echo "$LATESTRECORD" | jq -r .conceptdoi)
+        if [ -n "$DEPLOY2ZENODO_DRYRUN" ] || [ -n "$DEPLOY2ZENODO_SKIPRUN" ]; then
+            log "Skip testing result due to DRYRUN or SKIPRUN."
+        else
+            test -n "$CONCEPTDOI" -a "$CONCEPTDOI" != "null" || (errlog "CONCEPTDOI=\"$CONCEPTDOI\""; exit 27)
+        fi
+        IsPartOf="{\"relation\":\"IsPartOf\",\"identifier\":\"$CONCEPTDOI\",\"scheme\":\"doi\",\"resource_type\":\"$LATESTUPLOADTYPE\"}"
+        log "add IsPartOf:"
+        echojq IsPartOf "$IsPartOf"
+        DEPLOY2ZENODO_JSON_DATA=$(echo "$DEPLOY2ZENODO_JSON_DATA" | jq -c ".metadata.related_identifiers += [$IsPartOf]")
+        echojq DEPLOY2ZENODO_JSON_DATA "$DEPLOY2ZENODO_JSON_DATA"
     fi
 
     #   * create new version
@@ -242,8 +294,9 @@ else
         log "# --> Creating new version is skipped!  #"
         log "# --> Try to find latest draft.         #"
         log "#########################################"
-        conceptrecid=$(echo "$RECORD" | jq -r .conceptrecid)
-        LISTRES=$(curlauth "$DEPLOY2ZENODO_API_URL"/deposit/depositions?conceptrecid="$conceptrecid")
+        if [ -z "$LISTRES" ]; then
+            LISTRES=$(curlauth "$DEPLOY2ZENODO_API_URL"/deposit/depositions)
+        fi
         # echojq LISTRES "$LISTRES"
         LATESTRECORDPRE=$(echo "$LISTRES" | jq -c ".[] | select(.conceptrecid==\"$conceptrecid\" and .state!=\"done\")")
         echojq LATESTRECORDPRE "$LATESTRECORDPRE"
