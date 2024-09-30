@@ -49,8 +49,8 @@ pre-commit:
     - shellcheck -e SC2154 "$CREATED_SCRIPTS"/*
     - pre-commit run --all-files
     - cffconvert -i "$CITATION" --validate
-    - cat zenodo-add-related_identifiers.json | jq
-    - cat zenodo-merge.json | jq
+    - jq < zenodo-add-related_identifiers.json
+    - jq < zenodo-merge.json
   artifacts:
     expire_in: 1 hrs
     paths:
