@@ -169,7 +169,7 @@ deploy_ci_template:
     # $DOI and $DEPLOY2ZENODO_DEPOSITION_ID available
     # create CITATION.cff
     - TMPCITATION=$(mktemp)
-    - yq ".url = \"$CI_PROJECT_URL/-/releases/$TAG\" | .commit = \"$TAG_COMMIT_SHA\" | .version = \"$TAG\" | .\"date-released\" = \"$TAG_COMMIT_TIMESTAMP\" | .identifiers[0].description = \"The DOI of this release.\" | .identifiers[0].value = \"$DOI\" | .identifiers[0].type = \"doi\" | .doi = \"$DOI\"" "$CITATION" | tee "$TMPCITATION"
+    - yq --yaml-output ".url = \"$CI_PROJECT_URL/-/releases/$TAG\" | .commit = \"$TAG_COMMIT_SHA\" | .version = \"$TAG\" | .\"date-released\" = \"$TAG_COMMIT_TIMESTAMP\" | .identifiers[0].description = \"The DOI of this release.\" | .identifiers[0].value = \"$DOI\" | .identifiers[0].type = \"doi\" | .doi = \"$DOI\"" "$CITATION" | tee "$TMPCITATION"
     - mv "$TMPCITATION" "$CITATION"
     - cffconvert -i "$CITATION" --validate
     # create README.pdf
