@@ -1,6 +1,6 @@
 ---
 author: Daniel Mohr
-date: 2024-05-28
+date: 2024-09-30
 license: Apache-2.0
 home: https://gitlab.com/deploy2zenodo/deploy2zenodo
 mirror: https://github.com/deploy2zenodo/deploy2zenodo
@@ -434,6 +434,7 @@ There are other optional variables:
 | DEPLOY2ZENODO_CURL_MAX_TIME | max time for curl |
 | DEPLOY2ZENODO_CURL_MAX_TIME_PUBLISH | max time for curl during publishing |
 | DEPLOY2ZENODO_ADD_IsCompiledBy_DEPLOY2ZENODO | reference deploy2zenodo |
+| DEPLOY2ZENODO_ADD_IsNewVersionOf | reference previous version |
 
 ### DEPLOY2ZENODO_API_URL
 
@@ -561,7 +562,7 @@ If you want to upload 4 files with these names change the order.
 Not every zenodo instance supports metadata-only records
 (configured by `canHaveMetadataOnlyRecords`?).
 For example the official [zenodo instance](https://about.zenodo.org/)
-does not allow metadata-only records (as far as I know).
+does not allow metadata-only records!
 In this case an empty dummy file is uploaded.
 If this is the case, you should think about respecting the implicit request
 of the used zenodo instance to provide some data.
@@ -672,6 +673,28 @@ provided JSON file:
       {
         "relation": "IsCompiledBy",
         "identifier": "10.5281/zenodo.10112959",
+        "scheme": "doi",
+        "resource_type": "software"
+      }
+    ]
+  }
+}
+```
+
+### DEPLOY2ZENODO_ADD_IsNewVersionOf
+
+If this variable is not empty a reference to the previous version of your
+record is referenced.
+Something like (but with the DOI of the old version and the appropriate
+resource_type) will be added to your provided JSON file:
+
+```json
+{
+  "metadata": {
+    "related_identifiers": [
+      {
+        "relation": "IsNewVersionOf",
+        "identifier": "10.5281/zenodo.10908332",
         "scheme": "doi",
         "resource_type": "software"
       }

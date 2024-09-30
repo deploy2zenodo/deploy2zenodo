@@ -3,7 +3,7 @@ set -e -v
 
 #    deploy2zenodo
 #    Copyright (C) 2023, 2024  Daniel Mohr
-#    Version: 0.6.1
+#    Version: 0.6.2
 #    DOI: 10.5281/zenodo.10112959
 #
 # Instead of command line parameters we use environment variables.
@@ -25,6 +25,7 @@ set -e -v
 #   * DEPLOY2ZENODO_CURL_MAX_TIME
 #   * DEPLOY2ZENODO_CURL_MAX_TIME_PUBLISH
 #   * DEPLOY2ZENODO_ADD_IsCompiledBy_DEPLOY2ZENODO
+#   * DEPLOY2ZENODO_ADD_IsNewVersionOf
 #
 # For more information see: https://gitlab.com/deploy2zenodo/deploy2zenodo
 #
@@ -71,7 +72,7 @@ if [ -n "$missing_variables" ]; then
     exit 1
 else
     log "available variables are looking fine"
-    for varname in DEPLOY2ZENODO_API_URL DEPLOY2ZENODO_DEPOSITION_ID DEPLOY2ZENODO_JSON DEPLOY2ZENODO_UPLOAD DEPLOY2ZENODO_SKIP_PUBLISH DEPLOY2ZENODO_DRYRUN DEPLOY2ZENODO_SKIPRUN DEPLOY2ZENODO_SKIP_NEW_VERSION DEPLOY2ZENODO_GET_METADATA DEPLOY2ZENODO_SKIP_UPLOAD DEPLOY2ZENODO_CURL_MAX_TIME DEPLOY2ZENODO_CURL_MAX_TIME_PUBLISH DEPLOY2ZENODO_ADD_IsCompiledBy_DEPLOY2ZENODO; do
+    for varname in DEPLOY2ZENODO_API_URL DEPLOY2ZENODO_DEPOSITION_ID DEPLOY2ZENODO_JSON DEPLOY2ZENODO_UPLOAD DEPLOY2ZENODO_SKIP_PUBLISH DEPLOY2ZENODO_DRYRUN DEPLOY2ZENODO_SKIPRUN DEPLOY2ZENODO_SKIP_NEW_VERSION DEPLOY2ZENODO_GET_METADATA DEPLOY2ZENODO_SKIP_UPLOAD DEPLOY2ZENODO_CURL_MAX_TIME DEPLOY2ZENODO_CURL_MAX_TIME_PUBLISH DEPLOY2ZENODO_ADD_IsCompiledBy_DEPLOY2ZENODO DEPLOY2ZENODO_ADD_IsNewVersionOf; do
         echo "$varname: \"$(eval "echo \"\$$varname\"")\""
     done
 fi
@@ -229,11 +230,32 @@ else
     #   * get data from record
     RECORD=$(curlauth "$DEPLOY2ZENODO_API_URL"/deposit/depositions/"$DEPLOY2ZENODO_DEPOSITION_ID")
     echojq RECORD "$RECORD"
+    conceptrecid=$(echo "$RECORD" | jq -r .conceptrecid)
+    test -n "$conceptrecid" -a "$conceptrecid" != "null" || (errlog "conceptrecid=\"$\"conceptrecid"; exit 24)
     NEWVERSIONURL=$(echo "$RECORD" | jq -r .links.newversion)
     if [ -n "$DEPLOY2ZENODO_DRYRUN" ] || [ -n "$DEPLOY2ZENODO_SKIPRUN" ]; then
         log "Skip testing result due to DRYRUN or SKIPRUN."
     else
         test -n "$NEWVERSIONURL" -a "$NEWVERSIONURL" != "null" || (errlog "NEWVERSIONURL=\"$NEWVERSIONURL\""; exit 11)
+    fi
+
+    #   * reference previous version
+    if [ -n "$DEPLOY2ZENODO_ADD_IsNewVersionOf" ]; then
+	LISTRES=$(curlauth "$DEPLOY2ZENODO_API_URL"/deposit/depositions?conceptrecid="$conceptrecid")
+	LATESTRECORDDONE=$(echo "$LISTRES" | jq -c ".[] | select(.conceptrecid==\"$conceptrecid\" and .state==\"done\")")
+	LATESTDOI=$(echo "$LATESTRECORDDONE" | jq -r .doi)
+	LATESTUPLOADTYPE=$(echo "$LATESTRECORDDONE" | jq -r .metadata.upload_type)
+	if [ -n "$DEPLOY2ZENODO_DRYRUN" ] || [ -n "$DEPLOY2ZENODO_SKIPRUN" ]; then
+            log "Skip testing result due to DRYRUN or SKIPRUN."
+        else
+            test -n "$LATESTDOI" -a "$LATESTDOI" != "null" || (errlog "LATESTDOI=\"$LATESTDOI\""; exit 25)
+            test -n "$LATESTUPLOADTYPE" -a "$LATESTUPLOADTYPE" != "null" || (errlog "LATESTUPLOADTYPE=\"$LATESTUPLOADTYPE\""; exit 26)
+        fi
+	IsNewVersionOf="{\"relation\":\"IsNewVersionOf\",\"identifier\":\"$LATESTDOI\",\"scheme\":\"doi\",\"resource_type\":\"$LATESTUPLOADTYPE\"}"
+	log "add IsNewVersionOf:"
+	echojq IsNewVersionOf "$IsNewVersionOf"
+	DEPLOY2ZENODO_JSON_DATA=$(echo "$DEPLOY2ZENODO_JSON_DATA" | jq -c ".metadata.related_identifiers += [$IsNewVersionOf]")
+	echojq DEPLOY2ZENODO_JSON_DATA "$DEPLOY2ZENODO_JSON_DATA"
     fi
 
     #   * create new version
@@ -242,8 +264,9 @@ else
         log "# --> Creating new version is skipped!  #"
         log "# --> Try to find latest draft.         #"
         log "#########################################"
-        conceptrecid=$(echo "$RECORD" | jq -r .conceptrecid)
-        LISTRES=$(curlauth "$DEPLOY2ZENODO_API_URL"/deposit/depositions?conceptrecid="$conceptrecid")
+	if [ -z "$LISTRES" ]; then
+            LISTRES=$(curlauth "$DEPLOY2ZENODO_API_URL"/deposit/depositions?conceptrecid="$conceptrecid")
+	fi
         # echojq LISTRES "$LISTRES"
         LATESTRECORDPRE=$(echo "$LISTRES" | jq -c ".[] | select(.conceptrecid==\"$conceptrecid\" and .state!=\"done\")")
         echojq LATESTRECORDPRE "$LATESTRECORDPRE"
