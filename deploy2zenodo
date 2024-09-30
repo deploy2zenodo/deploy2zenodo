@@ -141,7 +141,11 @@ if [ "$DEPLOY2ZENODO_DEPOSITION_ID" = "create NEW record" ]; then
     NEWRECORD="$(curlauth --header "$hjson" --request POST --data-binary "$DEPLOY2ZENODO_JSON_DATA" "$DEPLOY2ZENODO_API_URL"/deposit/depositions)"
     echojq NEWRECORD "$NEWRECORD"
     DEPLOY2ZENODO_DEPOSITION_ID=$(echo "$NEWRECORD" | jq .id)
-    test -n "$DEPLOY2ZENODO_DEPOSITION_ID" -a "$DEPLOY2ZENODO_DEPOSITION_ID" != "null" || (errlog "DEPLOY2ZENODO_DEPOSITION_ID=\"$DEPLOY2ZENODO_DEPOSITION_ID\""; exit 4)
+    if [ -n "$DEPLOY2ZENODO_DRYRUN" ] || [ -n "$DEPLOY2ZENODO_SKIPRUN" ]; then
+        log "Skip testing checksum due to DRYRUN or SKIPRUN."
+    else
+        test -n "$DEPLOY2ZENODO_DEPOSITION_ID" -a "$DEPLOY2ZENODO_DEPOSITION_ID" != "null" || (errlog "DEPLOY2ZENODO_DEPOSITION_ID=\"$DEPLOY2ZENODO_DEPOSITION_ID\""; exit 4)
+    fi
     LATESTID=$DEPLOY2ZENODO_DEPOSITION_ID
     log "##################################################################"
     log "# add the id of the deposition/record on zenodo for the next run #"
@@ -150,9 +154,13 @@ if [ "$DEPLOY2ZENODO_DEPOSITION_ID" = "create NEW record" ]; then
     log "# DEPLOY2ZENODO_DEPOSITION_ID=$DEPLOY2ZENODO_DEPOSITION_ID"
     log "##################################################################"
     LATESTDRAFT=$(echo "$NEWRECORD" | jq -r .links.latest_draft)
-    test -n "$LATESTDRAFT" -a "$LATESTDRAFT" != "null" || (errlog "LATESTDRAFT=\"$LATESTDRAFT\""; exit 5)
     BUCKETURL=$(echo "$NEWRECORD" | jq -r .links.bucket)
-    test -n "$BUCKETURL" -a "$BUCKETURL" != "null" || (errlog "BUCKETURL=\"$BUCKETURL\""; exit 6)
+    if [ -n "$DEPLOY2ZENODO_DRYRUN" ] || [ -n "$DEPLOY2ZENODO_SKIPRUN" ]; then
+        log "Skip testing checksum due to DRYRUN or SKIPRUN."
+    else
+        test -n "$LATESTDRAFT" -a "$LATESTDRAFT" != "null" || (errlog "LATESTDRAFT=\"$LATESTDRAFT\""; exit 5)
+        test -n "$BUCKETURL" -a "$BUCKETURL" != "null" || (errlog "BUCKETURL=\"$BUCKETURL\""; exit 6)
+    fi
 
     #   * upload files/archives
     if [ -n "$DEPLOY2ZENODO_SKIP_UPLOAD" ]; then
@@ -231,11 +239,11 @@ else
     RECORD=$(curlauth "$DEPLOY2ZENODO_API_URL"/deposit/depositions/"$DEPLOY2ZENODO_DEPOSITION_ID")
     echojq RECORD "$RECORD"
     conceptrecid=$(echo "$RECORD" | jq -r .conceptrecid)
-    test -n "$conceptrecid" -a "$conceptrecid" != "null" || (errlog "conceptrecid=\"$\"conceptrecid"; exit 24)
     NEWVERSIONURL=$(echo "$RECORD" | jq -r .links.newversion)
     if [ -n "$DEPLOY2ZENODO_DRYRUN" ] || [ -n "$DEPLOY2ZENODO_SKIPRUN" ]; then
         log "Skip testing result due to DRYRUN or SKIPRUN."
     else
+        test -n "$conceptrecid" -a "$conceptrecid" != "null" || (errlog "conceptrecid=\"$conceptrecid\""; exit 24)
         test -n "$NEWVERSIONURL" -a "$NEWVERSIONURL" != "null" || (errlog "NEWVERSIONURL=\"$NEWVERSIONURL\""; exit 11)
     fi
 
