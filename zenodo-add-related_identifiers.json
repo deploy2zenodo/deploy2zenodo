@@ -54,6 +54,24 @@
         "identifier": "10.5281/zenodo.10137957",
         "scheme": "doi",
         "resource_type": "poster"
+      },
+      {
+        "relation": "iscitedby",
+        "identifier": "10.5281/zenodo.10119449",
+        "scheme": "doi",
+        "resource_type": "software"
+      },
+      {
+        "relation": "iscitedby",
+        "identifier": "10.5281/zenodo.10137956",
+        "scheme": "doi",
+        "resource_type": "poster"
+      },
+      {
+        "relation": "iscitedby",
+        "identifier": "10.5281/zenodo.11094320",
+        "scheme": "doi",
+        "resource_type": "poster"
       }
     ]
   }
