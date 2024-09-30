@@ -156,11 +156,14 @@ deploy_ci_template:
     - job: prepare_release_step1
       artifacts: true
   image:
-    name: alpine:latest
+    name: debian:latest
+  variables:
+    DEBIAN_FRONTEND: noninteractive
+    APT_GET_INSTALL: "apt-get install --no-install-recommends -q -y"
   extends: .display_env
   script:
-    - echo https://dl-cdn.alpinelinux.org/alpine/edge/community >> /etc/apk/repositories
-    - apk add --no-cache cffconvert curl jq pandoc texlive yq
+    - apt-get update
+    - $APT_GET_INSTALL curl fonts-lmodern jq lmodern pandoc texlive yq
     # $DOI and $DEPLOY2ZENODO_DEPOSITION_ID available
     # create CITATION.cff
     - TMPCITATION=$(mktemp)
