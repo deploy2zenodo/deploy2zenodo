@@ -229,6 +229,8 @@ deploy2zenodo:
     DEPLOY2ZENODO_DEPOSITION_ID: "create NEW record"
     DEPLOY2ZENODO_UPLOAD: "$CI_PROJECT_NAME-$CI_COMMIT_TAG.zip"
     DEPLOY2ZENODO_ADD_IsCompiledBy_DEPLOY2ZENODO: "yes"
+    DEPLOY2ZENODO_ADD_IsNewVersionOf: "yes"
+    DEPLOY2ZENODO_ADD_IsPartOf: "yes"
     DEPLOY2ZENODO_GET_METADATA: "result.json"
   before_script:
     - env
