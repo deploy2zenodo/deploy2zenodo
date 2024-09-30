@@ -259,7 +259,7 @@ else
         IsNewVersionOf="{\"relation\":\"IsNewVersionOf\",\"identifier\":\"$LATESTDOI\",\"scheme\":\"doi\",\"resource_type\":\"$LATESTUPLOADTYPE\"}"
         log "add IsNewVersionOf:"
         echojq IsNewVersionOf "$IsNewVersionOf"
-        if [ -n "$LATESTDOI" ] || [ -n "$LATESTUPLOADTYPE" ]; then
+        if [ -z "$LATESTDOI" ] || [ "$LATESTDOI" = "null" ] || [ -z "$LATESTUPLOADTYPE" ] || [ "$LATESTUPLOADTYPE" = "null" ]; then
             log "No LATESTDOI or no LATESTUPLOADTYPE found. IsNewVersionOf not added!"
         else
             DEPLOY2ZENODO_JSON_DATA=$(echo "$DEPLOY2ZENODO_JSON_DATA" | jq -c ".metadata.related_identifiers += [$IsNewVersionOf]")

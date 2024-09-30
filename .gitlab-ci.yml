@@ -27,7 +27,7 @@ pre-commit:
     name: alpine:edge
   extends: .display_env
   script:
-    - apk add --no-cache cffconvert git npm pre-commit shellcheck
+    - apk add --no-cache cffconvert git jq npm pre-commit shellcheck
     - pre-commit --version
     - cffconvert --version
     - pre-commit run --all-files
@@ -49,6 +49,8 @@ pre-commit:
     - shellcheck -e SC2154 "$CREATED_SCRIPTS"/*
     - pre-commit run --all-files
     - cffconvert -i "$CITATION" --validate
+    - jq < zenodo-add-related_identifiers.json
+    - jq < zenodo-merge.json
   artifacts:
     expire_in: 1 hrs
     paths:
