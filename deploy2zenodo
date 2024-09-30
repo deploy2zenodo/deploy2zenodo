@@ -249,7 +249,7 @@ else
 
     #   * reference previous version
     if [ -n "$DEPLOY2ZENODO_ADD_IsNewVersionOf" ]; then
-        LISTRES=$(curlauth "$DEPLOY2ZENODO_API_URL"/deposit/depositions?conceptrecid="$conceptrecid")
+        LISTRES=$(curlauth "$DEPLOY2ZENODO_API_URL"/deposit/depositions)
         LATESTRECORDDONE=$(echo "$LISTRES" | jq -c ".[] | select(.conceptrecid==\"$conceptrecid\" and .state==\"done\")")
         LATESTDOI=$(echo "$LATESTRECORDDONE" | jq -r .doi)
         LATESTUPLOADTYPE=$(echo "$LATESTRECORDDONE" | jq -r .metadata.upload_type)
@@ -273,7 +273,7 @@ else
         log "# --> Try to find latest draft.         #"
         log "#########################################"
         if [ -z "$LISTRES" ]; then
-            LISTRES=$(curlauth "$DEPLOY2ZENODO_API_URL"/deposit/depositions?conceptrecid="$conceptrecid")
+            LISTRES=$(curlauth "$DEPLOY2ZENODO_API_URL"/deposit/depositions)
         fi
         # echojq LISTRES "$LISTRES"
         LATESTRECORDPRE=$(echo "$LISTRES" | jq -c ".[] | select(.conceptrecid==\"$conceptrecid\" and .state!=\"done\")")

@@ -87,7 +87,7 @@ prepare_release_and_deploy2zenodo:
   image:
     name: alpine:latest
   variables:
-    DEPLOY2ZENODO_JSON: mymetadata.json
+    DEPLOY2ZENODO_JSON: "mymetadata.json"
   script:
     # prepare
     - TAG=$(grep version library.properties | cut -d "=" -f 2)
@@ -132,7 +132,7 @@ deploy2zenodo:
       when: never
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
   variables:
-    DEPLOY2ZENODO_API_URL: https://sandbox.zenodo.org/api
+    DEPLOY2ZENODO_API_URL: "https://sandbox.zenodo.org/api"
     DEPLOY2ZENODO_DEPOSITION_ID: "create NEW record"
 ```
 
@@ -224,7 +224,7 @@ deploy2zenodo:
   rules:
     - if: $CI_COMMIT_TAG
   variables:
-    DEPLOY2ZENODO_API_URL: https://sandbox.zenodo.org/api
+    DEPLOY2ZENODO_API_URL: "https://sandbox.zenodo.org/api"
     DEPLOY2ZENODO_JSON: "CITATION.json"
     DEPLOY2ZENODO_DEPOSITION_ID: "create NEW record"
     DEPLOY2ZENODO_UPLOAD: "$CI_PROJECT_NAME-$CI_COMMIT_TAG.zip"
