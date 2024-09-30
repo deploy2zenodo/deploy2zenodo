@@ -1,13 +1,13 @@
 {
     "metadata": {
-	"upload_type": "software"
+        "upload_type": "software"
     }
     "communities": [
-	{
-	    "identifier": "dlr_de"
-	},
-	{
-	    "identifier": "helmholtz_hmc"
-	}
+        {
+            "identifier": "dlr_de"
+        },
+        {
+            "identifier": "helmholtz_hmc"
+        }
     ]
 }
