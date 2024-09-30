@@ -264,9 +264,9 @@ else
         log "# --> Creating new version is skipped!  #"
         log "# --> Try to find latest draft.         #"
         log "#########################################"
-	if [ -z "$LISTRES" ]; then
+        if [ -z "$LISTRES" ]; then
             LISTRES=$(curlauth "$DEPLOY2ZENODO_API_URL"/deposit/depositions?conceptrecid="$conceptrecid")
-	fi
+        fi
         # echojq LISTRES "$LISTRES"
         LATESTRECORDPRE=$(echo "$LISTRES" | jq -c ".[] | select(.conceptrecid==\"$conceptrecid\" and .state!=\"done\")")
         echojq LATESTRECORDPRE "$LATESTRECORDPRE"
