@@ -704,7 +704,7 @@ resource_type) will be added to your provided JSON file:
 }
 ```
 
-### DEPLOY2ZENODO_ADD_IsNewVersionOf
+### DEPLOY2ZENODO_ADD_IsPartOf
 
 If this variable is not empty a reference to all versions of your record is
 referenced.

@@ -264,14 +264,14 @@ else
         log "add IsNewVersionOf:"
         echojq IsNewVersionOf "$IsNewVersionOf"
         DEPLOY2ZENODO_JSON_DATA=$(echo "$DEPLOY2ZENODO_JSON_DATA" | jq -c ".metadata.related_identifiers += [$IsNewVersionOf]")
-	if [ -z "$DEPLOY2ZENODO_ADD_IsPartOf" ]; then
+        if [ -z "$DEPLOY2ZENODO_ADD_IsPartOf" ]; then
             echojq DEPLOY2ZENODO_JSON_DATA "$DEPLOY2ZENODO_JSON_DATA"
         fi
     fi
 
     #   * reference DOI for all versions
     if [ -n "$DEPLOY2ZENODO_ADD_IsPartOf" ]; then
-	if [ -z "$LISTRES" ]; then
+        if [ -z "$LISTRES" ]; then
             LISTRES=$(curlauth "$DEPLOY2ZENODO_API_URL"/deposit/depositions)
             LATESTRECORDDONE=$(echo "$LISTRES" | jq -c ".[] | select(.conceptrecid==\"$conceptrecid\" and .state==\"done\")")
         fi
