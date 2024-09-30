@@ -254,18 +254,18 @@ else
         LATESTRECORDDONE=$(echo "$LISTRES" | jq -c ".[] | select(.conceptrecid==\"$conceptrecid\" and .state==\"done\")")
         LATESTDOI=$(echo "$LATESTRECORDDONE" | jq -r .doi)
         LATESTUPLOADTYPE=$(echo "$LATESTRECORDDONE" | jq -r .metadata.upload_type)
-        if [ -n "$DEPLOY2ZENODO_DRYRUN" ] || [ -n "$DEPLOY2ZENODO_SKIPRUN" ]; then
-            log "Skip testing result due to DRYRUN or SKIPRUN."
-        else
-            test -n "$LATESTDOI" -a "$LATESTDOI" != "null" || (errlog "LATESTDOI=\"$LATESTDOI\""; exit 25)
-            test -n "$LATESTUPLOADTYPE" -a "$LATESTUPLOADTYPE" != "null" || (errlog "LATESTUPLOADTYPE=\"$LATESTUPLOADTYPE\""; exit 26)
-        fi
+        # It is not an error if LATESTDOI is empty:
+        # This could be the first version.
         IsNewVersionOf="{\"relation\":\"IsNewVersionOf\",\"identifier\":\"$LATESTDOI\",\"scheme\":\"doi\",\"resource_type\":\"$LATESTUPLOADTYPE\"}"
         log "add IsNewVersionOf:"
         echojq IsNewVersionOf "$IsNewVersionOf"
-        DEPLOY2ZENODO_JSON_DATA=$(echo "$DEPLOY2ZENODO_JSON_DATA" | jq -c ".metadata.related_identifiers += [$IsNewVersionOf]")
-        if [ -z "$DEPLOY2ZENODO_ADD_IsPartOf" ]; then
-            echojq DEPLOY2ZENODO_JSON_DATA "$DEPLOY2ZENODO_JSON_DATA"
+        if [ -n "$LATESTDOI" ] || [ -n "$LATESTUPLOADTYPE" ]; then
+            log "No LATESTDOI or no LATESTUPLOADTYPE found. IsNewVersionOf not added!"
+        else
+            DEPLOY2ZENODO_JSON_DATA=$(echo "$DEPLOY2ZENODO_JSON_DATA" | jq -c ".metadata.related_identifiers += [$IsNewVersionOf]")
+            if [ -z "$DEPLOY2ZENODO_ADD_IsPartOf" ]; then
+                echojq DEPLOY2ZENODO_JSON_DATA "$DEPLOY2ZENODO_JSON_DATA"
+            fi
         fi
     fi
 
@@ -273,10 +273,9 @@ else
     if [ -n "$DEPLOY2ZENODO_ADD_IsPartOf" ]; then
         if [ -z "$LISTRES" ]; then
             LISTRES=$(curlauth "$DEPLOY2ZENODO_API_URL"/deposit/depositions)
-            LATESTRECORDDONE=$(echo "$LISTRES" | jq -c ".[] | select(.conceptrecid==\"$conceptrecid\" and .state==\"done\")")
         fi
-        echojq LATESTRECORDDONE "$LATESTRECORDDONE"
-        CONCEPTDOI=$(echo "$LATESTRECORDDONE" | jq -r .conceptdoi)
+        LATESTRECORD=$(echo "$LISTRES" | jq -c ".[] | select(.conceptrecid==\"$conceptrecid\")")
+        CONCEPTDOI=$(echo "$LATESTRECORD" | jq -r .conceptdoi)
         if [ -n "$DEPLOY2ZENODO_DRYRUN" ] || [ -n "$DEPLOY2ZENODO_SKIPRUN" ]; then
             log "Skip testing result due to DRYRUN or SKIPRUN."
         else
