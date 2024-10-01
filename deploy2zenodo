@@ -276,7 +276,7 @@ else
         LATESTUPLOADTYPE=$(echo "$RECORD" | jq -r .metadata.upload_type)
         if [ -z "$LATESTUPLOADTYPE" ]; then
             # try to use upload_type from current data
-            LATESTUPLOADTYPE=$(echo "$DEPLOY2ZENODO_JSON" | jq -r .metadata.upload_type)
+            LATESTUPLOADTYPE=$(echo "$DEPLOY2ZENODO_JSON_DATA" | jq -r .metadata.upload_type)
         fi
         # It is not an error if LATESTDOI is empty:
         # This could be the first version.
@@ -304,7 +304,7 @@ else
         LATESTUPLOADTYPE=$(echo "$RECORD" | jq -r .metadata.upload_type)
         if [ -z "$LATESTUPLOADTYPE" ]; then
             # try to use upload_type from current data
-            LATESTUPLOADTYPE=$(echo "$DEPLOY2ZENODO_JSON" | jq -r .metadata.upload_type)
+            LATESTUPLOADTYPE=$(echo "$DEPLOY2ZENODO_JSON_DATA" | jq -r .metadata.upload_type)
         fi
         IsPartOf="{\"relation\":\"IsPartOf\",\"identifier\":\"$CONCEPTDOI\",\"scheme\":\"doi\",\"resource_type\":\"$LATESTUPLOADTYPE\"}"
         log "add IsPartOf:"
