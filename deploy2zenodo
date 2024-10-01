@@ -165,9 +165,6 @@ if [ "$DEPLOY2ZENODO_DEPOSITION_ID" = "create NEW record" ]; then
 
     #   * reference DOI for all versions
     if [ -n "$DEPLOY2ZENODO_ADD_IsPartOf" ]; then
-        if [ -z "$LISTRES" ]; then
-            LISTRES=$(curlauth "$DEPLOY2ZENODO_API_URL"/deposit/depositions)
-        fi
         conceptrecid=$(echo "$NEWRECORD" | jq -r .conceptrecid)
         prereserve_doi="$(echo "$NEWRECORD" | jq -r .metadata.prereserve_doi.doi)"
         CONCEPTDOI=$(echo "$prereserve_doi" | sed "s/$LATESTID/$conceptrecid/g")
@@ -275,10 +272,8 @@ else
 
     #   * reference previous version
     if [ -n "$DEPLOY2ZENODO_ADD_IsNewVersionOf" ]; then
-        LISTRES=$(curlauth "$DEPLOY2ZENODO_API_URL"/deposit/depositions)
-        LATESTRECORDDONE=$(echo "$LISTRES" | jq -c ".[] | select(.conceptrecid==\"$conceptrecid\" and .state==\"done\")")
-        LATESTDOI=$(echo "$LATESTRECORDDONE" | jq -r .doi)
-        LATESTUPLOADTYPE=$(echo "$LATESTRECORDDONE" | jq -r .metadata.upload_type)
+        LATESTDOI=$(echo "$RECORD" | jq -r .doi)
+        LATESTUPLOADTYPE=$(echo "$RECORD" | jq -r .metadata.upload_type)
         if [ -z "$LATESTUPLOADTYPE" ]; then
             # try to use upload_type from current data
             LATESTUPLOADTYPE=$(echo "$DEPLOY2ZENODO_JSON" | jq -r .metadata.upload_type)
@@ -300,16 +295,13 @@ else
 
     #   * reference DOI for all versions
     if [ -n "$DEPLOY2ZENODO_ADD_IsPartOf" ]; then
-        if [ -z "$LISTRES" ]; then
-            LISTRES=$(curlauth "$DEPLOY2ZENODO_API_URL"/deposit/depositions)
-        fi
-        LATESTRECORD=$(echo "$LISTRES" | jq -c ".[] | select(.conceptrecid==\"$conceptrecid\")")
-        CONCEPTDOI=$(echo "$LATESTRECORD" | jq -r .conceptdoi)
+        CONCEPTDOI=$(echo "$RECORD" | jq -r .conceptdoi)
         if [ -n "$DEPLOY2ZENODO_DRYRUN" ] || [ -n "$DEPLOY2ZENODO_SKIPRUN" ]; then
             log "Skip testing result due to DRYRUN or SKIPRUN."
         else
             test -n "$CONCEPTDOI" -a "$CONCEPTDOI" != "null" || (errlog "CONCEPTDOI=\"$CONCEPTDOI\""; exit 27)
         fi
+        LATESTUPLOADTYPE=$(echo "$RECORD" | jq -r .metadata.upload_type)
         if [ -z "$LATESTUPLOADTYPE" ]; then
             # try to use upload_type from current data
             LATESTUPLOADTYPE=$(echo "$DEPLOY2ZENODO_JSON" | jq -r .metadata.upload_type)
