@@ -1,6 +1,6 @@
 ---
 author: Daniel Mohr
-date: 2024-09-30
+date: 2024-10-01
 license: Apache-2.0
 home: https://gitlab.com/deploy2zenodo/deploy2zenodo
 mirror: https://github.com/deploy2zenodo/deploy2zenodo
@@ -704,6 +704,48 @@ resource_type) will be added to your provided JSON file:
     ]
   }
 }
+```
+
+This can only work if DEPLOY2ZENODO_SKIP_NEW_VERSION is not used! If you split
+the run in 2 steps (the first one with DEPLOY2ZENODO_SKIP_PUBLISH and the
+second one with DEPLOY2ZENODO_SKIP_NEW_VERSION) you have to find the old
+version in the first run by yourself and provide it in the second run.
+This is done in [deploy_deploy2zenodo_to_zenodo](https://gitlab.com/projects/52008252)
+in the jobs `deploy_deploy2zenodo_step1` and `deploy_deploy2zenodo_step2`
+to publish `deploy2zenodo`. This is something like:
+
+```yaml
+step1:
+  variables:
+    DEPLOY2ZENODO_ADD_IsNewVersionOf: "yes"
+  after_script:
+    - LATESTDOI="$(jq -r ".metadata.related_identifiers[] | select(.relation==\"isNewVersionOf\") | .identifier" "$DEPLOY2ZENODO_GET_METADATA")"
+    - LATESTUPLOADTYPE="$(jq -r ".metadata.related_identifiers[] | select(.relation==\"isNewVersionOf\") | .resource_type" "$DEPLOY2ZENODO_GET_METADATA")"
+    - |
+      {
+      echo "LATESTDOI=$LATESTDOI"
+      echo "LATESTUPLOADTYPE=$LATESTUPLOADTYPE"
+      } | tee variables.env
+  artifacts:
+    reports:
+      dotenv: variables.env
+```
+
+```yaml
+step2:
+  needs:
+    - job: step1
+  variables:
+    DEPLOY2ZENODO_SKIP_NEW_VERSION: "true"
+  before_script:
+    - tmpjson="$(mktemp)"
+    - |
+      jq ".metadata.related_identifiers += [
+      {
+      \"relation\":\"IsNewVersionOf\", \"identifier\":\"$LATESTDOI\",
+      \"scheme\":\"doi\", \"resource_type\":\"$LATESTUPLOADTYPE\"
+      }]" "$DEPLOY2ZENODO_JSON" | tee "$tmpjson"
+    - mv "$tmpjson" "$DEPLOY2ZENODO_JSON"
 ```
 
 ### DEPLOY2ZENODO_ADD_IsPartOf
