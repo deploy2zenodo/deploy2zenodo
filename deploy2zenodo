@@ -3,7 +3,7 @@ set -e -v
 
 #    deploy2zenodo
 #    Copyright (C) 2023, 2024  Daniel Mohr
-#    Version: 0.6.1
+#    Version: 0.6.2
 #    DOI: 10.5281/zenodo.10112959
 #
 # Instead of command line parameters we use environment variables.
@@ -163,6 +163,31 @@ if [ "$DEPLOY2ZENODO_DEPOSITION_ID" = "create NEW record" ]; then
         test -n "$BUCKETURL" -a "$BUCKETURL" != "null" || (errlog "BUCKETURL=\"$BUCKETURL\""; exit 6)
     fi
 
+    #   * reference DOI for all versions
+    if [ -n "$DEPLOY2ZENODO_ADD_IsPartOf" ]; then
+        if [ -z "$LISTRES" ]; then
+            LISTRES=$(curlauth "$DEPLOY2ZENODO_API_URL"/deposit/depositions)
+        fi
+        conceptrecid=$(echo "$NEWRECORD" | jq -r .conceptrecid)
+        prereserve_doi="$(echo "$NEWRECORD" | jq -r .metadata.prereserve_doi.doi)"
+        CONCEPTDOI=$(echo "$prereserve_doi" | sed "s/$LATESTID/$conceptrecid/g")
+        LATESTUPLOADTYPE=$(echo "$NEWRECORD" | jq -r .metadata.upload_type)
+        if [ -n "$DEPLOY2ZENODO_DRYRUN" ] || [ -n "$DEPLOY2ZENODO_SKIPRUN" ]; then
+            log "Skip testing result due to DRYRUN or SKIPRUN."
+        else
+            test -n "$CONCEPTDOI" || (errlog "CONCEPTDOI=\"$CONCEPTDOI\""; exit 28)
+        fi
+        IsPartOf="{\"relation\":\"IsPartOf\",\"identifier\":\"$CONCEPTDOI\",\"scheme\":\"doi\",\"resource_type\":\"$LATESTUPLOADTYPE\"}"
+        log "add IsPartOf:"
+        echojq IsPartOf "$IsPartOf"
+        DEPLOY2ZENODO_JSON_DATA=$(echo "$DEPLOY2ZENODO_JSON_DATA" | jq -c ".metadata.related_identifiers += [$IsPartOf]")
+        echojq DEPLOY2ZENODO_JSON_DATA "$DEPLOY2ZENODO_JSON_DATA"
+        #   * update metadata
+        log "update metadata"
+        UPLOADMETADATA=$(curlauth --header "$hjson" --request PUT --data-binary "$DEPLOY2ZENODO_JSON_DATA" "$LATESTDRAFT")
+        echojq UPLOADMETADATA "$UPLOADMETADATA"
+    fi
+
     #   * upload files/archives
     if [ -n "$DEPLOY2ZENODO_SKIP_UPLOAD" ]; then
         log "##############################"
@@ -254,6 +279,10 @@ else
         LATESTRECORDDONE=$(echo "$LISTRES" | jq -c ".[] | select(.conceptrecid==\"$conceptrecid\" and .state==\"done\")")
         LATESTDOI=$(echo "$LATESTRECORDDONE" | jq -r .doi)
         LATESTUPLOADTYPE=$(echo "$LATESTRECORDDONE" | jq -r .metadata.upload_type)
+        if [ -z "$LATESTUPLOADTYPE" ]; then
+            # try to use upload_type from current data
+            LATESTUPLOADTYPE=$(echo "$DEPLOY2ZENODO_JSON" | jq -r .metadata.upload_type)
+        fi
         # It is not an error if LATESTDOI is empty:
         # This could be the first version.
         IsNewVersionOf="{\"relation\":\"IsNewVersionOf\",\"identifier\":\"$LATESTDOI\",\"scheme\":\"doi\",\"resource_type\":\"$LATESTUPLOADTYPE\"}"
@@ -280,6 +309,10 @@ else
             log "Skip testing result due to DRYRUN or SKIPRUN."
         else
             test -n "$CONCEPTDOI" -a "$CONCEPTDOI" != "null" || (errlog "CONCEPTDOI=\"$CONCEPTDOI\""; exit 27)
+        fi
+        if [ -z "$LATESTUPLOADTYPE" ]; then
+            # try to use upload_type from current data
+            LATESTUPLOADTYPE=$(echo "$DEPLOY2ZENODO_JSON" | jq -r .metadata.upload_type)
         fi
         IsPartOf="{\"relation\":\"IsPartOf\",\"identifier\":\"$CONCEPTDOI\",\"scheme\":\"doi\",\"resource_type\":\"$LATESTUPLOADTYPE\"}"
         log "add IsPartOf:"
