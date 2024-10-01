@@ -265,6 +265,8 @@ post_release_job:
     STEP: "3"
     DOI: $DOI
     DEPLOY2ZENODO_DEPOSITION_ID: $DEPLOY2ZENODO_DEPOSITION_ID
+    LATESTDOI: $LATESTDOI
+    LATESTUPLOADTYPE: $LATESTUPLOADTYPE
   trigger:
     project: daniel_mohr/deploy_deploy2zenodo_to_zenodo
     strategy: depend
