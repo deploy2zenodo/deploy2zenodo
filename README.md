@@ -719,8 +719,14 @@ step1:
   variables:
     DEPLOY2ZENODO_ADD_IsNewVersionOf: "yes"
   after_script:
-    - LATESTDOI="$(jq -r ".metadata.related_identifiers[] | select(.relation==\"isNewVersionOf\") | .identifier" "$DEPLOY2ZENODO_GET_METADATA")"
-    - LATESTUPLOADTYPE="$(jq -r ".metadata.related_identifiers[] | select(.relation==\"isNewVersionOf\") | .resource_type" "$DEPLOY2ZENODO_GET_METADATA")"
+    - |
+      LATESTDOI="$(jq -r ".metadata.related_identifiers[] |
+      select(.relation==\"isNewVersionOf\") | .identifier" \
+      "$DEPLOY2ZENODO_GET_METADATA")"
+    - |
+      LATESTUPLOADTYPE="$(jq -r ".metadata.related_identifiers[] |
+      select(.relation==\"isNewVersionOf\") | .resource_type" \
+      "$DEPLOY2ZENODO_GET_METADATA")"
     - |
       {
       echo "LATESTDOI=$LATESTDOI"
