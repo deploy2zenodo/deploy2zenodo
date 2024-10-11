@@ -168,11 +168,11 @@ if [ "$DEPLOY2ZENODO_DEPOSITION_ID" = "create NEW record" ]; then
         conceptrecid=$(echo "$NEWRECORD" | jq -r .conceptrecid)
         prereserve_doi="$(echo "$NEWRECORD" | jq -r .metadata.prereserve_doi.doi)"
         CONCEPTDOI=$(echo "$prereserve_doi" | sed "s/$LATESTID/$conceptrecid/g")
-	if [ -n "$CONCEPTDOI" ] || [ "$CONCEPTDOI" = "null" ]; then
-	    LATESTDOI=$(echo "$RECORD" | jq -r .doi)
-	    LATESTID=$(echo "$RECORD" | jq .id)
-	    CONCEPTDOI="$(echo "$LATESTDOI" | sed "s $LATESTID $conceptrecid g")"
-	fi
+        if [ -n "$CONCEPTDOI" ] || [ "$CONCEPTDOI" = "null" ]; then
+            LATESTDOI=$(echo "$RECORD" | jq -r .doi)
+            LATESTID=$(echo "$RECORD" | jq .id)
+            CONCEPTDOI="$(echo "$LATESTDOI" | sed "s $LATESTID $conceptrecid g")"
+        fi
         LATESTUPLOADTYPE=$(echo "$NEWRECORD" | jq -r .metadata.upload_type)
         if [ -n "$DEPLOY2ZENODO_DRYRUN" ] || [ -n "$DEPLOY2ZENODO_SKIPRUN" ]; then
             log "Skip testing result due to DRYRUN or SKIPRUN."
@@ -297,17 +297,17 @@ else
             fi
         fi
     elif [ -n "$DEPLOY2ZENODO_ADD_IsNewVersionOf" ] && [ -n "$DEPLOY2ZENODO_SKIP_NEW_VERSION" ]; then
-	log "Due to skipping creating new version the previous version is not available."
+        log "Due to skipping creating new version the previous version is not available."
     fi
 
     #   * reference DOI for all versions
     if [ -n "$DEPLOY2ZENODO_ADD_IsPartOf" ]; then
         CONCEPTDOI=$(echo "$RECORD" | jq -r .conceptdoi)
-	if [ -n "$CONCEPTDOI" ] || [ "$CONCEPTDOI" = "null" ]; then
-	    LATESTDOI=$(echo "$RECORD" | jq -r .doi)
-	    LATESTID=$(echo "$RECORD" | jq .id)
-	    CONCEPTDOI="$(echo "$LATESTDOI" | sed "s $LATESTID $conceptrecid g")"
-	fi
+        if [ -n "$CONCEPTDOI" ] || [ "$CONCEPTDOI" = "null" ]; then
+            LATESTDOI=$(echo "$RECORD" | jq -r .doi)
+            LATESTID=$(echo "$RECORD" | jq .id)
+            CONCEPTDOI="$(echo "$LATESTDOI" | sed "s $LATESTID $conceptrecid g")"
+        fi
         if [ -n "$DEPLOY2ZENODO_DRYRUN" ] || [ -n "$DEPLOY2ZENODO_SKIPRUN" ]; then
             log "Skip testing result due to DRYRUN or SKIPRUN."
         else
