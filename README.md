@@ -1,6 +1,6 @@
 ---
 author: Daniel Mohr
-date: 2024-10-01
+date: 2024-10-11
 license: Apache-2.0
 home: https://gitlab.com/deploy2zenodo/deploy2zenodo
 mirror: https://github.com/deploy2zenodo/deploy2zenodo

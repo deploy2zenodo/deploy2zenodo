@@ -12,7 +12,7 @@ OUT=deploy2zenodo.sh
 VERSION=$(sed -n 's/^.*Version:\s*\(\S*\)$/\1/p' $IN)
 URL=$(sed -n 's/^home:\s*\(https:\S*\)$/\1/p' README.md)
 script=$(sed '/^VERSION=.*$/d' $IN | \
-             sed "s#v\$VERSION#v$VERSION $URL-/releases/$VERSION#g" | \
+             sed "s#v\$VERSION#v$VERSION $URL/-/releases/$VERSION#g" | \
              sed '/^DEPLOY2ZENODO_DOI=.*$/d' | \
              sed '/^\s*$/d')
 
