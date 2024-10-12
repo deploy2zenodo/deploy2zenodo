@@ -165,7 +165,7 @@ if [ "$DEPLOY2ZENODO_DEPOSITION_ID" = "create NEW record" ]; then
 
     #   * reference DOI for all versions
     if [ -n "$DEPLOY2ZENODO_ADD_IsPartOf" ]; then
-	log "reference DOI for all versions"
+        log "reference DOI for all versions"
         conceptrecid=$(echo "$NEWRECORD" | jq -r .conceptrecid)
         prereserve_doi="$(echo "$NEWRECORD" | jq -r .metadata.prereserve_doi.doi)"
         CONCEPTDOI=$(echo "$prereserve_doi" | sed "s/$LATESTID/$conceptrecid/g")
@@ -273,7 +273,7 @@ else
 
     #   * reference previous version
     if [ -n "$DEPLOY2ZENODO_ADD_IsNewVersionOf" ] && [ -z "$DEPLOY2ZENODO_SKIP_NEW_VERSION" ]; then
-	log "reference previous version"
+        log "reference previous version"
         LATESTDOI=$(echo "$RECORD" | jq -r .doi)
         LATESTUPLOADTYPE=$(echo "$RECORD" | jq -r .metadata.upload_type)
         if [ -z "$LATESTUPLOADTYPE" ]; then
@@ -299,7 +299,7 @@ else
 
     #   * reference DOI for all versions
     if [ -n "$DEPLOY2ZENODO_ADD_IsPartOf" ]; then
-	log "reference DOI for all versions"
+        log "reference DOI for all versions"
         CONCEPTDOI=$(echo "$RECORD" | jq -r .conceptdoi)
         if [ -z "$CONCEPTDOI" ] || [ "$CONCEPTDOI" = "null" ]; then
             LATESTDOI=$(echo "$RECORD" | jq -r .doi)
