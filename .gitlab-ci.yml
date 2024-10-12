@@ -31,6 +31,15 @@ pre-commit:
     - pre-commit --version
     - cffconvert --version
     - pre-commit run --all-files
+    # check exit code is unique
+    - |
+      FILETOCHECK="deploy2zenodo"
+      OUT="$(grep -o -E 'exit [0-9]*' "$FILETOCHECK")"
+      if [ ! "$(echo "$OUT" | wc -l)" -eq "$(echo "$OUT" | uniq | wc -l)" ]; then
+          echo "exit code is not unique:"
+          echo "$OUT" | sort -n -t " " -k 2
+          exit 1
+      fi
     - ./create_deploy2zenodo_gitlab_ci_pipeline
     - cat "$CI_FILE_NAME"
     - ./create_deploy2zenodo_script
