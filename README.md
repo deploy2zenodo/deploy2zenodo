@@ -1,6 +1,6 @@
 ---
 author: Daniel Mohr
-date: 2024-10-12
+date: 2024-10-23
 license: Apache-2.0
 home: https://gitlab.com/deploy2zenodo/deploy2zenodo
 mirror: https://github.com/deploy2zenodo/deploy2zenodo
@@ -16,13 +16,19 @@ doi: 10.5281/zenodo.10112959
 
 [`deploy2zenodo`](https://gitlab.com/projects/51392274) is a
 [shell](https://en.wikipedia.org/wiki/Bourne_shell) script to deploy
-your data to [zenodo](https://zenodo.org/).
+your data to [Zenodo](https://zenodo.org/).
 You can use it in a [CI pipeline](https://docs.gitlab.com/ee/ci/pipelines/) as
 an automatic workflow.
 
 Environmental variables allow very flexible use.
 Depending on the selected flags, the data can be curated before deployment
 in a merge request, in the zenodo web interface or not curated at all.
+
+**Note:** `deploy2zenodo` is primarily designed for the Zenodo API.
+It may also work with other APIs like
+[Invenio RDM](https://inveniosoftware.org/products/rdm/),
+but compatibility is not guaranteed.
+Test the script with any new API before using it.
 
 ## intention
 
@@ -71,6 +77,8 @@ Store it in a [GitLab CI/CD variable](https://docs.gitlab.com/ee/ci/variables/)
 as `DEPLOY2ZENODO_ACCESS_TOKEN`. Use the flags
 [Mask variable](https://docs.gitlab.com/ee/ci/variables/index.html#mask-a-cicd-variable)
 and [Protect variable](https://docs.gitlab.com/ee/ci/variables/index.html#protect-a-cicd-variable).
+Masking ensures that the variable is not displayed in the CI/CD logs, and
+protecting the variable limits access to authorized users.
 Keep in mind the token is sensitive and private information.
 Therefore you should not share it or make it public available.
 
@@ -620,6 +628,7 @@ before the last job run.
 
 If this variable is not empty the metadata of the record is stored in a
 file with this name.
+This is useful for logging or further processing after deployment.
 
 To get these data at the end of the script an additional communication
 with the DEPLOY2ZENODO_API_URL server is done.
@@ -822,8 +831,8 @@ deploy2zenodo:
 
 ## script
 
-You can use the script directly. But that is not our focus of `deploy2zenodo`,
-so we keep it short. For example:
+You can use the script directly. But that is not our main focus of
+`deploy2zenodo`, so we keep it short. For example:
 
 ```sh
 SCRIPTURL=https://gitlab.com/deploy2zenodo/deploy2zenodo/-/releases/permalink/latest/downloads/deploy2zenodo
@@ -842,6 +851,16 @@ export DEPLOY2ZENODO_CURL_MAX_TIME=""
 export DEPLOY2ZENODO_CURL_MAX_TIME_PUBLISH=""
 curl -L "$SCRIPTURL" | tee deploy2zenodo.sh | sh
 ```
+
+It's worth noting that we try to handle private information such as the
+access token in a secure way in the script, it is still a sensitive piece of
+information that should not be shared with anyone who does not need access to
+the corresponding Zenodo account.
+
+**Important:** Using the script as described in this section (e. g. on a
+desktop computer) does not allow for the masking of CI variables, which can
+expose sensitive information such as access tokens. We recommend that users
+take steps to mitigate this risk.
 
 ## harvesting
 
