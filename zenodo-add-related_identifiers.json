@@ -78,6 +78,12 @@
         "identifier": "10.5281/zenodo.13915615",
         "scheme": "doi",
         "resource_type": "poster"
+      },
+      {
+        "relation": "iscitedby",
+        "identifier": "https://doi.org/10.5281/zenodo.13987885",
+        "scheme": "doi",
+        "resource_type": "presentation"
       }
     ]
   }

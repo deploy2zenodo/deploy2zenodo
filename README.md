@@ -1,6 +1,6 @@
 ---
 author: Daniel Mohr
-date: 2024-10-23
+date: 2024-10-24
 license: Apache-2.0
 home: https://gitlab.com/deploy2zenodo/deploy2zenodo
 mirror: https://github.com/deploy2zenodo/deploy2zenodo
@@ -213,6 +213,13 @@ you to curate the upload to zenodo in the zenodo web interface before
 publishing. This is especially useful if you are setting up the workflow for
 the first time in your own project -- but can also be used at any time.
 
+Depending on where variables are defined, they have different priorities.
+For example, CI variables defined in the UI have priority and override the
+variables stored in the `.gitlab-ci.yml` file with the
+[keyword `variables`](https://docs.gitlab.com/ee/ci/yaml/#variables).
+Variables that are defined at job level, in the `script`, `before_script` or
+`after_script` sections, have the highest priority
+
 An example test project is [deploy2zenodo_test_simple_workflow_update](https://gitlab.com/projects/51647607).
 
 ### very simple workflow
@@ -261,8 +268,12 @@ deploy2zenodo:
       - $DEPLOY2ZENODO_GET_METADATA
 ```
 
-Such a simple workflow uses [deploy_deploy2zenodo_to_zenodo](https://gitlab.com/projects/52008252)
-in the job `deploy2zenodo` to publish itself.
+Such a simple workflow uses
+
+* [deploy_deploy2zenodo_to_zenodo](https://gitlab.com/projects/52008252)
+  in the job `deploy2zenodo` to publish itself.
+* [2024-10_waw_fdm](https://codebase.helmholtz.cloud/projects/14469)
+  in the job `deploy2zenodo` to publish a poster.
 
 ### triggered workflow
 
@@ -377,6 +388,10 @@ deploy2zenodo-step1:
     - DEPLOY2ZENODO_SKIP_PUBLISH: "true"
     - DEPLOY2ZENODO_GET_METADATA: "newmetadata.json"
   extends: .deploy2zenodo
+  image:
+    name: alpine:latest
+  before_script:
+    - apk add --no-cache curl jq
   after_script:
     - echo "DEPLOY2ZENODO_GET_METADATA=$DEPLOY2ZENODO_GET_METADATA" > variables.env
   artifacts:
@@ -400,8 +415,12 @@ prepare_deploy2zenodo_step2:
 
 deploy2zenodo-step2:
   variables:
-    - DEPLOY2ZENODO_SKIP_NEW_VERSION: "true"
+    DEPLOY2ZENODO_SKIP_NEW_VERSION: "true"
   extends: .deploy2zenodo
+  image:
+    name: alpine:latest
+  before_script:
+    - apk add --no-cache curl jq
 ```
 
 In the step `prepare_release` you can use [jq](https://github.com/jqlang/jq)
@@ -410,6 +429,12 @@ to extract data. For example the preserved DOI is available by:
 ```sh
 jq .metadata.prereserve_doi.doi "$DEPLOY2ZENODO_GET_METADATA"
 ```
+
+Such a complex workflow uses
+[2024-10_waw_fdm_talk](https://codebase.helmholtz.cloud/projects/14501)
+to publish a poster. Instead of creating a release, as shown above, the
+poster is built in the job `build` using the DOI previously created in
+the job `deploy2zenodo-step1`.
 
 ### very complex workflow
 
@@ -784,6 +809,9 @@ resource_type) will be added to your provided JSON file:
   }
 }
 ```
+
+This only works, if DEPLOY2ZENODO_DEPOSITION_ID is not given
+as `create NEW record`.
 
 ## CI pipeline
 
