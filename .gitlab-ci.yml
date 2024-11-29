@@ -272,14 +272,14 @@ post_release_job:
     - job: deploy_ci_template
     - job: release_job
   variables:
-    TAG: $TAG
+    #TAG: $TAG
     TAG_COMMIT_SHA: $TAG_COMMIT_SHA
     TAG_COMMIT_TIMESTAMP: $TAG_COMMIT_TIMESTAMP
     STEP: "3"
     DOI: $DOI
-    DEPLOY2ZENODO_DEPOSITION_ID: $DEPLOY2ZENODO_DEPOSITION_ID
-    LATESTDOI: $LATESTDOI
-    LATESTUPLOADTYPE: $LATESTUPLOADTYPE
+    #DEPLOY2ZENODO_DEPOSITION_ID: $DEPLOY2ZENODO_DEPOSITION_ID
+    #LATESTDOI: $LATESTDOI
+    #LATESTUPLOADTYPE: $LATESTUPLOADTYPE
   trigger:
     project: daniel_mohr/deploy_deploy2zenodo_to_zenodo
     strategy: depend
