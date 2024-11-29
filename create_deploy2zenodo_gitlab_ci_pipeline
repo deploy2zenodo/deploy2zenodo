@@ -20,6 +20,7 @@ script=$(sed -n '/^#    deploy2zenodo$/,/^# stop deploy2zenodo$/p' $IN | \
              sed 's/^/      /')
 
 # the echo command in the following needs to run in POSIX sh:
+# (dash in not sufficient; running in bash and `set -o posix` seems to work)
 if [ -n "$DOI" ]; then
     # replace concept DOI by actual DOI given in the variable DOI:
     CONCEPTDOI="10.5281/zenodo.10112959"

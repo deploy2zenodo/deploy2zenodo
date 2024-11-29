@@ -1,6 +1,6 @@
 ---
 author: Daniel Mohr
-date: 2024-10-24
+date: 2024-11-29
 license: Apache-2.0
 home: https://gitlab.com/deploy2zenodo/deploy2zenodo
 mirror: https://github.com/deploy2zenodo/deploy2zenodo
@@ -301,10 +301,13 @@ trigger:
     - curl -X POST --fail -F token="$TRIGGER_TOKEN" -F ref=main "$TRIGGER_URL"
 ```
 
-Storing the `TRIGGER_TOKEN` as protected and masked CI variable in
-project `A` allows any maintainer to use it and trigger the pipeline.
+Storing the `TRIGGER_TOKEN` as protected and
+[masked CI variable](https://docs.gitlab.com/ee/ci/variables/index.html#mask-a-cicd-variable)
+(or maybe even [hide CI variable](https://docs.gitlab.com/ee/ci/variables/index.html#hide-a-cicd-variable))
+in project `A` allows any maintainer to use it and trigger the pipeline.
 
-In the project `B` you can use deploy2zenodo as normal, e. g.:
+In the project `B` only 1 mainainer exists and you can use
+deploy2zenodo as normal, e. g.:
 
 ```yaml
 include:
@@ -315,7 +318,8 @@ prepare_deploy2zenodo:
     name: alpine:latest
   script:
     - PROJECT_A_REPO=$(mktemp -d)
-    - git clone --branch main --depth 1 "$PROJECT_A_URL"
+    - git clone --branch main --depth 1 "$PROJECT_A_URL" "$PROJECT_A_REPO"
+    # create zip archive from latest tag
     - |
       (cd "$PROJECT_A_REPO" && \
        git archive --format zip -o "$DEPLOY2ZENODO_UPLOAD" \
@@ -326,9 +330,12 @@ prepare_deploy2zenodo:
       - $DEPLOY2ZENODO_UPLOAD
 
 deploy2zenodo:
-  variables:
-    DEPLOY2ZENODO_DEPOSITION_ID: "create NEW record"
-    DEPLOY2ZENODO_API_URL: "https://sandbox.zenodo.org/api"
+  # variables set in the script could not be overwritten by the trigger source
+  before_script:
+    - |
+      DEPLOY2ZENODO_DEPOSITION_ID="create NEW record"
+      DEPLOY2ZENODO_API_URL="https://sandbox.zenodo.org/api"
+    - !reference [deploy2zenodo, before_script]
 ```
 
 There are various ways to trigger a pipeline, e. g:
@@ -358,12 +365,19 @@ and these are not trustworthy.
 For example, a maintainer from project `A` could pass `DEPLOY2ZENODO_API_URL`
 in this way and thus force communication to another server.
 This could cause the user token to be leaked.
+To avoid this, define the variable in the script -- as shown in the example
+above.
 However, it is no problem to save the user token in project `B` as
 CI variable `DEPLOY2ZENODO_ACCESS_TOKEN`.
 This variable could then be overwritten from project `A`, but not read out.
 
 Another possibility is to use
 [Secrets management providers](https://docs.gitlab.com/ee/ci/pipelines/pipeline_security.html#secrets-management-providers).
+
+This triggered workflow is used in
+[file_hook_server_timestamping](https://gitlab.com/dlr-pa/file_hook_server_timestamping)
+together with
+[deploy_file_hook_server_timestamping_to_zenodo](https://gitlab.dlr.de/deploy2zenodo/deploy_file_hook_server_timestamping_to_zenodo).
 
 ### complex workflow
 
@@ -391,7 +405,7 @@ deploy2zenodo-step1:
   image:
     name: alpine:latest
   before_script:
-    - apk add --no-cache curl jq
+    - !reference [deploy2zenodo, before_script]
   after_script:
     - echo "DEPLOY2ZENODO_GET_METADATA=$DEPLOY2ZENODO_GET_METADATA" > variables.env
   artifacts:
