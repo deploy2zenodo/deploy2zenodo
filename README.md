@@ -412,7 +412,8 @@ deploy2zenodo-step1:
     name: alpine:latest
   before_script:
     - !reference [deploy2zenodo, before_script]
-  after_script:
+  script:
+    - !reference [deploy2zenodo, script]
     - echo "DEPLOY2ZENODO_GET_METADATA=$DEPLOY2ZENODO_GET_METADATA" > variables.env
   artifacts:
     paths:
@@ -693,8 +694,10 @@ You can extract values from the metadata. For example to get the DOI
 to site all versions:
 
 ```yaml
-deploy2zenodo:
-  after_script:
+my_deploy2zenodo:
+  extends: .deploy2zenodo
+  script:
+    - !reference [deploy2zenodo, script]
     - jq -r .conceptdoi "$DEPLOY2ZENODO_GET_METADATA"
 ```
 
@@ -807,6 +810,10 @@ step2:
       }]" "$DEPLOY2ZENODO_JSON" | tee "$tmpjson"
     - mv "$tmpjson" "$DEPLOY2ZENODO_JSON"
 ```
+
+Note that [after_script](https://docs.gitlab.com/ee/ci/yaml/#after_script)
+works differently than `before_script` or `script` and does not affect the
+job exit code.
 
 ### DEPLOY2ZENODO_ADD_IsPartOf
 
