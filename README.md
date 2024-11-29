@@ -329,13 +329,19 @@ prepare_deploy2zenodo:
     paths:
       - $DEPLOY2ZENODO_UPLOAD
 
-deploy2zenodo:
+my_deploy2zenodo:
+  extends: .deploy2zenodo
   # variables set in the script could not be overwritten by the trigger source
   before_script:
     - |
       DEPLOY2ZENODO_DEPOSITION_ID="create NEW record"
       DEPLOY2ZENODO_API_URL="https://sandbox.zenodo.org/api"
     - !reference [deploy2zenodo, before_script]
+
+deploy2zenodo:
+  rules:
+    - if: '"0" == "1"'
+      when: never
 ```
 
 There are various ways to trigger a pipeline, e. g:
