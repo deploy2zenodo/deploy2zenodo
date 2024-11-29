@@ -1,6 +1,6 @@
 ---
 author: Daniel Mohr
-date: 2024-10-12
+date: 2024-11-29
 license: Apache-2.0
 home: https://gitlab.com/deploy2zenodo/deploy2zenodo
 mirror: https://github.com/deploy2zenodo/deploy2zenodo
@@ -16,13 +16,19 @@ doi: 10.5281/zenodo.10112959
 
 [`deploy2zenodo`](https://gitlab.com/projects/51392274) is a
 [shell](https://en.wikipedia.org/wiki/Bourne_shell) script to deploy
-your data to [zenodo](https://zenodo.org/).
+your data to [Zenodo](https://zenodo.org/).
 You can use it in a [CI pipeline](https://docs.gitlab.com/ee/ci/pipelines/) as
 an automatic workflow.
 
 Environmental variables allow very flexible use.
 Depending on the selected flags, the data can be curated before deployment
 in a merge request, in the zenodo web interface or not curated at all.
+
+**Note:** `deploy2zenodo` is primarily designed for the Zenodo API.
+It may also work with other APIs like
+[Invenio RDM](https://inveniosoftware.org/products/rdm/),
+but compatibility is not guaranteed.
+Test the script with any new API before using it.
 
 ## intention
 
@@ -71,6 +77,8 @@ Store it in a [GitLab CI/CD variable](https://docs.gitlab.com/ee/ci/variables/)
 as `DEPLOY2ZENODO_ACCESS_TOKEN`. Use the flags
 [Mask variable](https://docs.gitlab.com/ee/ci/variables/index.html#mask-a-cicd-variable)
 and [Protect variable](https://docs.gitlab.com/ee/ci/variables/index.html#protect-a-cicd-variable).
+Masking ensures that the variable is not displayed in the CI/CD logs, and
+protecting the variable limits access to authorized users.
 Keep in mind the token is sensitive and private information.
 Therefore you should not share it or make it public available.
 
@@ -205,6 +213,13 @@ you to curate the upload to zenodo in the zenodo web interface before
 publishing. This is especially useful if you are setting up the workflow for
 the first time in your own project -- but can also be used at any time.
 
+Depending on where variables are defined, they have different priorities.
+For example, CI variables defined in the UI have priority and override the
+variables stored in the `.gitlab-ci.yml` file with the
+[keyword `variables`](https://docs.gitlab.com/ee/ci/yaml/#variables).
+Variables that are defined at job level, in the `script`, `before_script` or
+`after_script` sections, have the highest priority
+
 An example test project is [deploy2zenodo_test_simple_workflow_update](https://gitlab.com/projects/51647607).
 
 ### very simple workflow
@@ -253,8 +268,12 @@ deploy2zenodo:
       - $DEPLOY2ZENODO_GET_METADATA
 ```
 
-Such a simple workflow uses [deploy_deploy2zenodo_to_zenodo](https://gitlab.com/projects/52008252)
-in the job `deploy2zenodo` to publish itself.
+Such a simple workflow uses
+
+* [deploy_deploy2zenodo_to_zenodo](https://gitlab.com/projects/52008252)
+  in the job `deploy2zenodo` to publish itself.
+* [2024-10_waw_fdm](https://codebase.helmholtz.cloud/projects/14469)
+  in the job `deploy2zenodo` to publish a poster.
 
 ### triggered workflow
 
@@ -282,10 +301,13 @@ trigger:
     - curl -X POST --fail -F token="$TRIGGER_TOKEN" -F ref=main "$TRIGGER_URL"
 ```
 
-Storing the `TRIGGER_TOKEN` as protected and masked CI variable in
-project `A` allows any maintainer to use it and trigger the pipeline.
+Storing the `TRIGGER_TOKEN` as protected and
+[masked CI variable](https://docs.gitlab.com/ee/ci/variables/index.html#mask-a-cicd-variable)
+(or maybe even [hide CI variable](https://docs.gitlab.com/ee/ci/variables/index.html#hide-a-cicd-variable))
+in project `A` allows any maintainer to use it and trigger the pipeline.
 
-In the project `B` you can use deploy2zenodo as normal, e. g.:
+In the project `B` only 1 mainainer exists and you can use
+deploy2zenodo as normal, e. g.:
 
 ```yaml
 include:
@@ -296,7 +318,8 @@ prepare_deploy2zenodo:
     name: alpine:latest
   script:
     - PROJECT_A_REPO=$(mktemp -d)
-    - git clone --branch main --depth 1 "$PROJECT_A_URL"
+    - git clone --branch main --depth 1 "$PROJECT_A_URL" "$PROJECT_A_REPO"
+    # create zip archive from latest tag
     - |
       (cd "$PROJECT_A_REPO" && \
        git archive --format zip -o "$DEPLOY2ZENODO_UPLOAD" \
@@ -306,10 +329,19 @@ prepare_deploy2zenodo:
     paths:
       - $DEPLOY2ZENODO_UPLOAD
 
+my_deploy2zenodo:
+  extends: .deploy2zenodo
+  # variables set in the script could not be overwritten by the trigger source
+  before_script:
+    - |
+      DEPLOY2ZENODO_DEPOSITION_ID="create NEW record"
+      DEPLOY2ZENODO_API_URL="https://sandbox.zenodo.org/api"
+    - !reference [deploy2zenodo, before_script]
+
 deploy2zenodo:
-  variables:
-    DEPLOY2ZENODO_DEPOSITION_ID: "create NEW record"
-    DEPLOY2ZENODO_API_URL: "https://sandbox.zenodo.org/api"
+  rules:
+    - if: '"0" == "1"'
+      when: never
 ```
 
 There are various ways to trigger a pipeline, e. g:
@@ -339,12 +371,19 @@ and these are not trustworthy.
 For example, a maintainer from project `A` could pass `DEPLOY2ZENODO_API_URL`
 in this way and thus force communication to another server.
 This could cause the user token to be leaked.
+To avoid this, define the variable in the script -- as shown in the example
+above.
 However, it is no problem to save the user token in project `B` as
 CI variable `DEPLOY2ZENODO_ACCESS_TOKEN`.
 This variable could then be overwritten from project `A`, but not read out.
 
 Another possibility is to use
 [Secrets management providers](https://docs.gitlab.com/ee/ci/pipelines/pipeline_security.html#secrets-management-providers).
+
+This triggered workflow is used in
+[file_hook_server_timestamping](https://gitlab.com/dlr-pa/file_hook_server_timestamping)
+together with
+[deploy_file_hook_server_timestamping_to_zenodo](https://gitlab.dlr.de/deploy2zenodo/deploy_file_hook_server_timestamping_to_zenodo).
 
 ### complex workflow
 
@@ -369,6 +408,10 @@ deploy2zenodo-step1:
     - DEPLOY2ZENODO_SKIP_PUBLISH: "true"
     - DEPLOY2ZENODO_GET_METADATA: "newmetadata.json"
   extends: .deploy2zenodo
+  image:
+    name: alpine:latest
+  before_script:
+    - !reference [deploy2zenodo, before_script]
   after_script:
     - echo "DEPLOY2ZENODO_GET_METADATA=$DEPLOY2ZENODO_GET_METADATA" > variables.env
   artifacts:
@@ -392,8 +435,12 @@ prepare_deploy2zenodo_step2:
 
 deploy2zenodo-step2:
   variables:
-    - DEPLOY2ZENODO_SKIP_NEW_VERSION: "true"
+    DEPLOY2ZENODO_SKIP_NEW_VERSION: "true"
   extends: .deploy2zenodo
+  image:
+    name: alpine:latest
+  before_script:
+    - apk add --no-cache curl jq
 ```
 
 In the step `prepare_release` you can use [jq](https://github.com/jqlang/jq)
@@ -402,6 +449,12 @@ to extract data. For example the preserved DOI is available by:
 ```sh
 jq .metadata.prereserve_doi.doi "$DEPLOY2ZENODO_GET_METADATA"
 ```
+
+Such a complex workflow uses
+[2024-10_waw_fdm_talk](https://codebase.helmholtz.cloud/projects/14501)
+to publish a poster. Instead of creating a release, as shown above, the
+poster is built in the job `build` using the DOI previously created in
+the job `deploy2zenodo-step1`.
 
 ### very complex workflow
 
@@ -620,6 +673,7 @@ before the last job run.
 
 If this variable is not empty the metadata of the record is stored in a
 file with this name.
+This is useful for logging or further processing after deployment.
 
 To get these data at the end of the script an additional communication
 with the DEPLOY2ZENODO_API_URL server is done.
@@ -776,6 +830,9 @@ resource_type) will be added to your provided JSON file:
 }
 ```
 
+This only works, if DEPLOY2ZENODO_DEPOSITION_ID is not given
+as `create NEW record`.
+
 ## CI pipeline
 
 Using the keyword
@@ -822,8 +879,8 @@ deploy2zenodo:
 
 ## script
 
-You can use the script directly. But that is not our focus of `deploy2zenodo`,
-so we keep it short. For example:
+You can use the script directly. But that is not our main focus of
+`deploy2zenodo`, so we keep it short. For example:
 
 ```sh
 SCRIPTURL=https://gitlab.com/deploy2zenodo/deploy2zenodo/-/releases/permalink/latest/downloads/deploy2zenodo
@@ -842,6 +899,16 @@ export DEPLOY2ZENODO_CURL_MAX_TIME=""
 export DEPLOY2ZENODO_CURL_MAX_TIME_PUBLISH=""
 curl -L "$SCRIPTURL" | tee deploy2zenodo.sh | sh
 ```
+
+It's worth noting that we try to handle private information such as the
+access token in a secure way in the script, it is still a sensitive piece of
+information that should not be shared with anyone who does not need access to
+the corresponding Zenodo account.
+
+**Important:** Using the script as described in this section (e. g. on a
+desktop computer) does not allow for the masking of CI variables, which can
+expose sensitive information such as access tokens. We recommend that users
+take steps to mitigate this risk.
 
 ## harvesting
 

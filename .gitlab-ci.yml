@@ -228,6 +228,7 @@ release_job:
   extends: .display_env
   script:
     - echo "running release_job for $TAG"
+    - wget "https://zenodo.org/badge/DOI/10.5281/zenodo.10112959.svg"
   release:
     name: '$BASE_FILE_NAME v$TAG'
     description: '$DESCRIPTION'
@@ -251,6 +252,9 @@ release_job:
           filepath: /$PDFREADME
           url: $PDFREADME_URL
           link_type: other
+  artifacts:
+    paths:
+      - "zenodo.10112959.svg"
 
 post_release_job:
   stage: deploy
