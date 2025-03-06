@@ -1,6 +1,6 @@
 ---
 author: Daniel Mohr
-date: 2024-11-29
+date: 2025-03-06
 license: Apache-2.0
 home: https://gitlab.com/deploy2zenodo/deploy2zenodo
 mirror: https://github.com/deploy2zenodo/deploy2zenodo
@@ -960,7 +960,7 @@ omitted and publishing can be fully automated.
 `deploy2zenodo` has the license [Apache-2.0](http://www.apache.org/licenses/LICENSE-2.0).
 
 ```txt
-Copyright 2023, 2024 Daniel Mohr and
+Copyright 2023-2025 Daniel Mohr and
    Deutsches Zentrum fuer Luft- und Raumfahrt e. V., D-51170 Koeln
 
 Licensed under the Apache License, Version 2.0 (the "License");

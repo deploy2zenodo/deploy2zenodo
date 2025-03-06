@@ -16,7 +16,7 @@ repos:
       - id: trailing-whitespace
 
   - repo: https://github.com/igorshubovych/markdownlint-cli
-    rev: v0.43.0
+    rev: v0.44.0
     hooks:
       - id: markdownlint
 
@@ -29,3 +29,11 @@ repos:
     rev: v1.5.5
     hooks:
       - id: forbid-tabs
+
+  - repo: https://gitlab.com/yaml2script/yaml2script
+    rev: 0.1.5
+    hooks:
+      - id: yaml2script-all
+        additional_dependencies:
+          - shellcheck-py
+        args: [-parameter_check_command=-e SC2154]
