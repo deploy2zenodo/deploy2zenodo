@@ -46,7 +46,8 @@ pre-commit:
     - cat "$FILE_NAME.sh"
     - md5sum "$BASE_FILE_NAME" "$CI_FILE_NAME" "$FILE_NAME.sh"
     - shellcheck "$BASE_FILE_NAME" "$FILE_NAME.sh"
-    - git add "$FILE_NAME.sh"
+    # to test file with pre-commit it has to be added
+    - git add -f "$FILE_NAME.sh"
     - pre-commit run --all-files
     - cffconvert -i "$CITATION" --validate
     - jq < zenodo-add-related_identifiers.json
