@@ -1,6 +1,6 @@
 ---
 author: Daniel Mohr
-date: 2025-03-06
+date: 2025-03-27
 license: Apache-2.0
 home: https://gitlab.com/deploy2zenodo/deploy2zenodo
 mirror: https://github.com/deploy2zenodo/deploy2zenodo
@@ -904,6 +904,9 @@ export DEPLOY2ZENODO_GET_METADATA="upload.json"
 export DEPLOY2ZENODO_SKIP_UPLOAD=""
 export DEPLOY2ZENODO_CURL_MAX_TIME=""
 export DEPLOY2ZENODO_CURL_MAX_TIME_PUBLISH=""
+export DEPLOY2ZENODO_ADD_IsCompiledBy_DEPLOY2ZENODO="yes"
+export DEPLOY2ZENODO_ADD_IsNewVersionOf=""
+export DEPLOY2ZENODO_ADD_IsPartOf="yes"
 curl -L "$SCRIPTURL" | tee deploy2zenodo.sh | sh
 ```
 
