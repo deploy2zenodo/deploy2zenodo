@@ -98,6 +98,23 @@ check_publication_date_check:
     - (! ./check_edtf_level_0 "2024-03-13T")
     - (! ./check_edtf_level_0 "20231020T155008")
 
+test_deploy2zenodo_script-create_skiprun:
+  stage: build
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "pipeline" && $STEP == "1"
+  image:
+    name: alpine:latest
+  variables:
+    DEPLOY2ZENODO_API_URL: "https://sandbox.zenodo.org/api"
+    DEPLOY2ZENODO_ACCESS_TOKEN: "***"
+    DEPLOY2ZENODO_DEPOSITION_ID: "create NEW record"
+    DEPLOY2ZENODO_JSON: "CITATION.json"
+    DEPLOY2ZENODO_UPLOAD: "foo bar"
+    DEPLOY2ZENODO_SKIPRUN: "true"
+    DEPLOY2ZENODO_ADD_IsCompiledBy_DEPLOY2ZENODO: "yes"
+  script:
+    - ./deploy2zenodo
+
 prepare_release_step1:
   stage: build
   rules:
@@ -288,6 +305,8 @@ trigger0:
       when: never
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_PIPELINE_SOURCE != "pipeline"
     - if: $CI_COMMIT_BRANCH == "mohr"
+  variables:
+    TRIGGER_CI_COMMIT_SHA: $CI_COMMIT_SHA
   trigger:
     project: daniel_mohr/deploy2zenodo_test_alpine_script
     strategy: depend
