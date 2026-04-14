@@ -31,6 +31,8 @@ pre-commit:
     - pre-commit --version
     - cffconvert --version
     - pre-commit run --all-files
+    - pre-commit autoupdate --jobs 0
+    - git diff .pre-commit-config.yaml
     # check exit code is unique
     - |
       FILETOCHECK="deploy2zenodo"
