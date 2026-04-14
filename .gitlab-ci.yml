@@ -281,6 +281,20 @@ post_release_job:
       yaml_variables: true
       pipeline_variables: false
 
+trigger0:
+  stage: .post
+  rules:
+    - if: $CI_COMMIT_TAG
+      when: never
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_PIPELINE_SOURCE != "pipeline"
+    - if: $CI_COMMIT_BRANCH == "mohr"
+  trigger:
+    project: daniel_mohr/deploy2zenodo_test_alpine_script
+    strategy: depend
+    forward:
+      yaml_variables: true
+      pipeline_variables: false
+
 trigger1:
   stage: .post
   rules:
