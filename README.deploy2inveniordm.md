@@ -152,8 +152,6 @@ We use here 3 jobs:
 * The job `prepare_release_and_deploy2inveniordm` prepares the
   variables and data for the following jobs. You can choose how to get
   the variables and data from your project/repository.
-  (see hints in [DEPLOY2INVENIORDM_JSON](#deploy2inveniordm_json) and
-  [DEPLOY2INVENIORDM_UPLOAD](#deploy2inveniordm_upload))
 * The job `release_job` uses the workflow
   [Create release metadata in a custom script](https://docs.gitlab.com/ee/user/project/releases/release_cicd_examples.html#create-release-metadata-in-a-custom-script).
 * The job `deploy2inveniordm` publishes the data to zenodo.
@@ -171,7 +169,7 @@ In this example, `prepare_release_and_deploy2inveniordm` always runs
 while the other jobs only run when the default branch is changed.
 This makes it possible to check the artifacts during a merge request.
 
-The used environment variables (see [script parameter](#script-parameter)) can
+The used environment variables can
 be provided in many different ways as a
 [GitLab CI/CD variable](https://docs.gitlab.com/ee/ci/variables/), e. g.:
 
@@ -211,7 +209,7 @@ it could therefore make sense to create these variables dynamically as well.
 
 There are also optional variables that can help to adapt the workflow to the
 the individual use case.
-For example, [DEPLOY2INVENIORDM_SKIP_PUBLISH](#deploy2inveniordm_skip_publish) allows
+For example, `DEPLOY2INVENIORDM_SKIP_PUBLISH` allows
 you to curate the upload to zenodo in the zenodo web interface before
 publishing. This is especially useful if you are setting up the workflow for
 the first time in your own project -- but can also be used at any time.
@@ -222,8 +220,6 @@ variables stored in the `.gitlab-ci.yml` file with the
 [keyword `variables`](https://docs.gitlab.com/ee/ci/yaml/#variables).
 Variables that are defined at job level, in the `script`, `before_script` or
 `after_script` sections, have the highest priority
-
-An example test project is [deploy2inveniordm_test_simple_workflow_update](https://gitlab.com/projects/51647607).
 
 ### very simple workflow
 
@@ -248,7 +244,6 @@ deploy2inveniordm:
     DEPLOY2INVENIORDM_UPLOAD: "$CI_PROJECT_NAME-$CI_COMMIT_TAG.zip"
     DEPLOY2INVENIORDM_ADD_IsCompiledBy_DEPLOY2INVENIORDM: "yes"
     DEPLOY2INVENIORDM_ADD_IsNewVersionOf: "yes"
-    DEPLOY2INVENIORDM_ADD_IsPartOf: "yes"
     DEPLOY2INVENIORDM_GET_METADATA: "result.json"
   before_script:
     - env
