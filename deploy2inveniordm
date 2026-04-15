@@ -357,7 +357,7 @@ else
             test "$(echo "$PUBLISHRECORD" | jq .submitted)" = "true" || (errlog "submitted=\"$(echo "$PUBLISHRECORD" | jq .submitted)\""; exit 21)
         fi
         LATESTID=$(echo "$PUBLISHRECORD" | jq .id)
-        HTMLURL=$(echo "$PUBLISHRECORD" | jq .links.html)
+        HTMLURL=$(echo "$PUBLISHRECORD" | jq .links.self_html)
         if [ -n "$DEPLOY2INVENIORDM_DRYRUN" ] || [ -n "$DEPLOY2INVENIORDM_SKIPRUN" ]; then
             log "Skip testing result due to DRYRUN or SKIPRUN."
         else
