@@ -8,7 +8,7 @@ latest_release: https://gitlab.com/deploy2zenodo/deploy2zenodo/-/releases/permal
 doi: 10.5281/zenodo.10112959
 ---
 
-# `deploy2inveniordm` is in beta state!
+# `deploy2inveniordm` is in beta state
 
 [[_TOC_]]
 
