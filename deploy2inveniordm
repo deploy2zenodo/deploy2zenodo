@@ -119,7 +119,7 @@ if [ -z "$DEPLOY2INVENIORDM_SKIPRUN" ]; then
         log "publication_date is EDTF Level 0"
     else
         log "publication_date is empty or not given: set to now ($(date +"%Y-%m-%d"))"
-	DEPLOY2INVENIORDM_JSON_DATA=$(echo "$DEPLOY2INVENIORDM_JSON_DATA" | jq -c ".metadata.publication_date = \"$(date +"%Y-%m-%d")\"")
+        DEPLOY2INVENIORDM_JSON_DATA=$(echo "$DEPLOY2INVENIORDM_JSON_DATA" | jq -c ".metadata.publication_date = \"$(date +"%Y-%m-%d")\"")
     fi
 fi
 
@@ -175,25 +175,25 @@ if [ "$DEPLOY2INVENIORDM_DEPOSITION_ID" = "create NEW record" ]; then
         log "upload files/archives"
         for filename in $DEPLOY2INVENIORDM_UPLOAD; do
             log "upload \"$filename\""
-	    FILEUPLOADSTART=$(curlauth --header 'Accept: application/vnd.inveniordm.v1+json' --header "$hjson" --request POST --data-binary "[{\"key\": \"$filename\"}]" "$BUCKETURL")
-	    echojq FILEUPLOADSTART "$FILEUPLOADSTART"
-	    FILEUPLOADCONTENT=$(echo "$FILEUPLOADSTART" | jq -r ".entries[] | select(.key==\"$filename\") | .links.content")
-	    FILEUPLOADCOMMIT=$(echo "$FILEUPLOADSTART" | jq -r ".entries[] | select(.key==\"$filename\") | .links.commit")
-	    if [ -n "$DEPLOY2INVENIORDM_DRYRUN" ] || [ -n "$DEPLOY2INVENIORDM_SKIPRUN" ]; then
+            FILEUPLOADSTART=$(curlauth --header 'Accept: application/vnd.inveniordm.v1+json' --header "$hjson" --request POST --data-binary "[{\"key\": \"$filename\"}]" "$BUCKETURL")
+            echojq FILEUPLOADSTART "$FILEUPLOADSTART"
+            FILEUPLOADCONTENT=$(echo "$FILEUPLOADSTART" | jq -r ".entries[] | select(.key==\"$filename\") | .links.content")
+            FILEUPLOADCOMMIT=$(echo "$FILEUPLOADSTART" | jq -r ".entries[] | select(.key==\"$filename\") | .links.commit")
+            if [ -n "$DEPLOY2INVENIORDM_DRYRUN" ] || [ -n "$DEPLOY2INVENIORDM_SKIPRUN" ]; then
                 log "Skip testing checksum due to DRYRUN or SKIPRUN."
             else
-		test -n "$FILEUPLOADCONTENT" -a -n "$FILEUPLOADCOMMIT" || (errlog "could not initiate file upload"; exit 30)
-	    fi
-	    UPLOADFILECONTENT=$(curlauth --header 'Accept: application/vnd.inveniordm.v1+json' --request PUT --upload-file "$filename" "$FILEUPLOADCONTENT")
-	    echojq UPLOADFILECONTENT "$UPLOADFILECONTENT"
-	    FILEUPLOADCOMMIT=$(echo "$UPLOADFILECONTENT" | jq -r .links.commit)
-	    if [ -n "$DEPLOY2INVENIORDM_DRYRUN" ] || [ -n "$DEPLOY2INVENIORDM_SKIPRUN" ]; then
+                test -n "$FILEUPLOADCONTENT" -a -n "$FILEUPLOADCOMMIT" || (errlog "could not initiate file upload"; exit 30)
+            fi
+            UPLOADFILECONTENT=$(curlauth --header 'Accept: application/vnd.inveniordm.v1+json' --request PUT --upload-file "$filename" "$FILEUPLOADCONTENT")
+            echojq UPLOADFILECONTENT "$UPLOADFILECONTENT"
+            FILEUPLOADCOMMIT=$(echo "$UPLOADFILECONTENT" | jq -r .links.commit)
+            if [ -n "$DEPLOY2INVENIORDM_DRYRUN" ] || [ -n "$DEPLOY2INVENIORDM_SKIPRUN" ]; then
                 log "Skip testing checksum due to DRYRUN or SKIPRUN."
             else
-		test -n "$FILEUPLOADCOMMIT" || (errlog "could not upload file content"; exit 31)
-	    fi
-	    UPLOADFILECOMMIT=$(curlauth --header 'Accept: application/vnd.inveniordm.v1+json' --header "$hjson" --request POST "$FILEUPLOADCOMMIT")
-	    echojq UPLOADFILECOMMIT "$UPLOADFILECOMMIT"
+                test -n "$FILEUPLOADCOMMIT" || (errlog "could not upload file content"; exit 31)
+            fi
+            UPLOADFILECOMMIT=$(curlauth --header 'Accept: application/vnd.inveniordm.v1+json' --header "$hjson" --request POST "$FILEUPLOADCOMMIT")
+            echojq UPLOADFILECOMMIT "$UPLOADFILECOMMIT"
             CHECKSUMRAW=$(echo "$UPLOADFILECOMMIT" | jq -r .checksum)
             CHECKSUM=$(echo "$CHECKSUMRAW" | cut -d ':' -f 2)
             if [ -n "$DEPLOY2INVENIORDM_DRYRUN" ] || [ -n "$DEPLOY2INVENIORDM_SKIPRUN" ]; then
@@ -294,7 +294,7 @@ else
     #for id in $(echo "$UPLOADMETADATA" | jq -r ".files[] | .id"); do
     for id in $(echo "$UPLOADMETADATA" | jq -r ".files.entries | keys | .[]"); do
         log "remove file with id \"$id\""
-	echo "$LATESTDRAFT"/files/"$id"
+        echo "$LATESTDRAFT"/files/"$id"
         DELETEFILE=$(curlauth --header 'Accept: application/vnd.inveniordm.v1+json' --request DELETE "$LATESTDRAFT"/files/"$id")
         echojq DELETEFILE "$DELETEFILE"
     done
@@ -309,25 +309,25 @@ else
         log "upload files/archives"
         for filename in $DEPLOY2INVENIORDM_UPLOAD; do
             log "upload \"$filename\""
-	    FILEUPLOADSTART=$(curlauth --header 'Accept: application/vnd.inveniordm.v1+json' --header "$hjson" --request POST --data-binary "[{\"key\": \"$filename\"}]" "$BUCKETURL")
-	    echojq FILEUPLOADSTART "$FILEUPLOADSTART"
-	    FILEUPLOADCONTENT=$(echo "$FILEUPLOADSTART" | jq -r ".entries[] | select(.key==\"$filename\") | .links.content")
-	    FILEUPLOADCOMMIT=$(echo "$FILEUPLOADSTART" | jq -r ".entries[] | select(.key==\"$filename\") | .links.commit")
-	    if [ -n "$DEPLOY2INVENIORDM_DRYRUN" ] || [ -n "$DEPLOY2INVENIORDM_SKIPRUN" ]; then
+            FILEUPLOADSTART=$(curlauth --header 'Accept: application/vnd.inveniordm.v1+json' --header "$hjson" --request POST --data-binary "[{\"key\": \"$filename\"}]" "$BUCKETURL")
+            echojq FILEUPLOADSTART "$FILEUPLOADSTART"
+            FILEUPLOADCONTENT=$(echo "$FILEUPLOADSTART" | jq -r ".entries[] | select(.key==\"$filename\") | .links.content")
+            FILEUPLOADCOMMIT=$(echo "$FILEUPLOADSTART" | jq -r ".entries[] | select(.key==\"$filename\") | .links.commit")
+            if [ -n "$DEPLOY2INVENIORDM_DRYRUN" ] || [ -n "$DEPLOY2INVENIORDM_SKIPRUN" ]; then
                 log "Skip testing checksum due to DRYRUN or SKIPRUN."
             else
-		test -n "$FILEUPLOADCONTENT" -a -n "$FILEUPLOADCOMMIT" || (errlog "could not initiate file upload"; exit 32)
-	    fi
-	    UPLOADFILECONTENT=$(curlauth --header 'Accept: application/vnd.inveniordm.v1+json' --request PUT --upload-file "$filename" "$FILEUPLOADCONTENT")
-	    echojq UPLOADFILECONTENT "$UPLOADFILECONTENT"
-	    FILEUPLOADCOMMIT=$(echo "$UPLOADFILECONTENT" | jq -r .links.commit)
-	    if [ -n "$DEPLOY2INVENIORDM_DRYRUN" ] || [ -n "$DEPLOY2INVENIORDM_SKIPRUN" ]; then
+                test -n "$FILEUPLOADCONTENT" -a -n "$FILEUPLOADCOMMIT" || (errlog "could not initiate file upload"; exit 32)
+            fi
+            UPLOADFILECONTENT=$(curlauth --header 'Accept: application/vnd.inveniordm.v1+json' --request PUT --upload-file "$filename" "$FILEUPLOADCONTENT")
+            echojq UPLOADFILECONTENT "$UPLOADFILECONTENT"
+            FILEUPLOADCOMMIT=$(echo "$UPLOADFILECONTENT" | jq -r .links.commit)
+            if [ -n "$DEPLOY2INVENIORDM_DRYRUN" ] || [ -n "$DEPLOY2INVENIORDM_SKIPRUN" ]; then
                 log "Skip testing checksum due to DRYRUN or SKIPRUN."
             else
-		test -n "$FILEUPLOADCOMMIT" || (errlog "could not upload file content"; exit 33)
-	    fi
-	    UPLOADFILECOMMIT=$(curlauth --header 'Accept: application/vnd.inveniordm.v1+json' --header "$hjson" --request POST "$FILEUPLOADCOMMIT")
-	    echojq UPLOADFILECOMMIT "$UPLOADFILECOMMIT"
+                test -n "$FILEUPLOADCOMMIT" || (errlog "could not upload file content"; exit 33)
+            fi
+            UPLOADFILECOMMIT=$(curlauth --header 'Accept: application/vnd.inveniordm.v1+json' --header "$hjson" --request POST "$FILEUPLOADCOMMIT")
+            echojq UPLOADFILECOMMIT "$UPLOADFILECOMMIT"
             CHECKSUMRAW=$(echo "$UPLOADFILECOMMIT" | jq -r .checksum)
             CHECKSUM=$(echo "$CHECKSUMRAW" | cut -d ':' -f 2)
             if [ -n "$DEPLOY2INVENIORDM_DRYRUN" ] || [ -n "$DEPLOY2INVENIORDM_SKIPRUN" ]; then
