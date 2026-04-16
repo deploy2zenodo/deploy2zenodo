@@ -195,19 +195,7 @@ deploy_ci_template:
     - mv "$TMPCITATION" "$CITATION"
     - cffconvert -i "$CITATION" --validate
     # create README.pdf
-    - tmpreadme=$(mktemp)
-    - sed "s 10.5281/zenodo.10112959 $DOI g" "$README" > "$tmpreadme"
-    - pandocmetadatatmpfile=$(mktemp)
-    - sed -n '/^---$/,/^---$/p' "$tmpreadme" | grep -v -e "---" | tee > "$pandocmetadatatmpfile"
-    - title=$(grep "^# " "$tmpreadme" | cut -d " " -f 2-)
-    - |
-      echo "title: \"$title\"" | tee -a "$pandocmetadatatmpfile"
-    - |
-      echo "abstract: \"deploy2zenodo is a script to deploy your data to zenodo providing automatic workflow via ci pipeline\"" | tee -a "$pandocmetadatatmpfile"
-    - keywords=$(cffconvert -i "$CITATION" -f zenodo | jq -cr '.keywords | @csv' | sed 's/"//g' | sed 's/,/, /g')
-    - |
-      echo "keywords: $keywords" | tee -a "$pandocmetadatatmpfile"
-    - grep -v "[[_TOC_]]" "$tmpreadme" | pandoc -V papersize:a4 -V colorlinks:true -V margin-left=3cm -V margin-right=3cm -V margin-top=3cm --metadata-file="$pandocmetadatatmpfile" -s --toc -f markdown -o "$PDFREADME"
+    - ./create_pdf
     - |
       curl --header "JOB-TOKEN: ${CI_JOB_TOKEN}" --upload-file "$CI_FILE_NAME" "$CI_FILE_URL"
     - |

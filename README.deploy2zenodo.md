@@ -1,6 +1,6 @@
 ---
 author: Daniel Mohr
-date: 2026-04-15
+date: 2026-04-16
 license: Apache-2.0
 home: https://gitlab.com/deploy2zenodo/deploy2zenodo
 mirror: https://github.com/deploy2zenodo/deploy2zenodo
@@ -60,7 +60,7 @@ but also about the citability of individual versions.
 ## how-to
 
 There are many possibilities to use `deploy2zenodo` but in this how-to section
-we will focus on a few typically use cases.
+we will focus on a few typical use cases.
 
 ### simple workflow
 
@@ -202,7 +202,7 @@ On the other hand, the metadata provided via `DEPLOY2ZENODO_JSON` and the
 data provided via `DEPLOY2ZENODO_UPLOAD` may be created dynamically and
 it could therefore make sense to create these variables dynamically as well.
 
-There are also optional variables that can help to adapt the workflow to the
+There are also optional variables that can help to adapt the workflow to
 the individual use case.
 For example, [DEPLOY2ZENODO_SKIP_PUBLISH](#deploy2zenodo_skip_publish) allows
 you to curate the upload to zenodo in the zenodo web interface before
@@ -221,7 +221,7 @@ An example test project is [deploy2zenodo_test_simple_workflow_update](https://g
 ### very simple workflow
 
 It is not necessary to create a release for publication. But we think this
-is the typically use case for software publication.
+is the typical use case for software publication.
 
 For a very simple workflow running when creating a tag,
 you could use something like:
