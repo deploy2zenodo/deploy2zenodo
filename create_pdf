@@ -11,7 +11,7 @@ PDFREADME=${PDFREADME:-"README.pdf"}
 
 extract_content() {
     sed -n '/^---$/,/^---$/!{ /^---$/!p }' "$1" | \
-	sed -n '/^## license: Apache-2.0$/,/^```$/!{ /^---$/!p }'
+        sed -n '/^## license: Apache-2.0$/,/^```$/!{ /^---$/!p }'
 }
 
 tmpreadme=$(mktemp)
@@ -19,13 +19,13 @@ echo "tmpreadme: $tmpreadme"
 {
     extract_content "README.md" | sed -n '/^## how-to$/,/^$/!{ /^---$/!p }' | grep -v "README.deploy2zenodo.md" | grep -v "README.deploy2inveniordm.md"
     extract_content "README.deploy2zenodo.md" | \
-	sed "s/\[^fair1\][^,]*$//g"| \
-	sed "s/\[^fair2\][^,]*$//g" | \
-	sed "s/\[^versioning\][^,]*$//g"
+        sed "s/\[^fair1\][^,]*$//g"| \
+        sed "s/\[^fair2\][^,]*$//g" | \
+        sed "s/\[^versioning\][^,]*$//g"
     extract_content "README.deploy2inveniordm.md" | \
-	sed "s/\[^fair1\][^,]*$//g"| \
-	sed "s/\[^fair2\][^,]*$//g" | \
-	sed "s/\[^versioning\][^,]*$//g"
+        sed "s/\[^fair1\][^,]*$//g"| \
+        sed "s/\[^fair2\][^,]*$//g" | \
+        sed "s/\[^versioning\][^,]*$//g"
 } > "$tmpreadme"
 
 pandocmetadatatmpfile=$(mktemp)
