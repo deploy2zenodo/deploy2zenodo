@@ -1,0 +1,54 @@
+#!/usr/bin/env sh
+set -e
+
+#    create_pdf
+#    Copyright (C) 2023-2026 Daniel Mohr
+
+# for debugging use default values
+CITATION=${CITATION:-"CITATION.cff"}
+DOI=${DOI:-"10.5281/zenodo.10112959"}
+PDFREADME=${PDFREADME:-"README.pdf"}
+
+extract_content() {
+    sed -n '/^---$/,/^---$/!{ /^---$/!p }' "$1" | \
+        sed -n '/^## license: Apache-2.0$/,/^```$/!{ /^---$/!p }'
+}
+
+tmpreadme=$(mktemp)
+echo "tmpreadme: $tmpreadme"
+{
+    extract_content "README.md" | sed -n '/^## how-to$/,/^$/!{ /^---$/!p }' | grep -v "README.deploy2zenodo.md" | grep -v "README.deploy2inveniordm.md"
+    extract_content "README.deploy2zenodo.md" | \
+        sed "s/\[^fair1\][^,]*$//g"| \
+        sed "s/\[^fair2\][^,]*$//g" | \
+        sed "s/\[^versioning\][^,]*$//g"
+    extract_content "README.deploy2inveniordm.md" | \
+        sed "s/\[^fair1\][^,]*$//g" | \
+        sed "s/\[^fair2\][^,]*$//g" | \
+        sed "s/\[^versioning\][^,]*$//g" | \
+        sed "s/\[^githubintegration\]: [^,]*$//g" | \
+        sed "s/\[^githubintegration2\]: [^,]*$//g" | \
+        sed "s/\[^githubintegration3\]: [^,]*$//g" | \
+        sed "s/\[^zenodoDevelopers\]: [^,]*$//g" | \
+        sed "s/\[^metadatareference\]: [^,]*$//g" | \
+        sed "s/\[^zenodouploadmetadataschema\]: [^,]*$//g"
+    sed -n '/^## license: Apache-2.0$/,/^```$/p' "README.md" | \
+        sed "s/##/#/g"
+} > "$tmpreadme"
+
+pandocmetadatatmpfile=$(mktemp)
+echo "pandocmetadatatmpfile: $pandocmetadatatmpfile"
+sed -n '/^---$/,/^---$/p' "README.md" | grep -v -e "---" | sed "s 10.5281/zenodo.10112959 $DOI g" | tee > "$pandocmetadatatmpfile"
+title=$(grep "^# " "README.md" | cut -d " " -f 2-)
+
+echo "title: \"$title\"" | tee -a "$pandocmetadatatmpfile"
+
+echo "abstract: \"deploy2zenodo and deploy2inveniordm are scripts to deploy your data to Zenodo or invenio RDM providing automatic workflow via ci pipeline\"" | tee -a "$pandocmetadatatmpfile"
+
+keywords=$(cffconvert -i "$CITATION" -f zenodo | jq -cr '.keywords | @csv' | sed 's/"//g' | sed 's/,/, /g')
+echo "keywords: $keywords" | tee -a "$pandocmetadatatmpfile"
+
+grep -v "[[_TOC_]]" "$tmpreadme" | pandoc -V papersize:a4 -V colorlinks:true -V margin-left=3cm -V margin-right=3cm -V margin-top=3cm --metadata-file="$pandocmetadatatmpfile" -s --toc -f markdown -o "$PDFREADME"
+
+echo "title: $title"
+echo "keywords: $keywords"

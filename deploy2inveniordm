@@ -1,0 +1,385 @@
+#!/usr/bin/env sh
+set -e -v
+
+#    deploy2inveniordm
+#    Copyright (C) 2026  Daniel Mohr
+#    Version: 0.7.0-beta
+#    DOI: 10.5281/zenodo.10112959
+#
+# Instead of command line parameters we use environment variables.
+#
+# You have to provide:
+#   * DEPLOY2INVENIORDM_API_URL
+#   * DEPLOY2INVENIORDM_ACCESS_TOKEN
+#   * DEPLOY2INVENIORDM_DEPOSITION_ID
+#   * DEPLOY2INVENIORDM_JSON
+#   * DEPLOY2INVENIORDM_UPLOAD
+#
+# And there are optional variables you can provide:
+#   * DEPLOY2INVENIORDM_SKIP_PUBLISH
+#   * DEPLOY2INVENIORDM_DRYRUN
+#   * DEPLOY2INVENIORDM_SKIPRUN
+#   * DEPLOY2INVENIORDM_GET_METADATA
+#   * DEPLOY2INVENIORDM_SKIP_UPLOAD
+#   * DEPLOY2INVENIORDM_CURL_MAX_TIME
+#   * DEPLOY2INVENIORDM_CURL_MAX_TIME_PUBLISH
+#   * DEPLOY2INVENIORDM_ADD_IsCompiledBy_DEPLOY2INVENIORDM
+#   * DEPLOY2INVENIORDM_ADD_IsNewVersionOf
+#
+# DEPLOY2INVENIORDM_SKIP_NEW_VERSION is not necessary. If a draft already
+# exists, we can still create a new version and go on.
+#
+# For more information see: https://gitlab.com/deploy2zenodo/deploy2zenodo
+#
+# Copyright 2026 Daniel Mohr and
+#    Deutsches Zentrum fuer Luft- und Raumfahrt e. V., D-51170 Koeln
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+set +v
+
+log() {
+    echo "$(date +"%H:%M:%S")" "$*"
+}
+errlog() {
+    printf "\033[0;31m%s %s\033[0m\n" "$(date -Iseconds)" "$*" 1>&2;
+}
+
+VERSION=$(sed -n 's/^#.*Version:\s*\(\S*\)$/\1/p' "$0")
+DEPLOY2ZENODO_DOI=$(sed -n 's/^#.*DOI:\s*\(\S*\)$/\1/p' "$0")
+
+echo "$(date -Iseconds) run deploy2inveniordm v$VERSION (DOI: $DEPLOY2ZENODO_DOI)"
+
+# check available variables
+log "check available variables"
+missing_variables=""
+for varname in DEPLOY2INVENIORDM_API_URL DEPLOY2INVENIORDM_ACCESS_TOKEN DEPLOY2INVENIORDM_DEPOSITION_ID DEPLOY2INVENIORDM_JSON DEPLOY2INVENIORDM_UPLOAD; do
+    if [ -z "$(eval "echo \"\$$varname\"")" ]; then
+        missing_variables="$missing_variables $varname"
+    fi
+done
+if [ -n "$missing_variables" ]; then
+    errlog "ERROR: you have to provide environment variables"
+    errlog "missing variables are at least:$missing_variables"
+    exit 1
+else
+    log "available variables are looking fine"
+    for varname in DEPLOY2INVENIORDM_API_URL DEPLOY2INVENIORDM_DEPOSITION_ID DEPLOY2INVENIORDM_JSON DEPLOY2INVENIORDM_UPLOAD DEPLOY2INVENIORDM_SKIP_PUBLISH DEPLOY2INVENIORDM_DRYRUN DEPLOY2INVENIORDM_SKIPRUN DEPLOY2INVENIORDM_GET_METADATA DEPLOY2INVENIORDM_SKIP_UPLOAD DEPLOY2INVENIORDM_CURL_MAX_TIME DEPLOY2INVENIORDM_CURL_MAX_TIME_PUBLISH DEPLOY2INVENIORDM_ADD_IsCompiledBy_DEPLOY2INVENIORDM DEPLOY2INVENIORDM_ADD_IsNewVersionOf; do
+        echo "$varname: \"$(eval "echo \"\$$varname\"")\""
+    done
+fi
+
+if [ -n "$DEPLOY2INVENIORDM_SKIP_UPLOAD" ] && [ -z "$DEPLOY2INVENIORDM_SKIP_PUBLISH" ]; then
+    errlog "ERROR: DEPLOY2INVENIORDM_SKIP_UPLOAD can only be used if DEPLOY2INVENIORDM_SKIP_PUBLISH is used, too!"
+    exit 2
+fi
+if [ -n "$DEPLOY2INVENIORDM_DRYRUN" ] || [ -n "$DEPLOY2INVENIORDM_SKIPRUN" ]; then
+    curl() {
+        echo "$@" > /dev/null
+    }
+fi
+if [ -n "$DEPLOY2INVENIORDM_SKIPRUN" ]; then
+    jq() {
+        echo "$@" > /dev/null
+    }
+    md5sum() {
+        echo "$@" > /dev/null
+    }
+fi
+
+CURL_MAX_TIME_PUBLISH=${DEPLOY2INVENIORDM_CURL_MAX_TIME_PUBLISH:-300}
+hjson='Content-Type: application/json'
+alias curlauth='curl --header "Authorization: Bearer $DEPLOY2INVENIORDM_ACCESS_TOKEN" --max-time "${DEPLOY2INVENIORDM_CURL_MAX_TIME:-60}"'
+
+echojq() {
+    echo "$1:"
+    echo "$2" | jq -C . || (errlog "$2"; exit 3)
+}
+
+echo "content of DEPLOY2INVENIORDM_JSON:"
+jq -C . "$DEPLOY2INVENIORDM_JSON"
+DEPLOY2INVENIORDM_JSON_DATA="$(jq -c . "$DEPLOY2INVENIORDM_JSON")"
+
+if [ -z "$DEPLOY2INVENIORDM_SKIPRUN" ]; then
+    PUBLICATION_DATE=$(echo "$DEPLOY2INVENIORDM_JSON_DATA" | jq -r .metadata.publication_date)
+    log "check publication_date=\"$PUBLICATION_DATE\" in DEPLOY2INVENIORDM_JSON is EDTF Level 0"
+    if [ -n "$PUBLICATION_DATE" ] && [ "$PUBLICATION_DATE" != "null" ]; then
+        RE_EDTF_LEVEL_0="((^[0-9]{4}-[0-9]{2}-[0-9]{2}$)|(^[0-9]{4}-[0-9]{2}$)|(^[0-9]{4}$))|(((^[0-9]{4}-[0-9]{2}-[0-9]{2})|(^[0-9]{4}-[0-9]{2})|(^[0-9]{4}))/(([0-9]{4}-[0-9]{2}-[0-9]{2}$)|([0-9]{4}-[0-9]{2}$)|([0-9]{4}$)))"
+        echo "$PUBLICATION_DATE" | grep -q -E "$RE_EDTF_LEVEL_0"
+        log "publication_date is EDTF Level 0"
+    else
+        log "publication_date is empty or not given: set to now ($(date +"%Y-%m-%d"))"
+        DEPLOY2INVENIORDM_JSON_DATA=$(echo "$DEPLOY2INVENIORDM_JSON_DATA" | jq -c ".metadata.publication_date = \"$(date +"%Y-%m-%d")\"")
+    fi
+fi
+
+if [ -n "$DEPLOY2INVENIORDM_ADD_IsCompiledBy_DEPLOY2INVENIORDM" ]; then
+    IsCompiledBy="{\"relation_type\":{\"id\":\"iscompiledby\"},\"identifier\":\"$DEPLOY2ZENODO_DOI\",\"scheme\":\"doi\",\"resource_type\":{\"id\":\"software\"}}"
+    log "add IsCompiledBy:"
+    echojq IsCompiledBy "$IsCompiledBy"
+    DEPLOY2INVENIORDM_JSON_DATA=$(echo "$DEPLOY2INVENIORDM_JSON_DATA" | jq -c ".metadata.related_identifiers += [$IsCompiledBy]")
+    echojq DEPLOY2INVENIORDM_JSON_DATA "$DEPLOY2INVENIORDM_JSON_DATA"
+fi
+
+if [ "$DEPLOY2INVENIORDM_DEPOSITION_ID" = "create NEW record" ]; then
+    # create new record
+    log "create new record"
+    #   * create new record and upload metadata
+    NEWRECORD="$(curlauth --header 'Accept: application/vnd.inveniordm.v1+json' --header "$hjson" --request POST --data-binary "$DEPLOY2INVENIORDM_JSON_DATA" "$DEPLOY2INVENIORDM_API_URL"/records)"
+    echojq NEWRECORD "$NEWRECORD"
+    DEPLOY2INVENIORDM_DEPOSITION_ID=$(echo "$NEWRECORD" | jq .id)
+    if [ -n "$DEPLOY2INVENIORDM_DRYRUN" ] || [ -n "$DEPLOY2INVENIORDM_SKIPRUN" ]; then
+        log "Skip testing checksum due to DRYRUN or SKIPRUN."
+    else
+        test -n "$DEPLOY2INVENIORDM_DEPOSITION_ID" -a "$DEPLOY2INVENIORDM_DEPOSITION_ID" != "null" || (errlog "DEPLOY2INVENIORDM_DEPOSITION_ID=\"$DEPLOY2INVENIORDM_DEPOSITION_ID\""; exit 4)
+    fi
+    LATESTID=$DEPLOY2INVENIORDM_DEPOSITION_ID
+    log "##################################################################"
+    log "# add the id of the deposition/record on zenodo for the next run #"
+    log "# id: $DEPLOY2INVENIORDM_DEPOSITION_ID"
+    log "#                                                                #"
+    log "# DEPLOY2INVENIORDM_DEPOSITION_ID=$DEPLOY2INVENIORDM_DEPOSITION_ID"
+    log "##################################################################"
+    LATESTDRAFT=$(echo "$NEWRECORD" | jq -r .links.self)
+    BUCKETURL=$(echo "$NEWRECORD" | jq -r .links.files)
+    LINKSPUBLISH=$(echo "$NEWRECORD" | jq -r .links.publish)
+
+    log "reserve doi"
+    RESERVEDOI=$(echo "$NEWRECORD" | jq -r .links.reserve_doi)
+    NEWRECORD="$(curlauth --header 'Accept: application/vnd.inveniordm.v1+json' --header "$hjson" --request POST "$RESERVEDOI")"
+    echojq NEWRECORD "$NEWRECORD"
+
+    if [ -n "$DEPLOY2INVENIORDM_DRYRUN" ] || [ -n "$DEPLOY2INVENIORDM_SKIPRUN" ]; then
+        log "Skip testing checksum due to DRYRUN or SKIPRUN."
+    else
+        test -n "$LATESTDRAFT" -a "$LATESTDRAFT" != "null" || (errlog "LATESTDRAFT=\"$LATESTDRAFT\""; exit 5)
+        test -n "$BUCKETURL" -a "$BUCKETURL" != "null" || (errlog "BUCKETURL=\"$BUCKETURL\""; exit 6)
+    fi
+
+    #   * upload files/archives
+    if [ -n "$DEPLOY2INVENIORDM_SKIP_UPLOAD" ]; then
+        log "##############################"
+        log "# skip upload files/archives #"
+        log "##############################"
+    else
+        log "upload files/archives"
+        for filename in $DEPLOY2INVENIORDM_UPLOAD; do
+            log "upload \"$filename\""
+            FILEUPLOADSTART=$(curlauth --header 'Accept: application/vnd.inveniordm.v1+json' --header "$hjson" --request POST --data-binary "[{\"key\": \"$filename\"}]" "$BUCKETURL")
+            echojq FILEUPLOADSTART "$FILEUPLOADSTART"
+            FILEUPLOADCONTENT=$(echo "$FILEUPLOADSTART" | jq -r ".entries[] | select(.key==\"$filename\") | .links.content")
+            FILEUPLOADCOMMIT=$(echo "$FILEUPLOADSTART" | jq -r ".entries[] | select(.key==\"$filename\") | .links.commit")
+            if [ -n "$DEPLOY2INVENIORDM_DRYRUN" ] || [ -n "$DEPLOY2INVENIORDM_SKIPRUN" ]; then
+                log "Skip testing checksum due to DRYRUN or SKIPRUN."
+            else
+                test -n "$FILEUPLOADCONTENT" -a -n "$FILEUPLOADCOMMIT" || (errlog "could not initiate file upload"; exit 30)
+            fi
+            UPLOADFILECONTENT=$(curlauth --header 'Accept: application/vnd.inveniordm.v1+json' --request PUT --upload-file "$filename" "$FILEUPLOADCONTENT")
+            echojq UPLOADFILECONTENT "$UPLOADFILECONTENT"
+            FILEUPLOADCOMMIT=$(echo "$UPLOADFILECONTENT" | jq -r .links.commit)
+            if [ -n "$DEPLOY2INVENIORDM_DRYRUN" ] || [ -n "$DEPLOY2INVENIORDM_SKIPRUN" ]; then
+                log "Skip testing checksum due to DRYRUN or SKIPRUN."
+            else
+                test -n "$FILEUPLOADCOMMIT" || (errlog "could not upload file content"; exit 31)
+            fi
+            UPLOADFILECOMMIT=$(curlauth --header 'Accept: application/vnd.inveniordm.v1+json' --header "$hjson" --request POST "$FILEUPLOADCOMMIT")
+            echojq UPLOADFILECOMMIT "$UPLOADFILECOMMIT"
+            CHECKSUMRAW=$(echo "$UPLOADFILECOMMIT" | jq -r .checksum)
+            CHECKSUM=$(echo "$CHECKSUMRAW" | cut -d ':' -f 2)
+            if [ -n "$DEPLOY2INVENIORDM_DRYRUN" ] || [ -n "$DEPLOY2INVENIORDM_SKIPRUN" ]; then
+                log "Skip testing checksum due to DRYRUN or SKIPRUN."
+            else
+                test -n "$CHECKSUMRAW" -a "$CHECKSUMRAW" != "null" || (errlog "CHECKSUMRAW=\"$CHECKSUMRAW\""; exit 7)
+                echo "$CHECKSUM  $filename" | md5sum -c -
+            fi
+        done
+        log "files uploaded"
+    fi
+
+    #   * publish
+    if [ -n "$DEPLOY2INVENIORDM_SKIP_PUBLISH" ]; then
+        log "#################################################"
+        log "# --> Publishing is skipped!                    #"
+        log "# --> You have to publish this record manually! #"
+        log "#################################################"
+    else
+        log "publish"
+        PUBLISHRECORD=$(curlauth --header 'Accept: application/vnd.inveniordm.v1+json' --max-time "$CURL_MAX_TIME_PUBLISH" --request POST "$LINKSPUBLISH")
+        echojq PUBLISHRECORD "$PUBLISHRECORD"
+        if [ -n "$DEPLOY2INVENIORDM_DRYRUN" ] || [ -n "$DEPLOY2INVENIORDM_SKIPRUN" ]; then
+            log "Skip testing result due to DRYRUN or SKIPRUN."
+        else
+            test "$(echo "$PUBLISHRECORD" | jq .status)" = '"published"' || (errlog "state=\"$(echo "$PUBLISHRECORD" | jq .status)\""; exit 9)
+        fi
+    fi
+    log "##################################################################"
+    log "# add the id of the deposition/record on zenodo for the next run #"
+    log "# id: $DEPLOY2INVENIORDM_DEPOSITION_ID"
+    log "#                                                                #"
+    log "# DEPLOY2INVENIORDM_DEPOSITION_ID=$DEPLOY2INVENIORDM_DEPOSITION_ID"
+    log "##################################################################"
+else
+    # update record
+    log "update record"
+    #   * get data from record
+    RECORD=$(curlauth --header 'Accept: application/vnd.inveniordm.v1+json' "$DEPLOY2INVENIORDM_API_URL"/records/"$DEPLOY2INVENIORDM_DEPOSITION_ID")
+    echojq RECORD "$RECORD"
+    #exit
+    #conceptrecid=$(echo "$RECORD" | jq -r .conceptrecid)
+    NEWVERSIONURL=$(echo "$RECORD" | jq -r .links.versions)
+    if [ -n "$DEPLOY2INVENIORDM_DRYRUN" ] || [ -n "$DEPLOY2INVENIORDM_SKIPRUN" ]; then
+        log "Skip testing result due to DRYRUN or SKIPRUN."
+    else
+        #test -n "$conceptrecid" -a "$conceptrecid" != "null" || (errlog "conceptrecid=\"$conceptrecid\""; exit 24)
+        test -n "$NEWVERSIONURL" -a "$NEWVERSIONURL" != "null" || (errlog "NEWVERSIONURL=\"$NEWVERSIONURL\""; exit 11)
+    fi
+
+    #   * reference previous version
+    if [ -n "$DEPLOY2INVENIORDM_ADD_IsNewVersionOf" ]; then
+        log "reference previous version"
+        LATESTDOI=$(echo "$RECORD" | jq -r .doi)
+        LATESTUPLOADTYPE=$(echo "$RECORD" | jq -r .metadata.upload_type)
+        if [ -z "$LATESTUPLOADTYPE" ]; then
+            # try to use upload_type from current data
+            LATESTUPLOADTYPE=$(echo "$DEPLOY2INVENIORDM_JSON_DATA" | jq -r .metadata.upload_type)
+        fi
+        # It is not an error if LATESTDOI is empty:
+        # This could be the first version.
+        IsNewVersionOf="{\"relation\":\"IsNewVersionOf\",\"identifier\":\"$LATESTDOI\",\"scheme\":\"doi\",\"resource_type\":\"$LATESTUPLOADTYPE\"}"
+        log "add IsNewVersionOf:"
+        echojq IsNewVersionOf "$IsNewVersionOf"
+        if [ -z "$LATESTDOI" ] || [ "$LATESTDOI" = "null" ] || [ -z "$LATESTUPLOADTYPE" ] || [ "$LATESTUPLOADTYPE" = "null" ]; then
+            log "No LATESTDOI or no LATESTUPLOADTYPE found. IsNewVersionOf not added!"
+        else
+            DEPLOY2INVENIORDM_JSON_DATA=$(echo "$DEPLOY2INVENIORDM_JSON_DATA" | jq -c ".metadata.related_identifiers += [$IsNewVersionOf]")
+        fi
+    fi
+
+    #   * create new version
+    log "create new version"
+    NEWVERSION=$(curlauth --header 'Accept: application/vnd.inveniordm.v1+json' --request POST "$NEWVERSIONURL")
+    echojq NEWVERSION "$NEWVERSION"
+    LATESTDRAFT=$(echo "$NEWVERSION" | jq -r .links.self) #https://sandbox.zenodo.org/api/records/487976/draft
+    BUCKETURL=$(echo "$NEWVERSION" | jq -r .links.files) #https://sandbox.zenodo.org/api/records/487976/draft/files
+    LATESTID=$(echo "$NEWVERSION" | jq .id) #487976
+    if [ -n "$DEPLOY2INVENIORDM_DRYRUN" ] || [ -n "$DEPLOY2INVENIORDM_SKIPRUN" ]; then
+        log "Skip testing result due to DRYRUN or SKIPRUN."
+    else
+        test -n "$LATESTDRAFT" -a "$LATESTDRAFT" != "null" || (errlog "LATESTDRAFT=\"$LATESTDRAFT\""; exit 15)
+        test -n "$BUCKETURL" -a "$BUCKETURL" != "null" || (errlog "BUCKETURL=\"$BUCKETURL\""; exit 16)
+        test -n "$LATESTID" -a "$LATESTID" != "null" || (errlog "LATESTID=\"$LATESTID\""; exit 17)
+    fi
+    log "#############################"
+    log "# found latest id: $LATESTID"
+    log "#############################"
+
+    #   * update metadata
+    log "update metadata"
+    UPLOADMETADATA=$(curlauth --header 'Accept: application/vnd.inveniordm.v1+json' --header "$hjson" --request PUT --data-binary "$DEPLOY2INVENIORDM_JSON_DATA" "$LATESTDRAFT")
+    echojq UPLOADMETADATA "$UPLOADMETADATA"
+    #exit
+
+    #   * remove all files from new version
+    log "remove all files from new version"
+    #for id in $(echo "$UPLOADMETADATA" | jq -r ".files[] | .id"); do
+    for id in $(echo "$UPLOADMETADATA" | jq -r ".files.entries | keys | .[]"); do
+        log "remove file with id \"$id\""
+        echo "$LATESTDRAFT"/files/"$id"
+        DELETEFILE=$(curlauth --header 'Accept: application/vnd.inveniordm.v1+json' --request DELETE "$LATESTDRAFT"/files/"$id")
+        echojq DELETEFILE "$DELETEFILE"
+    done
+    log "all files removed"
+
+    #   * upload files/archives
+    if [ -n "$DEPLOY2INVENIORDM_SKIP_UPLOAD" ]; then
+        log "##############################"
+        log "# skip upload files/archives #"
+        log "##############################"
+    else
+        log "upload files/archives"
+        for filename in $DEPLOY2INVENIORDM_UPLOAD; do
+            log "upload \"$filename\""
+            FILEUPLOADSTART=$(curlauth --header 'Accept: application/vnd.inveniordm.v1+json' --header "$hjson" --request POST --data-binary "[{\"key\": \"$filename\"}]" "$BUCKETURL")
+            echojq FILEUPLOADSTART "$FILEUPLOADSTART"
+            FILEUPLOADCONTENT=$(echo "$FILEUPLOADSTART" | jq -r ".entries[] | select(.key==\"$filename\") | .links.content")
+            FILEUPLOADCOMMIT=$(echo "$FILEUPLOADSTART" | jq -r ".entries[] | select(.key==\"$filename\") | .links.commit")
+            if [ -n "$DEPLOY2INVENIORDM_DRYRUN" ] || [ -n "$DEPLOY2INVENIORDM_SKIPRUN" ]; then
+                log "Skip testing checksum due to DRYRUN or SKIPRUN."
+            else
+                test -n "$FILEUPLOADCONTENT" -a -n "$FILEUPLOADCOMMIT" || (errlog "could not initiate file upload"; exit 32)
+            fi
+            UPLOADFILECONTENT=$(curlauth --header 'Accept: application/vnd.inveniordm.v1+json' --request PUT --upload-file "$filename" "$FILEUPLOADCONTENT")
+            echojq UPLOADFILECONTENT "$UPLOADFILECONTENT"
+            FILEUPLOADCOMMIT=$(echo "$UPLOADFILECONTENT" | jq -r .links.commit)
+            if [ -n "$DEPLOY2INVENIORDM_DRYRUN" ] || [ -n "$DEPLOY2INVENIORDM_SKIPRUN" ]; then
+                log "Skip testing checksum due to DRYRUN or SKIPRUN."
+            else
+                test -n "$FILEUPLOADCOMMIT" || (errlog "could not upload file content"; exit 33)
+            fi
+            UPLOADFILECOMMIT=$(curlauth --header 'Accept: application/vnd.inveniordm.v1+json' --header "$hjson" --request POST "$FILEUPLOADCOMMIT")
+            echojq UPLOADFILECOMMIT "$UPLOADFILECOMMIT"
+            CHECKSUMRAW=$(echo "$UPLOADFILECOMMIT" | jq -r .checksum)
+            CHECKSUM=$(echo "$CHECKSUMRAW" | cut -d ':' -f 2)
+            if [ -n "$DEPLOY2INVENIORDM_DRYRUN" ] || [ -n "$DEPLOY2INVENIORDM_SKIPRUN" ]; then
+                log "Skip testing checksum due to DRYRUN or SKIPRUN."
+            else
+                test -n "$CHECKSUMRAW" -a "$CHECKSUMRAW" != "null" || (errlog "CHECKSUMRAW=\"$CHECKSUMRAW\""; exit 18)
+                echo "$CHECKSUM  $filename" | md5sum -c -
+            fi
+        done
+        log "files uploaded"
+    fi
+
+    #   * publish
+    if [ -n "$DEPLOY2INVENIORDM_SKIP_PUBLISH" ]; then
+        log "#################################################"
+        log "# --> Publishing is skipped!                    #"
+        log "# --> You have to publish this record manually! #"
+        log "#################################################"
+    else
+        log "publish"
+        PUBLISHRECORD=$(curlauth --max-time "$CURL_MAX_TIME_PUBLISH" --request POST "$LATESTDRAFT"/actions/publish)
+        echojq PUBLISHRECORD "$PUBLISHRECORD"
+        if [ -n "$DEPLOY2INVENIORDM_DRYRUN" ] || [ -n "$DEPLOY2INVENIORDM_SKIPRUN" ]; then
+            log "Skip testing result due to DRYRUN or SKIPRUN."
+        else
+            test "$(echo "$PUBLISHRECORD" | jq .state)" = '"done"' || (errlog "state=\"$(echo "$PUBLISHRECORD" | jq .state)\""; exit 20)
+            test "$(echo "$PUBLISHRECORD" | jq .submitted)" = "true" || (errlog "submitted=\"$(echo "$PUBLISHRECORD" | jq .submitted)\""; exit 21)
+        fi
+        LATESTID=$(echo "$PUBLISHRECORD" | jq .id)
+        HTMLURL=$(echo "$PUBLISHRECORD" | jq .links.self_html)
+        if [ -n "$DEPLOY2INVENIORDM_DRYRUN" ] || [ -n "$DEPLOY2INVENIORDM_SKIPRUN" ]; then
+            log "Skip testing result due to DRYRUN or SKIPRUN."
+        else
+            test -n "$LATESTID" -a "$LATESTID" != "null" || (errlog "LATESTID=\"$LATESTID\""; exit 22)
+            test -n "$HTMLURL" -a "$HTMLURL" != "null" || (errlog "HTMLURL=\"$HTMLURL\""; exit 29)
+        fi
+        log "#############################"
+        log "# found latest id: $LATESTID"
+        log "# $HTMLURL"
+        log "#############################"
+    fi
+fi
+if [ -n "$DEPLOY2INVENIORDM_GET_METADATA" ]; then
+    LATESTMETADATA=$(curlauth "$DEPLOY2INVENIORDM_API_URL"/deposit/depositions/"$LATESTID" | tee "$DEPLOY2INVENIORDM_GET_METADATA")
+    echojq LATESTMETADATA "$LATESTMETADATA"
+    if [ -n "$DEPLOY2INVENIORDM_DRYRUN" ] || [ -n "$DEPLOY2INVENIORDM_SKIPRUN" ]; then
+        log "Skip testing result due to DRYRUN or SKIPRUN."
+    else
+        test "$(echo "$LATESTMETADATA" | jq .id)" = "$LATESTID" || (errlog "LATESTMETADATA=\"$LATESTMETADATA\""; exit 23)
+    fi
+fi
+
+echo "$(date -Iseconds) finished deploy2inveniordm v$VERSION"
+
+# stop deploy2inveniordm

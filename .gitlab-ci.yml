@@ -1,14 +1,19 @@
 variables:
   PACKAGE_REGISTRY_URL: "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/deploy2zenodo-ci-template/$TAG"
-  BASE_FILE_NAME: deploy2zenodo
+  BASE_FILE_NAME: "deploy2zenodo"
   CI_FILE_URL: "$PACKAGE_REGISTRY_URL/$BASE_FILE_NAME-$TAG.yaml"
-  CI_FILE_NAME: $BASE_FILE_NAME.yaml
+  CI_FILE_NAME: "$BASE_FILE_NAME.yaml"
   FILE_URL: "$PACKAGE_REGISTRY_URL/$BASE_FILE_NAME-$TAG"
-  FILE_NAME: $BASE_FILE_NAME
-  CITATION: CITATION.cff
+  FILE_NAME: "$BASE_FILE_NAME"
+  BASE_FILE_NAME_INVENIORDM: "deploy2inveniordm"
+  CI_FILE_INVENIORDM_URL: "$PACKAGE_REGISTRY_URL/$BASE_FILE_NAME-$TAG.yaml"
+  CI_FILE_INVENIORDM_NAME: "$BASE_FILE_NAME_INVENIORDM.yaml"
+  FILE_INVENIORDM_URL: "$PACKAGE_REGISTRY_URL/$BASE_FILE_NAME_INVENIORDM-$TAG"
+  FILE_INVENIORDM_NAME: "$BASE_FILE_NAME_INVENIORDM"
+  CITATION: "CITATION.cff"
   CITATION_FILE_URL: "$PACKAGE_REGISTRY_URL/$CITATION"
-  README: README.md
-  PDFREADME: README.pdf
+  README: "README.md"
+  PDFREADME: "README.pdf"
   PDFREADME_URL: "$PACKAGE_REGISTRY_URL/$PDFREADME"
 
 .display_env:
@@ -31,6 +36,8 @@ pre-commit:
     - pre-commit --version
     - cffconvert --version
     - pre-commit run --all-files
+    - pre-commit autoupdate --jobs 0
+    - git diff .pre-commit-config.yaml
     # check exit code is unique
     - |
       FILETOCHECK="deploy2zenodo"
@@ -44,10 +51,14 @@ pre-commit:
     - cat "$CI_FILE_NAME"
     - ./create_deploy2zenodo_script
     - cat "$FILE_NAME.sh"
-    - md5sum "$BASE_FILE_NAME" "$CI_FILE_NAME" "$FILE_NAME.sh"
-    - shellcheck "$BASE_FILE_NAME" "$FILE_NAME.sh"
-    # to test file with pre-commit it has to be added
-    - git add -f "$FILE_NAME.sh"
+    - ./create_deploy2inveniordm_gitlab_ci_pipeline
+    - cat "$CI_FILE_INVENIORDM_NAME"
+    - ./create_deploy2inveniordm_script
+    - cat "$FILE_INVENIORDM_NAME.sh"
+    - md5sum "$BASE_FILE_NAME" "$CI_FILE_NAME" "$FILE_NAME.sh" "$BASE_FILE_NAME_INVENIORDM" "$CI_FILE_INVENIORDM_NAME" "$FILE_INVENIORDM_NAME.sh"
+    - shellcheck "$BASE_FILE_NAME" "$FILE_NAME.sh" "$FILE_INVENIORDM_NAME.sh"
+    # to test files with pre-commit it has to be added
+    - git add -f "$FILE_NAME.sh" "$FILE_INVENIORDM_NAME.sh"
     - pre-commit run --all-files
     - cffconvert -i "$CITATION" --validate
     - jq < zenodo-add-related_identifiers.json
@@ -55,8 +66,10 @@ pre-commit:
   artifacts:
     expire_in: 1 hrs
     paths:
-      - $CI_FILE_NAME
-      - $FILE_NAME.sh
+      - "$CI_FILE_NAME"
+      - "$FILE_NAME.sh"
+      - "$CI_FILE_INVENIORDM_NAME"
+      - "$FILE_INVENIORDM_NAME.sh"
 
 pycodestyle_alpine:
   stage: build
@@ -95,6 +108,41 @@ check_publication_date_check:
     - (! ./check_edtf_level_0 "2024-03-13T18:42:31.928651+00:00")
     - (! ./check_edtf_level_0 "2024-03-13T")
     - (! ./check_edtf_level_0 "20231020T155008")
+
+test_deploy2zenodo_script-create_skiprun:
+  stage: build
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "pipeline" && $STEP == "1"
+  image:
+    name: alpine:latest
+  variables:
+    DEPLOY2ZENODO_API_URL: "https://sandbox.zenodo.org/api"
+    DEPLOY2ZENODO_ACCESS_TOKEN: "***"
+    DEPLOY2ZENODO_DEPOSITION_ID: "create NEW record"
+    DEPLOY2ZENODO_JSON: "CITATION.json"
+    DEPLOY2ZENODO_UPLOAD: "foo bar"
+    DEPLOY2ZENODO_SKIPRUN: "true"
+    DEPLOY2ZENODO_ADD_IsCompiledBy_DEPLOY2ZENODO: "yes"
+  script:
+    - ./deploy2zenodo
+
+test_deploy2inveniordm_script-create_skiprun:
+  stage: build
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "pipeline" && $STEP == "1"
+  image:
+    name: alpine:latest
+  variables:
+    DEPLOY2INVENIORDM_API_URL: "https://sandbox.zenodo.org/api"
+    DEPLOY2INVENIORDM_ACCESS_TOKEN: "***"
+    DEPLOY2INVENIORDM_DEPOSITION_ID: "create NEW record"
+    DEPLOY2INVENIORDM_JSON: "metadata.json"
+    DEPLOY2INVENIORDM_UPLOAD: "foo bar"
+    DEPLOY2INVENIORDM_SKIPRUN: "true"
+    DEPLOY2INVENIORDM_ADD_IsCompiledBy_DEPLOY2INVENIORDM: "yes"
+  script:
+    - echo '{"metadata":{"creators":[{"person_or_org":{"type":"personal","given_name":"given","family_name":"family"},"affiliations":[{"id":"04bwf3e34","identifiers":[{"identifier":"00r1edq15","scheme":"ror"}]}]}],"rights":[{"id":"cc-by-4.0","props":{"scheme":"spdx"}}],"title":"test script","version":"***","resource_type":{"id":"software"},"publisher":"Zenodo"}}' > "$DEPLOY2INVENIORDM_JSON"
+    - ./deploy2inveniordm
 
 prepare_release_step1:
   stage: build
@@ -176,23 +224,15 @@ deploy_ci_template:
     - mv "$TMPCITATION" "$CITATION"
     - cffconvert -i "$CITATION" --validate
     # create README.pdf
-    - tmpreadme=$(mktemp)
-    - sed "s 10.5281/zenodo.10112959 $DOI g" "$README" > "$tmpreadme"
-    - pandocmetadatatmpfile=$(mktemp)
-    - sed -n '/^---$/,/^---$/p' "$tmpreadme" | grep -v -e "---" | tee > "$pandocmetadatatmpfile"
-    - title=$(grep "^# " "$tmpreadme" | cut -d " " -f 2-)
-    - |
-      echo "title: \"$title\"" | tee -a "$pandocmetadatatmpfile"
-    - |
-      echo "abstract: \"deploy2zenodo is a script to deploy your data to zenodo providing automatic workflow via ci pipeline\"" | tee -a "$pandocmetadatatmpfile"
-    - keywords=$(cffconvert -i "$CITATION" -f zenodo | jq -cr '.keywords | @csv' | sed 's/"//g' | sed 's/,/, /g')
-    - |
-      echo "keywords: $keywords" | tee -a "$pandocmetadatatmpfile"
-    - grep -v "[[_TOC_]]" "$tmpreadme" | pandoc -V papersize:a4 -V colorlinks:true -V margin-left=3cm -V margin-right=3cm -V margin-top=3cm --metadata-file="$pandocmetadatatmpfile" -s --toc -f markdown -o "$PDFREADME"
+    - ./create_pdf
     - |
       curl --header "JOB-TOKEN: ${CI_JOB_TOKEN}" --upload-file "$CI_FILE_NAME" "$CI_FILE_URL"
     - |
       curl --header "JOB-TOKEN: ${CI_JOB_TOKEN}" --upload-file "$FILE_NAME.sh" "$FILE_URL"
+    - |
+      curl --header "JOB-TOKEN: ${CI_JOB_TOKEN}" --upload-file "$CI_FILE_INVENIORDM_NAME" "$CI_FILE_INVENIORDM_URL"
+    - |
+      curl --header "JOB-TOKEN: ${CI_JOB_TOKEN}" --upload-file "$FILE_INVENIORDM_NAME.sh" "$FILE_INVENIORDM_URL"
     # upload CITATION.cff
     - |
       curl --header "JOB-TOKEN: ${CI_JOB_TOKEN}" --upload-file "$CITATION" "$CITATION_FILE_URL"
@@ -236,6 +276,14 @@ release_job:
           filepath: /$FILE_NAME
           url: $FILE_URL
           link_type: other
+        - name: $CI_FILE_INVENIORDM_NAME
+          filepath: /$CI_FILE_INVENIORDM_NAME
+          url: $CI_FILE_INVENIORDM_URL
+          link_type: other
+        - name: $FILE_INVENIORDM_NAME
+          filepath: /$FILE_INVENIORDM_NAME
+          url: $FILE_INVENIORDM_URL
+          link_type: other
         - name: $CITATION
           filepath: /$CITATION
           url: $CITATION_FILE_URL
@@ -274,6 +322,22 @@ post_release_job:
     LATESTUPLOADTYPE: $LATESTUPLOADTYPE
   trigger:
     project: daniel_mohr/deploy_deploy2zenodo_to_zenodo
+    strategy: depend
+    forward:
+      yaml_variables: true
+      pipeline_variables: false
+
+trigger0:
+  stage: .post
+  rules:
+    - if: $CI_COMMIT_TAG
+      when: never
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_PIPELINE_SOURCE != "pipeline"
+    - if: $CI_COMMIT_BRANCH == "mohr"
+  variables:
+    TRIGGER_CI_COMMIT_SHA: $CI_COMMIT_SHA
+  trigger:
+    project: daniel_mohr/deploy2zenodo_test_alpine_script
     strategy: depend
     forward:
       yaml_variables: true
