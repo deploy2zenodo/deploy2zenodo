@@ -127,8 +127,7 @@ deploy2inveniordm:
         echo '{"metadata":{"creators":
           [{"person_or_org":{"type":"personal",
           "given_name":"given","family_name":"family"},
-          "affiliations":[{"id":"04bwf3e34",
-          "identifiers":[{"identifier":"00r1edq15","scheme":"ror"}]}]}],
+          "affiliations":[{"id":"04bwf3e34"}]}],
           "rights":[{"id":"cc-by-4.0","props":{"scheme":"spdx"}}],
           "title":"test script","version":"***",
           "resource_type":{"id":"software"},"publisher":"Zenodo"}}' | \
@@ -171,8 +170,7 @@ prepare_release_and_deploy2inveniordm:
         echo '{"metadata":{"creators":
           [{"person_or_org":{"type":"personal",
           "given_name":"given","family_name":"family"},
-          "affiliations":[{"id":"04bwf3e34",
-          "identifiers":[{"identifier":"00r1edq15","scheme":"ror"}]}]}],
+          "affiliations":[{"id":"04bwf3e34"}]}],
           "rights":[{"id":"cc-by-4.0","props":{"scheme":"spdx"}}],
           "title":"test script","version":"***",
           "resource_type":{"id":"software"},"publisher":"Zenodo"}}' | \
@@ -382,12 +380,7 @@ You can write this file on your own, e. g.:
         "affiliations": [
           {
             "id": "04bwf3e34",
-            "identifiers": [
-              {
-                "identifier": "00r1edq15",
-                "scheme": "ror"
-              }
-            ]
+            "name": "Deutsches Zentrum für Luft- und Raumfahrt e. V."
           }
         ]
       }
