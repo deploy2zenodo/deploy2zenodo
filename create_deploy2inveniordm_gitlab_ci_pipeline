@@ -1,0 +1,52 @@
+#!/usr/bin/env sh
+set -e
+
+#    create_deploy2inveniordm_gitlab_ci_pipeline
+#    Copyright (C) 2026 Daniel Mohr
+
+echo "run create_deploy2inveniordm_gitlab_ci_pipeline"
+
+IN=deploy2inveniordm
+OUT=deploy2inveniordm.yaml
+
+VERSION=$(sed -n 's/^#.*Version:\s*\(\S*\)$/\1/p' "$IN")
+URL=$(sed -n 's/^home:\s*\(https:\S*\)$/\1/p' README.md)
+script=$(sed -n '/^#    deploy2inveniordm$/,/^# stop deploy2inveniordm$/p' $IN | \
+             sed '/^VERSION=.*$/d' | \
+             sed "s#v\$VERSION#v$VERSION $URL/-/releases/$VERSION#g" | \
+             sed "s#\"\$VERSION\"#\"$VERSION\"#g" | \
+             sed '/^DEPLOY2ZENODO_DOI=.*$/d' | \
+             sed '/^\s*$/d' | \
+             sed 's/^/      /')
+
+# the echo command in the following needs to run in POSIX sh:
+# (dash in not sufficient; running in bash and `set -o posix` seems to work)
+if [ -n "$DOI" ]; then
+    # replace concept DOI by actual DOI given in the variable DOI:
+    CONCEPTDOI="10.5281/zenodo.10112959"
+    # since 'space' can not be part of a DOI we use space as separator in sed:
+    script=$(echo "$script" | sed "s $CONCEPTDOI $DOI g" | \
+                 sed "s#\$DEPLOY2ZENODO_DOI#$DOI#g")
+else
+    DEPLOY2ZENODO_DOI=$(sed -n 's/^#.*DOI:\s*\(\S*\)$/\1/p' "$IN")
+    script=$(echo "$script" sed '/^DEPLOY2ZENODO_DOI=.*$/d' | \
+                 sed "s#\$DEPLOY2ZENODO_DOI#$DEPLOY2ZENODO_DOI#g")
+fi
+
+cat >$OUT <<EOL
+.deploy2inveniordm:
+  script:
+    - |
+$script
+
+.deploy2inveniordm_alpine:
+  image:
+    name: alpine:latest
+  before_script:
+    - apk add --no-cache curl jq
+  extends: .deploy2inveniordm
+
+deploy2inveniordm:
+  stage: .post
+  extends: .deploy2inveniordm_alpine
+EOL

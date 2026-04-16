@@ -73,8 +73,12 @@ Store it in a [GitLab CI/CD variable](https://docs.gitlab.com/ee/ci/variables/)
 as `DEPLOY2ZENODO_ACCESS_TOKEN`. Use the flags
 [Mask variable](https://docs.gitlab.com/ee/ci/variables/index.html#mask-a-cicd-variable)
 and [Protect variable](https://docs.gitlab.com/ee/ci/variables/index.html#protect-a-cicd-variable).
+You may also choose to
+[hide a CI/CD variable](https://docs.gitlab.com/ci/variables/#hide-a-cicd-variable)
+to prevent it from being revealed in the GitLab UI.
 Masking ensures that the variable is not displayed in the CI/CD logs, and
-protecting the variable limits access to authorized users.
+protecting the variable limits access to authorized users and hiding reduces
+the risk of accidental exposure in the UI.
 Keep in mind the token is sensitive and private information.
 Therefore you should not share it or make it public available.
 
@@ -245,7 +249,6 @@ deploy2zenodo:
     DEPLOY2ZENODO_GET_METADATA: "result.json"
   before_script:
     - env
-    - echo https://dl-cdn.alpinelinux.org/alpine/edge/community >> /etc/apk/repositories
     - apk add --no-cache cffconvert curl git jq
     - publication_date=$(echo "$CI_COMMIT_TIMESTAMP" | grep -Eo "^[0-9]{4}-[0-9]{2}-[0-9]{2}")
     - |

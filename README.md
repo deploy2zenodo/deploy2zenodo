@@ -1,6 +1,6 @@
 ---
 author: Daniel Mohr
-date: 2026-04-15
+date: 2026-04-16
 license: Apache-2.0
 home: https://gitlab.com/deploy2zenodo/deploy2zenodo
 mirror: https://github.com/deploy2zenodo/deploy2zenodo
@@ -14,26 +14,31 @@ doi: 10.5281/zenodo.10112959
 
 ## preamble
 
-[`deploy2zenodo`](https://gitlab.com/projects/51392274) are two
+[`deploy2zenodo`](https://gitlab.com/projects/51392274) are two lightweight
 [shell](https://en.wikipedia.org/wiki/Bourne_shell) scripts to deploy
 your data to [Zenodo](https://zenodo.org/) or
-[Invenio RDM](https://inveniosoftware.org/products/rdm/).
-You can use it in a [CI pipeline](https://docs.gitlab.com/ee/ci/pipelines/) as
-an automatic workflow.
+[Invenio RDM](https://inveniosoftware.org/products/rdm/),
+the open-source repository platform powering Zenodo.
+You can use them in a [CI pipeline](https://docs.gitlab.com/ee/ci/pipelines/)
+as an automatic workflow.
 
-Environmental variables allow very flexible use.
-Depending on the selected flags, the data can be curated before deployment
-in a merge request, in the zenodo web interface or not curated at all.
+Environmental variables provide high flexibility.
+Depending on the selected flags, data can be curated
 
-**Note:** `deploy2zenodo` is primarily designed for the Zenodo API.
-`deploy2inveniordm` is designed for the
+* before deployment in a merge request
+* manually via the Zenodo web interface, or
+* not curated at all.
+
+**Note:** While `deploy2zenodo` is primarily tailored for the Zenodo API,
+`deploy2inveniordm` is specifically designed for the
 [Invenio RDM](https://inveniosoftware.org/products/rdm/) API
 used by Zenodo.
 
 ## intention
 
 To satisfy the FAIR[^fair1] principles[^fair2], publications should be
-deployed to an open repository. In this way the publication gets a PID
+deposited to an open, persistent repository.
+By publishing to such repositories, each publication receives a PID
 ([persistent identifier](https://en.wikipedia.org/wiki/Persistent_identifier))
 and at least the metadata is publicly accessible, findable and citable.
 Furthermore, current discussions about KPIs
@@ -47,7 +52,8 @@ for software and data.
 
 Especially software usually is not citable by a PID.
 To overcome this and make software academically significant we provide here a
-tool for automatic publication to the open repository [zenodo](https://zenodo.org/).
+tool for automatic publication to the open repository
+[zenodo](https://zenodo.org/).
 
 In principal the same is true for all kind of scientific data
 (e. g. measurements, software and results such as papers).
@@ -68,7 +74,7 @@ but also about the citability of individual versions.
 
 ## license: Apache-2.0
 
-`deploy2zenodo` has the license [Apache-2.0](http://www.apache.org/licenses/LICENSE-2.0).
+`deploy2zenodo` and `deploy2inveniordm` are licensed under the [Apache-2.0](http://www.apache.org/licenses/LICENSE-2.0).
 
 ```txt
 Copyright 2023-2026 Daniel Mohr and

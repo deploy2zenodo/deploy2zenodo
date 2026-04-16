@@ -2,7 +2,7 @@
 set -e -v
 
 #    deploy2inveniordm
-#    Copyright (C) 2023-2026  Daniel Mohr
+#    Copyright (C) 2026  Daniel Mohr
 #    Version: 0.7.0-beta
 #    DOI: 10.5281/zenodo.10112959
 #
@@ -31,7 +31,7 @@ set -e -v
 #
 # For more information see: https://gitlab.com/deploy2zenodo/deploy2zenodo
 #
-# Copyright 2023-2026 Daniel Mohr and
+# Copyright 2026 Daniel Mohr and
 #    Deutsches Zentrum fuer Luft- und Raumfahrt e. V., D-51170 Koeln
 #
 # Licensed under the Apache License, Version 2.0 (the "License");

@@ -2,11 +2,11 @@
 set -e
 
 #    create_pdf
-#    Copyright (C) 2026 Daniel Mohr
+#    Copyright (C) 2023-2026 Daniel Mohr
 
 # for debugging use default values
 CITATION=${CITATION:-"CITATION.cff"}
-DOI=${DOI:-"10.5281/zenodo.10112959(for_debugging)"}
+DOI=${DOI:-"10.5281/zenodo.10112959"}
 PDFREADME=${PDFREADME:-"README.pdf"}
 
 extract_content() {
@@ -23,9 +23,17 @@ echo "tmpreadme: $tmpreadme"
         sed "s/\[^fair2\][^,]*$//g" | \
         sed "s/\[^versioning\][^,]*$//g"
     extract_content "README.deploy2inveniordm.md" | \
-        sed "s/\[^fair1\][^,]*$//g"| \
+        sed "s/\[^fair1\][^,]*$//g" | \
         sed "s/\[^fair2\][^,]*$//g" | \
-        sed "s/\[^versioning\][^,]*$//g"
+        sed "s/\[^versioning\][^,]*$//g" | \
+        sed "s/\[^githubintegration\]: [^,]*$//g" | \
+        sed "s/\[^githubintegration2\]: [^,]*$//g" | \
+        sed "s/\[^githubintegration3\]: [^,]*$//g" | \
+        sed "s/\[^zenodoDevelopers\]: [^,]*$//g" | \
+        sed "s/\[^metadatareference\]: [^,]*$//g" | \
+        sed "s/\[^zenodouploadmetadataschema\]: [^,]*$//g"
+    sed -n '/^## license: Apache-2.0$/,/^```$/p' "README.md" | \
+	sed "s/##/#/g"
 } > "$tmpreadme"
 
 pandocmetadatatmpfile=$(mktemp)
