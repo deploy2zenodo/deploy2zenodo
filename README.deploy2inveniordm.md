@@ -149,7 +149,8 @@ deploy2inveniordm:
 
 This workflow reflects the primary focus of `deploy2inveniordm`.
 
-This workflow separates preparation from release and deployment, enabling better control and auditability.
+This workflow separates preparation from release and deployment,
+enabling better control and auditability.
 
 The GitLab CI/CD pipeline could look like:
 
@@ -289,10 +290,14 @@ the first time in your own project -- but can also be used at any time.
 
 Optional Variables:
 
-* `DEPLOY2INVENIORDM_SKIP_PUBLISH`: useful for manual curation in the Zenodo web interface
-* `DEPLOY2INVENIORDM_DRYRUN`: useful for testing and debugging a pipeline
-* `DEPLOY2INVENIORDM_SKIPRUN`: useful for debugging and verifying the workflow logic
-* `DEPLOY2INVENIORDM_GET_METADATA`: useful for extrating DOI for use in later steps
+* `DEPLOY2INVENIORDM_SKIP_PUBLISH`:
+  useful for manual curation in the Zenodo web interface
+* `DEPLOY2INVENIORDM_DRYRUN`:
+  useful for testing and debugging a pipeline
+* `DEPLOY2INVENIORDM_SKIPRUN`:
+  useful for debugging and verifying the workflow logic
+* `DEPLOY2INVENIORDM_GET_METADATA`:
+  useful for extrating DOI for use in later steps
 * ...
 
 Depending on where variables are defined, they have different priorities.
@@ -326,8 +331,10 @@ There are other optional variables:
 | DEPLOY2INVENIORDM_GET_METADATA | write actual metadata to a file |
 | DEPLOY2INVENIORDM_SKIP_UPLOAD | skip upload of data |
 | DEPLOY2INVENIORDM_CURL_MAX_TIME | max time for curl |
-| DEPLOY2INVENIORDM_CURL_MAX_TIME_PUBLISH | max time for curl during publishing |
-| DEPLOY2INVENIORDM_ADD_IsCompiledBy_DEPLOY2INVENIORDM | reference deploy2zenodo |
+| DEPLOY2INVENIORDM_CURL_MAX_TIME_PUBLISH | max time for |
+| | curl during publishing |
+| DEPLOY2INVENIORDM_ADD_IsCompiledBy_DEPLOY2INVENIORDM | reference |
+| | deploy2zenodo |
 | DEPLOY2INVENIORDM_ADD_IsNewVersionOf | reference previous version |
 
 ### DEPLOY2INVENIORDM_API_URL

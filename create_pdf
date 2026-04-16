@@ -33,7 +33,7 @@ echo "tmpreadme: $tmpreadme"
         sed "s/\[^metadatareference\]: [^,]*$//g" | \
         sed "s/\[^zenodouploadmetadataschema\]: [^,]*$//g"
     sed -n '/^## license: Apache-2.0$/,/^```$/p' "README.md" | \
-	sed "s/##/#/g"
+        sed "s/##/#/g"
 } > "$tmpreadme"
 
 pandocmetadatatmpfile=$(mktemp)
