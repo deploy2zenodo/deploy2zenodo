@@ -81,9 +81,15 @@
       },
       {
         "relation": "iscitedby",
-        "identifier": "https://doi.org/10.5281/zenodo.13987885",
+        "identifier": "10.5281/zenodo.13987885",
         "scheme": "doi",
         "resource_type": "presentation"
+      },
+      {
+        "relation": "iscitedby",
+        "identifier": "10.5281/zenodo.19653768",
+        "scheme": "doi",
+        "resource_type": "poster"
       }
     ]
   }

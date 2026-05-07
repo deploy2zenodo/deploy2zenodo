@@ -3,7 +3,7 @@ set -e -v
 
 #    deploy2inveniordm
 #    Copyright (C) 2026  Daniel Mohr
-#    Version: 0.7.0-beta
+#    Version: 0.7.1
 #    DOI: 10.5281/zenodo.10112959
 #
 # Instead of command line parameters we use environment variables.
@@ -24,7 +24,6 @@ set -e -v
 #   * DEPLOY2INVENIORDM_CURL_MAX_TIME
 #   * DEPLOY2INVENIORDM_CURL_MAX_TIME_PUBLISH
 #   * DEPLOY2INVENIORDM_ADD_IsCompiledBy_DEPLOY2INVENIORDM
-#   * DEPLOY2INVENIORDM_ADD_IsNewVersionOf
 #
 # DEPLOY2INVENIORDM_SKIP_NEW_VERSION is not necessary. If a draft already
 # exists, we can still create a new version and go on.
@@ -74,7 +73,7 @@ if [ -n "$missing_variables" ]; then
     exit 1
 else
     log "available variables are looking fine"
-    for varname in DEPLOY2INVENIORDM_API_URL DEPLOY2INVENIORDM_DEPOSITION_ID DEPLOY2INVENIORDM_JSON DEPLOY2INVENIORDM_UPLOAD DEPLOY2INVENIORDM_SKIP_PUBLISH DEPLOY2INVENIORDM_DRYRUN DEPLOY2INVENIORDM_SKIPRUN DEPLOY2INVENIORDM_GET_METADATA DEPLOY2INVENIORDM_SKIP_UPLOAD DEPLOY2INVENIORDM_CURL_MAX_TIME DEPLOY2INVENIORDM_CURL_MAX_TIME_PUBLISH DEPLOY2INVENIORDM_ADD_IsCompiledBy_DEPLOY2INVENIORDM DEPLOY2INVENIORDM_ADD_IsNewVersionOf; do
+    for varname in DEPLOY2INVENIORDM_API_URL DEPLOY2INVENIORDM_DEPOSITION_ID DEPLOY2INVENIORDM_JSON DEPLOY2INVENIORDM_UPLOAD DEPLOY2INVENIORDM_SKIP_PUBLISH DEPLOY2INVENIORDM_DRYRUN DEPLOY2INVENIORDM_SKIPRUN DEPLOY2INVENIORDM_GET_METADATA DEPLOY2INVENIORDM_SKIP_UPLOAD DEPLOY2INVENIORDM_CURL_MAX_TIME DEPLOY2INVENIORDM_CURL_MAX_TIME_PUBLISH DEPLOY2INVENIORDM_ADD_IsCompiledBy_DEPLOY2INVENIORDM; do
         echo "$varname: \"$(eval "echo \"\$$varname\"")\""
     done
 fi
@@ -137,7 +136,7 @@ if [ "$DEPLOY2INVENIORDM_DEPOSITION_ID" = "create NEW record" ]; then
     #   * create new record and upload metadata
     NEWRECORD="$(curlauth --header 'Accept: application/vnd.inveniordm.v1+json' --header "$hjson" --request POST --data-binary "$DEPLOY2INVENIORDM_JSON_DATA" "$DEPLOY2INVENIORDM_API_URL"/records)"
     echojq NEWRECORD "$NEWRECORD"
-    DEPLOY2INVENIORDM_DEPOSITION_ID=$(echo "$NEWRECORD" | jq .id)
+    DEPLOY2INVENIORDM_DEPOSITION_ID=$(echo "$NEWRECORD" | jq .id | sed -e 's/^"\|"$/''/g')
     if [ -n "$DEPLOY2INVENIORDM_DRYRUN" ] || [ -n "$DEPLOY2INVENIORDM_SKIPRUN" ]; then
         log "Skip testing checksum due to DRYRUN or SKIPRUN."
     else
@@ -228,6 +227,7 @@ if [ "$DEPLOY2INVENIORDM_DEPOSITION_ID" = "create NEW record" ]; then
     log "#                                                                #"
     log "# DEPLOY2INVENIORDM_DEPOSITION_ID=$DEPLOY2INVENIORDM_DEPOSITION_ID"
     log "##################################################################"
+    LATESTID="$DEPLOY2INVENIORDM_DEPOSITION_ID"
 else
     # update record
     log "update record"
@@ -244,34 +244,13 @@ else
         test -n "$NEWVERSIONURL" -a "$NEWVERSIONURL" != "null" || (errlog "NEWVERSIONURL=\"$NEWVERSIONURL\""; exit 11)
     fi
 
-    #   * reference previous version
-    if [ -n "$DEPLOY2INVENIORDM_ADD_IsNewVersionOf" ]; then
-        log "reference previous version"
-        LATESTDOI=$(echo "$RECORD" | jq -r .doi)
-        LATESTUPLOADTYPE=$(echo "$RECORD" | jq -r .metadata.upload_type)
-        if [ -z "$LATESTUPLOADTYPE" ]; then
-            # try to use upload_type from current data
-            LATESTUPLOADTYPE=$(echo "$DEPLOY2INVENIORDM_JSON_DATA" | jq -r .metadata.upload_type)
-        fi
-        # It is not an error if LATESTDOI is empty:
-        # This could be the first version.
-        IsNewVersionOf="{\"relation\":\"IsNewVersionOf\",\"identifier\":\"$LATESTDOI\",\"scheme\":\"doi\",\"resource_type\":\"$LATESTUPLOADTYPE\"}"
-        log "add IsNewVersionOf:"
-        echojq IsNewVersionOf "$IsNewVersionOf"
-        if [ -z "$LATESTDOI" ] || [ "$LATESTDOI" = "null" ] || [ -z "$LATESTUPLOADTYPE" ] || [ "$LATESTUPLOADTYPE" = "null" ]; then
-            log "No LATESTDOI or no LATESTUPLOADTYPE found. IsNewVersionOf not added!"
-        else
-            DEPLOY2INVENIORDM_JSON_DATA=$(echo "$DEPLOY2INVENIORDM_JSON_DATA" | jq -c ".metadata.related_identifiers += [$IsNewVersionOf]")
-        fi
-    fi
-
     #   * create new version
     log "create new version"
     NEWVERSION=$(curlauth --header 'Accept: application/vnd.inveniordm.v1+json' --request POST "$NEWVERSIONURL")
     echojq NEWVERSION "$NEWVERSION"
     LATESTDRAFT=$(echo "$NEWVERSION" | jq -r .links.self) #https://sandbox.zenodo.org/api/records/487976/draft
     BUCKETURL=$(echo "$NEWVERSION" | jq -r .links.files) #https://sandbox.zenodo.org/api/records/487976/draft/files
-    LATESTID=$(echo "$NEWVERSION" | jq .id) #487976
+    LATESTID=$(echo "$NEWVERSION" | jq -r .id | sed -e 's/^"\|"$/''/g') #487976
     if [ -n "$DEPLOY2INVENIORDM_DRYRUN" ] || [ -n "$DEPLOY2INVENIORDM_SKIPRUN" ]; then
         log "Skip testing result due to DRYRUN or SKIPRUN."
     else
@@ -356,7 +335,7 @@ else
             test "$(echo "$PUBLISHRECORD" | jq .state)" = '"done"' || (errlog "state=\"$(echo "$PUBLISHRECORD" | jq .state)\""; exit 20)
             test "$(echo "$PUBLISHRECORD" | jq .submitted)" = "true" || (errlog "submitted=\"$(echo "$PUBLISHRECORD" | jq .submitted)\""; exit 21)
         fi
-        LATESTID=$(echo "$PUBLISHRECORD" | jq .id)
+        LATESTID=$(echo "$PUBLISHRECORD" | jq -r .id | sed -e 's/^"\|"$/''/g')
         HTMLURL=$(echo "$PUBLISHRECORD" | jq .links.self_html)
         if [ -n "$DEPLOY2INVENIORDM_DRYRUN" ] || [ -n "$DEPLOY2INVENIORDM_SKIPRUN" ]; then
             log "Skip testing result due to DRYRUN or SKIPRUN."
@@ -371,12 +350,12 @@ else
     fi
 fi
 if [ -n "$DEPLOY2INVENIORDM_GET_METADATA" ]; then
-    LATESTMETADATA=$(curlauth "$DEPLOY2INVENIORDM_API_URL"/deposit/depositions/"$LATESTID" | tee "$DEPLOY2INVENIORDM_GET_METADATA")
+    LATESTMETADATA=$(curlauth --header 'Accept: application/vnd.inveniordm.v1+json' --header "$hjson" "$DEPLOY2INVENIORDM_API_URL"/records/"$LATESTID" | tee "$DEPLOY2INVENIORDM_GET_METADATA")
     echojq LATESTMETADATA "$LATESTMETADATA"
     if [ -n "$DEPLOY2INVENIORDM_DRYRUN" ] || [ -n "$DEPLOY2INVENIORDM_SKIPRUN" ]; then
         log "Skip testing result due to DRYRUN or SKIPRUN."
     else
-        test "$(echo "$LATESTMETADATA" | jq .id)" = "$LATESTID" || (errlog "LATESTMETADATA=\"$LATESTMETADATA\""; exit 23)
+        test "$(echo "$LATESTMETADATA" | jq -r .id | sed -e 's/^"\|"$/''/g')" = "$LATESTID" || (errlog "LATESTMETADATA=\"$LATESTMETADATA\""; exit 23)
     fi
 fi
 

@@ -1,6 +1,6 @@
 ---
 author: Daniel Mohr
-date: 2026-04-16
+date: 2026-05-07
 license: Apache-2.0
 home: https://gitlab.com/deploy2zenodo/deploy2zenodo
 mirror: https://github.com/deploy2zenodo/deploy2zenodo
@@ -117,7 +117,6 @@ deploy2inveniordm:
     DEPLOY2INVENIORDM_DEPOSITION_ID: "create NEW record"
     DEPLOY2INVENIORDM_UPLOAD: "$CI_PROJECT_NAME-$CI_COMMIT_TAG.zip"
     DEPLOY2INVENIORDM_ADD_IsCompiledBy_DEPLOY2INVENIORDM: "yes"
-    DEPLOY2INVENIORDM_ADD_IsNewVersionOf: "yes"
     DEPLOY2INVENIORDM_GET_METADATA: "result.json"
   before_script:
     - env
@@ -143,6 +142,10 @@ deploy2inveniordm:
       - $DEPLOY2INVENIORDM_JSON
       - $DEPLOY2INVENIORDM_GET_METADATA
 ```
+
+Such a simple workflow uses
+
+* [2026_hmc_poster_deploy2zenodo_deploy2inveniordm](https://codebase.helmholtz.cloud/projects/20621)
 
 ### simple workflow (deploy2inveniordm)
 
@@ -333,7 +336,6 @@ There are other optional variables:
 | | curl during publishing |
 | DEPLOY2INVENIORDM_ADD_IsCompiledBy_DEPLOY2INVENIORDM | reference |
 | | deploy2zenodo |
-| DEPLOY2INVENIORDM_ADD_IsNewVersionOf | reference previous version |
 
 ### DEPLOY2INVENIORDM_API_URL
 
@@ -586,80 +588,6 @@ provided JSON file:
 }
 ```
 
-### DEPLOY2INVENIORDM_ADD_IsNewVersionOf
-
-If this variable is not empty a reference to the previous version of your
-record is referenced.
-Something like (but with the DOI of the old version and the appropriate
-resource_type) will be added to your provided JSON file:
-
-```json
-{
-  "metadata": {
-    "related_identifiers": [
-      {
-        "relation": "IsNewVersionOf",
-        "identifier": "10.5281/zenodo.10908332",
-        "scheme": "doi",
-        "resource_type": "software"
-      }
-    ]
-  }
-}
-```
-
-This can only work if a new version is created. If you split
-the run in 2 steps (the first one with DEPLOY2INVENIORDM_SKIP_PUBLISH)
-you have to find the old version in the first run by yourself and
-provide it in the second run.
-This is done in
-[deploy_deploy2zenodo_to_zenodo](https://gitlab.com/projects/52008252)
-in the jobs `deploy_deploy2zenodo_step1` and `deploy_deploy2zenodo_step2`
-to publish `deploy2zenodo`.
-This is something like (adapted for `deploy2inveniordm`):
-
-```yaml
-step1:
-  variables:
-    DEPLOY2INVENIORDM_ADD_IsNewVersionOf: "yes"
-  after_script:
-    - |
-      LATESTDOI="$(jq -r ".metadata.related_identifiers[] |
-      select(.relation==\"isNewVersionOf\") | .identifier" \
-      "$DEPLOY2INVENIORDM_GET_METADATA")"
-    - |
-      LATESTUPLOADTYPE="$(jq -r ".metadata.related_identifiers[] |
-      select(.relation==\"isNewVersionOf\") | .resource_type" \
-      "$DEPLOY2INVENIORDM_GET_METADATA")"
-    - |
-      {
-      echo "LATESTDOI=$LATESTDOI"
-      echo "LATESTUPLOADTYPE=$LATESTUPLOADTYPE"
-      } | tee variables.env
-  artifacts:
-    reports:
-      dotenv: variables.env
-```
-
-```yaml
-step2:
-  needs:
-    - job: step1
-  before_script:
-    - tmpjson="$(mktemp)"
-    - |
-      jq ".metadata.related_identifiers += [
-      {
-      \"relation\":\"IsNewVersionOf\", \"identifier\":\"$LATESTDOI\",
-      \"scheme\":\"doi\", \"resource_type\":\"$LATESTUPLOADTYPE\"
-      }]" "$DEPLOY2INVENIORDM_JSON" | tee "$tmpjson"
-    - mv "$tmpjson" "$DEPLOY2INVENIORDM_JSON"
-```
-
-Note that [after_script](https://docs.gitlab.com/ee/ci/yaml/#after_script)
-works differently than `before_script` or `script` and does not affect the
-job exit code.
-
 ## CI pipeline
 
 Using the keyword
@@ -710,11 +638,11 @@ You can use the script directly. But that is not our main focus of
 `deploy2inveniordm`, so we keep it short. For example:
 
 ```sh
-SCRIPTURL=https://gitlab.com/deploy2zenodo/deploy2zenodo/-/releases/permalink/latest/downloads/deploy2inveniordm
-export DEPLOY2INVENIORDM_API_URL=https://sandbox.zenodo.org/api
+SCRIPTURL="https://gitlab.com/deploy2zenodo/deploy2zenodo/-/releases/permalink/latest/downloads/deploy2inveniordm"
+export DEPLOY2INVENIORDM_API_URL="https://sandbox.zenodo.org/api"
 export DEPLOY2INVENIORDM_ACCESS_TOKEN=***
 export DEPLOY2INVENIORDM_DEPOSITION_ID="create NEW record"
-export DEPLOY2INVENIORDM_JSON=metadata.json
+export DEPLOY2INVENIORDM_JSON="metadata.json"
 export DEPLOY2INVENIORDM_UPLOAD="foo.zip bar.md"
 export DEPLOY2INVENIORDM_SKIP_PUBLISH="true"
 export DEPLOY2INVENIORDM_DRYRUN=""
@@ -724,7 +652,6 @@ export DEPLOY2INVENIORDM_SKIP_UPLOAD=""
 export DEPLOY2INVENIORDM_CURL_MAX_TIME=""
 export DEPLOY2INVENIORDM_CURL_MAX_TIME_PUBLISH=""
 export DEPLOY2INVENIORDM_ADD_IsCompiledBy_DEPLOY2INVENIORDM="yes"
-export DEPLOY2INVENIORDM_ADD_IsNewVersionOf=""
 curl -L "$SCRIPTURL" | tee deploy2inveniordm.sh | sh
 ```
 
