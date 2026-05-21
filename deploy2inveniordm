@@ -3,7 +3,7 @@ set -e -v
 
 #    deploy2inveniordm
 #    Copyright (C) 2026  Daniel Mohr
-#    Version: 0.7.1
+#    Version: 0.7.2
 #    DOI: 10.5281/zenodo.10112959
 #
 # Instead of command line parameters we use environment variables.
@@ -266,7 +266,27 @@ else
     log "update metadata"
     UPLOADMETADATA=$(curlauth --header 'Accept: application/vnd.inveniordm.v1+json' --header "$hjson" --request PUT --data-binary "$DEPLOY2INVENIORDM_JSON_DATA" "$LATESTDRAFT")
     echojq UPLOADMETADATA "$UPLOADMETADATA"
-    #exit
+
+    log "reserve doi"
+    RESERVEDOI=$(echo "$UPLOADMETADATA" | jq -r .links.reserve_doi)
+    NEWDOIJSON="$(curlauth --header 'Accept: application/vnd.inveniordm.v1+json' --header "$hjson" --request POST "$RESERVEDOI")"
+    echojq NEWDOIJSON "$NEWDOIJSON"
+    NEWDOI=$(echo "$NEWDOIJSON" | jq -r .pids.doi.identifier)
+    echo "NEWDOI: $NEWDOI"
+    if [ -n "$DEPLOY2INVENIORDM_DRYRUN" ] || [ -n "$DEPLOY2INVENIORDM_SKIPRUN" ]; then
+        log "Skip testing new doi due to DRYRUN or SKIPRUN."
+    else
+        if [ -n "$NEWDOI" ] && [ "$NEWDOI" != "null" ]; then
+            UPLOADMETADATA=NEWDOIJSON
+        else
+            if [ "$(echo "$NEWDOIJSON" | jq -r ".status")" = "400" ] && [ "$(echo "$NEWDOIJSON" | jq -r ".errors[0].field")" = "pids.doi" ] && [ "$(echo "$NEWDOIJSON" | jq -r ".errors[0].messages[0]")" = "A PID already exists for type doi" ]; then
+                log "doi exists already, no new doi possible"
+            else
+                errlog "no doi available, cannot go on"
+                exit 34
+            fi
+        fi
+    fi
 
     #   * remove all files from new version
     log "remove all files from new version"
@@ -286,18 +306,19 @@ else
         log "##############################"
     else
         log "upload files/archives"
-        for filename in $DEPLOY2INVENIORDM_UPLOAD; do
-            log "upload \"$filename\""
+        for pathname in $DEPLOY2INVENIORDM_UPLOAD; do
+            filename="$(basename "$pathname")"
+            log "upload \"$pathname\" as \"$filename\""
             FILEUPLOADSTART=$(curlauth --header 'Accept: application/vnd.inveniordm.v1+json' --header "$hjson" --request POST --data-binary "[{\"key\": \"$filename\"}]" "$BUCKETURL")
             echojq FILEUPLOADSTART "$FILEUPLOADSTART"
             FILEUPLOADCONTENT=$(echo "$FILEUPLOADSTART" | jq -r ".entries[] | select(.key==\"$filename\") | .links.content")
             FILEUPLOADCOMMIT=$(echo "$FILEUPLOADSTART" | jq -r ".entries[] | select(.key==\"$filename\") | .links.commit")
             if [ -n "$DEPLOY2INVENIORDM_DRYRUN" ] || [ -n "$DEPLOY2INVENIORDM_SKIPRUN" ]; then
-                log "Skip testing checksum due to DRYRUN or SKIPRUN."
+                log "Skip testing initiate file upload due to DRYRUN or SKIPRUN."
             else
                 test -n "$FILEUPLOADCONTENT" -a -n "$FILEUPLOADCOMMIT" || (errlog "could not initiate file upload"; exit 32)
             fi
-            UPLOADFILECONTENT=$(curlauth --header 'Accept: application/vnd.inveniordm.v1+json' --request PUT --upload-file "$filename" "$FILEUPLOADCONTENT")
+            UPLOADFILECONTENT=$(curlauth --header 'Accept: application/vnd.inveniordm.v1+json' --request PUT --upload-file "$pathname" "$FILEUPLOADCONTENT")
             echojq UPLOADFILECONTENT "$UPLOADFILECONTENT"
             FILEUPLOADCOMMIT=$(echo "$UPLOADFILECONTENT" | jq -r .links.commit)
             if [ -n "$DEPLOY2INVENIORDM_DRYRUN" ] || [ -n "$DEPLOY2INVENIORDM_SKIPRUN" ]; then
@@ -313,7 +334,7 @@ else
                 log "Skip testing checksum due to DRYRUN or SKIPRUN."
             else
                 test -n "$CHECKSUMRAW" -a "$CHECKSUMRAW" != "null" || (errlog "CHECKSUMRAW=\"$CHECKSUMRAW\""; exit 18)
-                echo "$CHECKSUM  $filename" | md5sum -c -
+                echo "$CHECKSUM  $pathname" | md5sum -c -
             fi
         done
         log "files uploaded"
@@ -350,7 +371,11 @@ else
     fi
 fi
 if [ -n "$DEPLOY2INVENIORDM_GET_METADATA" ]; then
-    LATESTMETADATA=$(curlauth --header 'Accept: application/vnd.inveniordm.v1+json' --header "$hjson" "$DEPLOY2INVENIORDM_API_URL"/records/"$LATESTID" | tee "$DEPLOY2INVENIORDM_GET_METADATA")
+    if [ -n "$DEPLOY2INVENIORDM_SKIP_PUBLISH" ]; then
+        LATESTMETADATA=$(curlauth --header 'Accept: application/vnd.inveniordm.v1+json' "$DEPLOY2INVENIORDM_API_URL"/records/"$LATESTID"/draft | tee "$DEPLOY2INVENIORDM_GET_METADATA")
+    else
+        LATESTMETADATA=$(curlauth --header 'Accept: application/vnd.inveniordm.v1+json' "$DEPLOY2INVENIORDM_API_URL"/records/"$LATESTID" | tee "$DEPLOY2INVENIORDM_GET_METADATA")
+    fi
     echojq LATESTMETADATA "$LATESTMETADATA"
     if [ -n "$DEPLOY2INVENIORDM_DRYRUN" ] || [ -n "$DEPLOY2INVENIORDM_SKIPRUN" ]; then
         log "Skip testing result due to DRYRUN or SKIPRUN."
