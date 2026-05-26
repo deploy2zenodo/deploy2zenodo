@@ -42,10 +42,10 @@ deploy2zenodo:
     DEPLOY2ZENODO_UPLOAD: "data.zip"
   before_script:
     - apk add --no-cache curl jq
-    - publication_date=$(echo "$CI_COMMIT_TIMESTAMP" | grep -Eo "^[0-9]{4}-[0-9]{2}-[0-9]{2}")
+    - pubdate=$(echo "$CI_COMMIT_TIMESTAMP" | grep -Eo "^[0-9]{4}-[0-9]{2}-[0-9]{2}")
     - |
       jq -c ".metadata.version = \"$CI_COMMIT_TAG\" |
-        .metadata.publication_date = \"$publication_date\"" "$DEPLOY2ZENODO_JSON" | \
+        .metadata.publication_date = \"$pubdate\"" "$DEPLOY2ZENODO_JSON" | \
         tee "tmp.json" | jq -C .
     - mv "tmp.json" "$DEPLOY2ZENODO_JSON"
 ```
@@ -53,9 +53,8 @@ deploy2zenodo:
 ### example bash script
 
 ```bash
-curl -L \
-  "https://gitlab.com/deploy2zenodo/deploy2zenodo/-/releases/permalink/latest/downloads/deploy2inveniordm" \
-  -o deploy2inveniordm && chmod +x deploy2inveniordm
+SCRIPTURL=https://gitlab.com/deploy2zenodo/deploy2zenodo/-/releases/permalink/latest/downloads/deploy2zenodo
+curl -L "$SCRIPTURL" -o deploy2inveniordm && chmod +x deploy2inveniordm
 export DEPLOY2INVENIORDM_API_URL="https://sandbox.zenodo.org/api"
  export DEPLOY2INVENIORDM_ACCESS_TOKEN="your-access-token"
 export DEPLOY2INVENIORDM_JSON="metadata.json"
