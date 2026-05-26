@@ -1,6 +1,6 @@
 ---
 author: Daniel Mohr
-date: 2026-05-07
+date: 2026-05-26
 license: Apache-2.0
 home: https://gitlab.com/deploy2zenodo/deploy2zenodo
 mirror: https://github.com/deploy2zenodo/deploy2zenodo
@@ -11,6 +11,58 @@ doi: 10.5281/zenodo.10112959
 # `deploy2zenodo` + `deploy2inveniordm`
 
 [[_TOC_]]
+
+## quick start (tldr)
+
+Two lightweight shell scripts to automatically deploy your data or software to:
+
+* Zenodo
+* Invenio RDM instances
+
+### which script to use
+
+| target platform | script to use | API type | 
+| ------ | ------ | ------ |
+| [Zenodo](https://zenodo.org/) | [`deploy2zenodo`](README.deploy2zenodo.md) or [`deploy2inveniordm`](README.deploy2inveniordm.md) | Zenodo API or Zenodo Invenio RDM API (beta) |
+| [Invenio RDM](https://inveniosoftware.org/products/rdm/) Instance | [`deploy2inveniordm`](README.deploy2inveniordm.md) | Invenio RDM API |
+
+### example CI/CD integration
+
+```yaml
+include:
+  - remote: 'https://gitlab.com/deploy2zenodo/deploy2zenodo/-/releases/permalink/latest/downloads/deploy2zenodo.yaml'
+
+deploy2zenodo:
+  rules:
+    - if: $CI_COMMIT_TAG
+  variables:
+    DEPLOY2ZENODO_API_URL: "https://sandbox.zenodo.org/api"
+    DEPLOY2ZENODO_JSON: "metadata.json"
+    DEPLOY2ZENODO_DEPOSITION_ID: "create NEW record"
+    DEPLOY2ZENODO_UPLOAD: "data.zip"
+  before_script:
+    - apk add --no-cache curl jq
+    - publication_date=$(echo "$CI_COMMIT_TIMESTAMP" | grep -Eo "^[0-9]{4}-[0-9]{2}-[0-9]{2}")
+    - |
+      jq -c ".metadata.version = \"$CI_COMMIT_TAG\" |
+        .metadata.publication_date = \"$publication_date\"" "$DEPLOY2ZENODO_JSON" | \
+        tee "tmp.json" | jq -C .
+    - mv "tmp.json" "$DEPLOY2ZENODO_JSON"
+```
+
+### example bash script
+
+```bash
+curl -L \
+  "https://gitlab.com/deploy2zenodo/deploy2zenodo/-/releases/permalink/latest/downloads/deploy2inveniordm" \
+  -o deploy2inveniordm && chmod +x deploy2inveniordm
+export DEPLOY2INVENIORDM_API_URL="https://sandbox.zenodo.org/api"
+ export DEPLOY2INVENIORDM_ACCESS_TOKEN="your-access-token"
+export DEPLOY2INVENIORDM_JSON="metadata.json"
+export DEPLOY2INVENIORDM_DEPOSITION_ID="create NEW record"
+export DEPLOY2INVENIORDM_UPLOAD="data.zip"
+./deploy2inveniordm
+```
 
 ## preamble
 
