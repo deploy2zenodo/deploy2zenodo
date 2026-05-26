@@ -26,8 +26,7 @@ pre-commit:
   rules:
     - if: $CI_COMMIT_TAG
       when: never
-    - if: $CI_PIPELINE_SOURCE != "pipeline"
-    - if: $CI_PIPELINE_SOURCE == "pipeline"
+    - when: always
   image:
     name: alpine:latest
   extends: .display_env
@@ -76,8 +75,7 @@ check_publication_date_check:
   rules:
     - if: $CI_COMMIT_TAG
       when: never
-    - if: $CI_PIPELINE_SOURCE != "pipeline"
-    - if: $CI_PIPELINE_SOURCE == "pipeline"
+    - when: always
   image:
     name: alpine:latest
   extends: .display_env
@@ -134,8 +132,7 @@ prepare_release_step1:
   rules:
     - if: $CI_COMMIT_TAG
       when: never
-    - if: $CI_PIPELINE_SOURCE != "pipeline"
-    - if: $CI_PIPELINE_SOURCE == "pipeline"
+    - when: always
   image:
     name: alpine:latest
   extends: .display_env
