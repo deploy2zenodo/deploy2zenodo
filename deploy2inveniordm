@@ -3,7 +3,7 @@ set -e -v
 
 #    deploy2inveniordm
 #    Copyright (C) 2026  Daniel Mohr
-#    Version: 0.7.2
+#    Version: 0.7.3
 #    DOI: 10.5281/zenodo.10112959
 #
 # Instead of command line parameters we use environment variables.
@@ -25,8 +25,8 @@ set -e -v
 #   * DEPLOY2INVENIORDM_CURL_MAX_TIME_PUBLISH
 #   * DEPLOY2INVENIORDM_ADD_IsCompiledBy_DEPLOY2INVENIORDM
 #
-# DEPLOY2INVENIORDM_SKIP_NEW_VERSION is not necessary. If a draft already
-# exists, we can still create a new version and go on.
+# DEPLOY2INVENIORDM_SKIP_NEW_VERSION is no longer needed.
+# deploy2inveniordm automatically creates new version or reuses existing draft.
 #
 # For more information see: https://gitlab.com/deploy2zenodo/deploy2zenodo
 #
@@ -234,23 +234,31 @@ else
     #   * get data from record
     RECORD=$(curlauth --header 'Accept: application/vnd.inveniordm.v1+json' "$DEPLOY2INVENIORDM_API_URL"/records/"$DEPLOY2INVENIORDM_DEPOSITION_ID")
     echojq RECORD "$RECORD"
-    #exit
-    #conceptrecid=$(echo "$RECORD" | jq -r .conceptrecid)
-    NEWVERSIONURL=$(echo "$RECORD" | jq -r .links.versions)
-    if [ -n "$DEPLOY2INVENIORDM_DRYRUN" ] || [ -n "$DEPLOY2INVENIORDM_SKIPRUN" ]; then
-        log "Skip testing result due to DRYRUN or SKIPRUN."
+    if [ "$(echo "$RECORD" | jq -r .status)" = "404" ]; then
+        log "not found, try draft"
+        LATESTDRAFT="$DEPLOY2INVENIORDM_API_URL/records/$DEPLOY2INVENIORDM_DEPOSITION_ID/draft"
+        RECORD=$(curlauth --header 'Accept: application/vnd.inveniordm.v1+json' "$LATESTDRAFT")
+        echojq RECORD "$RECORD"
+        BUCKETURL=$(echo "$RECORD" | jq -r .links.files)
+        LATESTID=$(echo "$RECORD" | jq -r .id) #487976
     else
-        #test -n "$conceptrecid" -a "$conceptrecid" != "null" || (errlog "conceptrecid=\"$conceptrecid\""; exit 24)
-        test -n "$NEWVERSIONURL" -a "$NEWVERSIONURL" != "null" || (errlog "NEWVERSIONURL=\"$NEWVERSIONURL\""; exit 11)
-    fi
+        NEWVERSIONURL=$(echo "$RECORD" | jq -r .links.versions)
+        conceptrecid=$(echo "$RECORD" | jq -r .parent.id)
+        if [ -n "$DEPLOY2INVENIORDM_DRYRUN" ] || [ -n "$DEPLOY2INVENIORDM_SKIPRUN" ]; then
+            log "Skip testing result due to DRYRUN or SKIPRUN."
+        else
+            test -n "$conceptrecid" -a "$conceptrecid" != "null" || (errlog "conceptrecid=\"$conceptrecid\""; exit 24)
+            test -n "$NEWVERSIONURL" -a "$NEWVERSIONURL" != "null" || (errlog "NEWVERSIONURL=\"$NEWVERSIONURL\""; exit 11)
+        fi
 
-    #   * create new version
-    log "create new version"
-    NEWVERSION=$(curlauth --header 'Accept: application/vnd.inveniordm.v1+json' --request POST "$NEWVERSIONURL")
-    echojq NEWVERSION "$NEWVERSION"
-    LATESTDRAFT=$(echo "$NEWVERSION" | jq -r .links.self) #https://sandbox.zenodo.org/api/records/487976/draft
-    BUCKETURL=$(echo "$NEWVERSION" | jq -r .links.files) #https://sandbox.zenodo.org/api/records/487976/draft/files
-    LATESTID=$(echo "$NEWVERSION" | jq -r .id | sed -e 's/^"\|"$/''/g') #487976
+        #   * create new version
+        log "create new version"
+        NEWVERSION=$(curlauth --header 'Accept: application/vnd.inveniordm.v1+json' --request POST "$NEWVERSIONURL")
+        echojq NEWVERSION "$NEWVERSION"
+        LATESTDRAFT=$(echo "$NEWVERSION" | jq -r .links.self) #https://sandbox.zenodo.org/api/records/487976/draft
+        BUCKETURL=$(echo "$NEWVERSION" | jq -r .links.files) #https://sandbox.zenodo.org/api/records/487976/draft/files
+        LATESTID=$(echo "$NEWVERSION" | jq -r .id | sed -e 's/^"\|"$/''/g') #487976
+    fi
     if [ -n "$DEPLOY2INVENIORDM_DRYRUN" ] || [ -n "$DEPLOY2INVENIORDM_SKIPRUN" ]; then
         log "Skip testing result due to DRYRUN or SKIPRUN."
     else
