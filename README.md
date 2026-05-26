@@ -21,7 +21,7 @@ Two lightweight shell scripts to automatically deploy your data or software to:
 
 ### which script to use
 
-| target platform | script to use | API type | 
+| target platform | script to use | API type |
 | ------ | ------ | ------ |
 | [Zenodo](https://zenodo.org/) | [`deploy2zenodo`](README.deploy2zenodo.md) or [`deploy2inveniordm`](README.deploy2inveniordm.md) | Zenodo API or Zenodo Invenio RDM API (beta) |
 | [Invenio RDM](https://inveniosoftware.org/products/rdm/) Instance | [`deploy2inveniordm`](README.deploy2inveniordm.md) | Invenio RDM API |
