@@ -81,15 +81,15 @@ if [ -n "$missing_variables" ]; then
     exit 1
 else
     if [ -z "$DEPLOY2ZENODO_RATE_LIMIT" ] || [ "$DEPLOY2ZENODO_RATE_LIMIT" = "auto" ]; then
-	# estimate useful sleep time as rate limit
-	n=$(echo "$DEPLOY2ZENODO_UPLOAD" | wc -w)
-	total_calls=$((2 * n + 6))
+        # estimate useful sleep time as rate limit
+        n=$(echo "$DEPLOY2ZENODO_UPLOAD" | wc -w)
+        total_calls=$((2 * n + 6))
         if [ $total_calls -lt 23 ]; then
             DEPLOY2ZENODO_RATE_LIMIT=0
         else
             DEPLOY2ZENODO_RATE_LIMIT=2.142857
         fi
-	warnlog "WARNING: automatically set DEPLOY2ZENODO_RATE_LIMIT=$DEPLOY2ZENODO_RATE_LIMIT"
+        warnlog "WARNING: automatically set DEPLOY2ZENODO_RATE_LIMIT=$DEPLOY2ZENODO_RATE_LIMIT"
         warnlog "because $total_calls API calls are expected"
     else
         if ! (echo "$DEPLOY2ZENODO_RATE_LIMIT" | grep -q -E "^[0-9]+\.?[0-9]*$"); then
@@ -99,7 +99,7 @@ else
         fi
     fi
     if [ -n "$DEPLOY2ZENODO_DRYRUN" ] || [ -n "$DEPLOY2ZENODO_SKIPRUN" ]; then
-	warnlog "WARNING: DRYRUN or SKIPRUN is enabled. API calls will be mocked/skipped."
+        warnlog "WARNING: DRYRUN or SKIPRUN is enabled. API calls will be mocked/skipped."
     fi
     log "available variables are looking fine"
     for varname in DEPLOY2ZENODO_API_URL DEPLOY2ZENODO_DEPOSITION_ID DEPLOY2ZENODO_JSON DEPLOY2ZENODO_UPLOAD DEPLOY2ZENODO_SKIP_PUBLISH DEPLOY2ZENODO_DRYRUN DEPLOY2ZENODO_SKIPRUN DEPLOY2ZENODO_SKIP_NEW_VERSION DEPLOY2ZENODO_GET_METADATA DEPLOY2ZENODO_SKIP_UPLOAD DEPLOY2ZENODO_CURL_MAX_TIME DEPLOY2ZENODO_CURL_MAX_TIME_PUBLISH DEPLOY2ZENODO_ADD_IsCompiledBy_DEPLOY2ZENODO DEPLOY2ZENODO_ADD_IsNewVersionOf DEPLOY2ZENODO_ADD_IsPartOf DEPLOY2ZENODO_RATE_LIMIT; do
@@ -140,10 +140,10 @@ if [ -z "$DEPLOY2ZENODO_SKIPRUN" ]; then
     log "check publication_date=\"$PUBLICATION_DATE\" in DEPLOY2ZENODO_JSON is EDTF Level 0"
     if [ -n "$PUBLICATION_DATE" ] && [ "$PUBLICATION_DATE" != "null" ]; then
         RE_EDTF_LEVEL_0="((^[0-9]{4}-[0-9]{2}-[0-9]{2}$)|(^[0-9]{4}-[0-9]{2}$)|(^[0-9]{4}$))|(((^[0-9]{4}-[0-9]{2}-[0-9]{2})|(^[0-9]{4}-[0-9]{2})|(^[0-9]{4}))/(([0-9]{4}-[0-9]{2}-[0-9]{2}$)|([0-9]{4}-[0-9]{2}$)|([0-9]{4}$)))"
-	if ! (echo "$PUBLICATION_DATE" | grep -q -E "$RE_EDTF_LEVEL_0"); then
+        if ! (echo "$PUBLICATION_DATE" | grep -q -E "$RE_EDTF_LEVEL_0"); then
             errlog "ERROR: publication_date '$PUBLICATION_DATE' is not valid EDTF Level 0."
             exit 35
-	fi
+        fi
         log "publication_date is EDTF Level 0"
     else
         warnlog "publication_date is empty or not given"
@@ -237,7 +237,7 @@ if [ "$DEPLOY2ZENODO_DEPOSITION_ID" = "create NEW record" ]; then
                     log "Skip testing checksum due to DRYRUN or SKIPRUN."
                 else
                     test -n "$CHECKSUMRAW" -a "$CHECKSUMRAW" != "null" || (errlog "CHECKSUMRAW=\"$CHECKSUMRAW\""; exit 7)
-		    echo "$CHECKSUM  $filename" | md5sum -c - || (errlog "checksum verification failed: $CHECKSUM $filename"; exit 36)
+                    echo "$CHECKSUM  $filename" | md5sum -c - || (errlog "checksum verification failed: $CHECKSUM $filename"; exit 36)
                 fi
             done
             log "files uploaded"
@@ -270,7 +270,7 @@ if [ "$DEPLOY2ZENODO_DEPOSITION_ID" = "create NEW record" ]; then
                     CHECKSUMRAW=$(echo "$FILEUPLOAD" | jq -r .checksum)
                     test -n "$CHECKSUMRAW" -a "$CHECKSUMRAW" != "null" || (errlog "CHECKSUMRAW=\"$CHECKSUMRAW\""; exit 8)
                     CHECKSUM=$(echo "$CHECKSUMRAW" | cut -d ':' -f 2)
-		    echo "$CHECKSUM  $dummyfile" | md5sum -c - || (errlog "checksum verification failed: $CHECKSUM $dummyfile"; exit 37)
+                    echo "$CHECKSUM  $dummyfile" | md5sum -c - || (errlog "checksum verification failed: $CHECKSUM $dummyfile"; exit 37)
                     PUBLISHRECORD=$(curlauth --max-time "$CURL_MAX_TIME_PUBLISH" --request POST "$LATESTDRAFT"/actions/publish)
                     echojq PUBLISHRECORD "$PUBLISHRECORD"
                 fi
@@ -438,7 +438,7 @@ else
                     log "Skip testing checksum due to DRYRUN or SKIPRUN."
                 else
                     test -n "$CHECKSUMRAW" -a "$CHECKSUMRAW" != "null" || (errlog "CHECKSUMRAW=\"$CHECKSUMRAW\""; exit 18)
-		    echo "$CHECKSUM  $filename" | md5sum -c - || (errlog "checksum verification failed: $CHECKSUM $filename"; exit 38)
+                    echo "$CHECKSUM  $filename" | md5sum -c - || (errlog "checksum verification failed: $CHECKSUM $filename"; exit 38)
                 fi
             done
             log "files uploaded"
@@ -471,7 +471,7 @@ else
                     CHECKSUMRAW=$(echo "$FILEUPLOAD" | jq -r .checksum)
                     test -n "$CHECKSUMRAW" -a "$CHECKSUMRAW" != "null" || (errlog "CHECKSUMRAW=\"$CHECKSUMRAW\""; exit 19)
                     CHECKSUM=$(echo "$CHECKSUMRAW" | cut -d ':' -f 2)
-		    echo "$CHECKSUM  $dummyfile" | md5sum -c - || (errlog "checksum verification failed: $CHECKSUM $dummyfile"; exit 39)
+                    echo "$CHECKSUM  $dummyfile" | md5sum -c - || (errlog "checksum verification failed: $CHECKSUM $dummyfile"; exit 39)
                     PUBLISHRECORD=$(curlauth --max-time "$CURL_MAX_TIME_PUBLISH" --request POST "$LATESTDRAFT"/actions/publish)
                     echojq PUBLISHRECORD "$PUBLISHRECORD"
                 fi
