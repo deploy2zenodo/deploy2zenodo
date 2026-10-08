@@ -1,6 +1,6 @@
 ---
 author: Daniel Mohr
-date: 2026-04-16
+date: 2026-10-08
 license: Apache-2.0
 home: https://gitlab.com/deploy2zenodo/deploy2zenodo
 mirror: https://github.com/deploy2zenodo/deploy2zenodo
@@ -491,6 +491,7 @@ There are other optional variables:
 | DEPLOY2ZENODO_ADD_IsCompiledBy_DEPLOY2ZENODO | reference deploy2zenodo |
 | DEPLOY2ZENODO_ADD_IsNewVersionOf | reference previous version |
 | DEPLOY2ZENODO_ADD_IsPartOf | reference DOI for all versions |
+| DEPLOY2ZENODO_RATE_LIMIT | defines the wait time, default: auto |
 
 ### DEPLOY2ZENODO_API_URL
 
@@ -838,6 +839,29 @@ resource_type) will be added to your provided JSON file:
 
 This only works, if DEPLOY2ZENODO_DEPOSITION_ID is not given
 as `create NEW record`.
+
+### DEPLOY2ZENODO_RATE_LIMIT
+
+Specifies the wait time (in seconds) between consecutive API calls.
+
+Zenodo.org currently enforces a rate limit of
+[maximum 30 requests per minute](https://blog.zenodo.org/2025/11/25/2025-11-14-search-api-updates/).
+
+Uploading `n` files requires approximately `2n + 6` API calls:
+
+* up to 6 calls for record creation/updating, DOI reservation, publication
+* about `n` calls to delete n old files
+* `n` calls to upload `n` files
+
+Therefore, setting `DEPLOY2ZENODO_RATE_LIMIT=0` is safe for scripts
+that make fewer than 30 API calls.
+
+If this variable is set to `DEPLOY2ZENODO_RATE_LIMIT=auto` (or left empty),
+the script estimates the total number of API calls and
+sets the wait time as follows:
+
+* `0` for fewer than 23 API calls (safety margin below the limit of 30)
+* `2.142857` otherwise (approx. 28 requests per minute)
 
 ## CI pipeline
 

@@ -1,6 +1,6 @@
 ---
 author: Daniel Mohr
-date: 2026-05-26
+date: 2026-10-08
 license: Apache-2.0
 home: https://gitlab.com/deploy2zenodo/deploy2zenodo
 mirror: https://github.com/deploy2zenodo/deploy2zenodo
@@ -336,6 +336,7 @@ There are other optional variables:
 | | curl during publishing |
 | DEPLOY2INVENIORDM_ADD_IsCompiledBy_DEPLOY2INVENIORDM | reference |
 | | deploy2zenodo |
+| DEPLOY2INVENIORDM_RATE_LIMIT | defines the wait time, default: auto |
 
 ### DEPLOY2INVENIORDM_API_URL
 
@@ -587,6 +588,32 @@ provided JSON file:
   }
 }
 ```
+
+### DEPLOY2INVENIORDM_RATE_LIMIT
+
+Specifies the wait time (in seconds) between consecutive API calls.
+
+Zenodo.org currently enforces a rate limit of
+[maximum 30 requests per minute](https://blog.zenodo.org/2025/11/25/2025-11-14-search-api-updates/).
+
+Uploading `n` files requires approximately `4n + 6` API calls:
+
+* up to 6 calls for record creation/updating, DOI reservation, publication
+* about `n` calls to delete n old files
+* `3n` calls to upload `n` files
+
+Therefore, setting `DEPLOY2INVENIORDM_RATE_LIMIT=0` is safe for scripts
+that make fewer than 30 API calls.
+
+If this variable is set to `DEPLOY2INVENIORDM_RATE_LIMIT=auto` (or left empty),
+the script estimates the total number of API calls and
+sets the wait time as follows:
+
+* `0` for fewer than 23 API calls (safety margin below the limit of 30)
+* `2.142857` otherwise (approx. 28 requests per minute)
+
+If you are using a different instance without a rate limit,
+you can set `DEPLOY2INVENIORDM_RATE_LIMIT=0` to skip the wait time.
 
 ## CI pipeline
 
