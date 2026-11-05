@@ -1,6 +1,6 @@
 ---
 author: Daniel Mohr
-date: 2026-10-08
+date: 2026-11-05
 license: Apache-2.0
 home: https://gitlab.com/deploy2zenodo/deploy2zenodo
 mirror: https://github.com/deploy2zenodo/deploy2zenodo
@@ -844,8 +844,8 @@ as `create NEW record`.
 
 Specifies the wait time (in seconds) between consecutive API calls.
 
-Zenodo.org currently enforces a rate limit of
-[maximum 30 requests per minute](https://blog.zenodo.org/2025/11/25/2025-11-14-search-api-updates/).
+zenodo.org currently enforces a rate limit of
+[30 requests per minute](https://blog.zenodo.org/2025/11/25/2025-11-14-search-api-updates/).
 
 Uploading `n` files requires approximately `2n + 6` API calls:
 

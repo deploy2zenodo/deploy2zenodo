@@ -1,0 +1,34 @@
+#!/bin/bash
+set -euo pipefail
+
+# ------ minify ------
+minify deploy2zenodo_banner.svg > deploy2zenodo_banner-compact.svg
+minify deploy2zenodo_logo.svg > deploy2zenodo_logo-compact.svg
+minify deploy2zenodo_favicon.svg > deploy2zenodo_favicon-compact.svg
+
+# ------ banner ------
+svg="deploy2zenodo_banner.svg"
+base="${svg%.svg}"
+cairosvg "$svg" -f eps -o "${base}.eps"
+cairosvg "$svg" -f pdf -o "${base}.pdf"
+cairosvg "$svg" -f png -o "${base}.png"
+echo "$svg -> ${base}.eps, ${base}.pdf, ${base}.png"
+
+# ------ logo ------
+svg="deploy2zenodo_logo.svg"
+base="${svg%.svg}"
+cairosvg "$svg" -f pdf -o "${base}.pdf"
+cairosvg "$svg" -f png --output-width 192 --output-height 192 -o "${base}.png"
+echo "$svg -> ${base}.pdf, ${base}.png"
+
+# ------ simplified favicon ------
+svg="deploy2zenodo_favicon.svg"
+favicon="favicon-16x16.png"
+cairosvg "$svg" -f png --output-width 16 --output-height 16 -o "$favicon"
+echo "$svg -> favicon-16x16.png"
+favicon="favicon-32x32.png"
+cairosvg "$svg" -f png --output-width 32 --output-height 32 -o "$favicon"
+echo "$svg -> favicon-32x32.png"
+favicon="favicon.ico"
+convert favicon-16x16.png favicon-32x32.png favicon.ico
+echo "favicon-16x16.png, favicon-32x32.png -> favicon.ico"

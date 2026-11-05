@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="65.5 60.5 414.5 414.5"
+      role="img" aria-labelledby="t">
+  <!--
+    favicon for the deploy2zenodo project
+      home: https://gitlab.com/deploy2zenodo/deploy2zenodo
+      stable link: https://gitlab.com/projects/51392274
+      mirror: https://github.com/deploy2zenodo/deploy2zenodo
+      doi: 10.5281/zenodo.10112959
+
+    The project provides the two shell scripts "deploy2zenodo" and
+    "deploy2inveniordm" to automatically deploy data and software to
+    Zenodo or Invenio RDM repositories via a CI pipeline, giving every
+    release a persistent identifier (DOI).
+  -->
+  <title>deploy2zenodo favicon</title>
+  <defs>
+    <linearGradient id="g" x1="0" y1="1" x2="1" y2="0">
+      <stop offset="0" stop-color="#3E4E6E"/>
+      <stop offset="1" stop-color="#005f99"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Dots (visible at 32+, negligible at 16) -->
+  <circle cx="428" cy="400" r="24" fill="#F5A623" opacity="0.45"/>
+  <circle cx="442" cy="310" r="30" fill="#F5A623" opacity="0.7"/>
+  <circle cx="452" cy="222" r="36" fill="#F5A623"/>
+
+  <!-- Hexagon, rotated 15° -->
+  <g transform="rotate(15 230 280)">
+    <polygon points="230,120 368.6,200 368.6,360 230,440 91.4,360 91.4,200"
+             fill="url(#g)" stroke="url(#g)"
+             stroke-width="24" stroke-linejoin="round"/>
+  </g>
+
+  <!-- White card (no internal details) -->
+  <rect x="170" y="210" width="120" height="140" rx="14" fill="#FFFFFF"/>
+
+  <!-- DOI badge as a single stroke (same position & angle as full logo) -->
+  <line x1="290" y1="178" x2="414" y2="122"
+        stroke="#6E7684" stroke-width="36" stroke-linecap="round"/>
+</svg>
