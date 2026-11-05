@@ -1,0 +1,109 @@
+#!/usr/bin/env sh
+set -e
+#    create_doc
+#    Copyright (C) 2023-2026 Daniel Mohr
+#
+#    create_doc [pdf|html|all]
+#      pdf   -> README.pdf
+#      html  -> public/
+#      all   -> both
+#
+#    for debugging use default values
+CITATION=${CITATION:-"CITATION.cff"}
+DOI=${DOI:-"10.5281/zenodo.10112959"}
+PDFREADME=${PDFREADME:-"README.pdf"}
+BANNER_SVG=${BANNER_SVG:-"logo/deploy2zenodo_banner-compact.svg"}
+LOGO_PDF=${LOGO_PDF:-"logo/deploy2zenodo_logo.pdf"}
+FAVICON_PNGA=${FAVICON_PNGA:-"logo/favicon-16x16.png"}
+FAVICON_PNGB=${FAVICON_PNGB:-"logo/favicon-32x32.png"}
+FAVICON_ICO=${FAVICON_ICO:-"logo/favicon.ico"}
+PAGESDIR=${PAGESDIR:-"public"}
+
+extract_content() {
+    sed -n '/^---$/,/^---$/!{ /^---$/!p }' "$1" | \
+        sed -n '/^## license: Apache-2.0$/,/^```$/!{ /^---$/!p }'
+}
+
+tmpreadme=$(mktemp)
+echo "tmpreadme: $tmpreadme"
+{
+    extract_content "README.md" | sed -n '/^## how-to$/,/^$/!{ /^---$/!p }' | grep -v "README.deploy2zenodo.md" | grep -v "README.deploy2inveniordm.md"
+    extract_content "README.deploy2zenodo.md" | \
+        sed "s/\[^fair1\][^,]*$//g"| \
+        sed "s/\[^fair2\][^,]*$//g" | \
+        sed "s/\[^versioning\][^,]*$//g"
+    extract_content "README.deploy2inveniordm.md" | \
+        sed "s/\[^fair1\][^,]*$//g" | \
+        sed "s/\[^fair2\][^,]*$//g" | \
+        sed "s/\[^versioning\][^,]*$//g" | \
+        sed "s/\[^githubintegration\]: [^,]*$//g" | \
+        sed "s/\[^githubintegration2\]: [^,]*$//g" | \
+        sed "s/\[^githubintegration3\]: [^,]*$//g" | \
+        sed "s/\[^zenodoDevelopers\]: [^,]*$//g" | \
+        sed "s/\[^metadatareference\]: [^,]*$//g" | \
+        sed "s/\[^zenodouploadmetadataschema\]: [^,]*$//g"
+    extract_content "README.rate-limit.md"
+    sed -n '/^## license: Apache-2.0$/,/^```$/p' "README.md" | \
+        sed "s/##/#/g"
+} > "$tmpreadme"
+
+pandocmetadatatmpfile=$(mktemp)
+echo "pandocmetadatatmpfile: $pandocmetadatatmpfile"
+title=$(grep "^# " "README.md" | cut -d " " -f 2-)
+{
+    sed -n '/^---$/,/^---$/p' "README.md" | grep -v -e "---" | sed "s 10.5281/zenodo.10112959 $DOI g"
+    echo "title: |"
+    echo "  ![]($LOGO_PDF){width=111pt}"
+    echo "  $title"
+} | tee > "$pandocmetadatatmpfile"
+# echo "title: \"$title\"" | tee -a "$pandocmetadatatmpfile"
+echo "abstract: \"deploy2zenodo and deploy2inveniordm are scripts to deploy your data to Zenodo or Invenio RDM providing automatic workflow via ci pipeline\"" | tee -a "$pandocmetadatatmpfile"
+keywords=$(cffconvert -i "$CITATION" -f zenodo | jq -cr '.keywords | @csv' | sed 's/"//g' | sed 's/,/, /g')
+echo "keywords: $keywords" | tee -a "$pandocmetadatatmpfile"
+
+make_pdf() {
+    grep -v "[[_TOC_]]" "$tmpreadme" | \
+	pandoc \
+            -V papersize:a4 -V colorlinks:true -V graphics:true \
+            -V margin-left=3cm -V margin-right=3cm -V margin-top=3cm \
+            --metadata-file="$pandocmetadatatmpfile" \
+            -s --toc -f markdown -o "$PDFREADME"
+    echo "created $PDFREADME"
+}
+
+make_html() {
+    mkdir -p "$PAGESDIR/assets"
+    cp -p "$BANNER_SVG" "$PAGESDIR/assets/banner.svg"
+    cp -p "$FAVICON_PNGA" "$PAGESDIR/favicon-16x16.png"
+    cp -p "$FAVICON_PNGB" "$PAGESDIR/favicon-32x32.png"
+    cp -p "$FAVICON_ICO" "$PAGESDIR/favicon.ico"
+
+    pageshead=$(mktemp)
+    cat > "$pageshead" <<'EOF'
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
+<link rel="icon" type="image/vnd.microsoft.icon" href="favicon.ico">
+<style>
+body { max-width: 46rem; margin: 0 auto; padding: 0 1rem; }
+img.banner { width: 100%; height: auto; }
+</style>
+EOF
+
+    cat "$tmpreadme" | grep -v "[[_TOC_]]" | \
+	pandoc \
+	    --metadata-file="$pandocmetadatatmpfile" \
+            --metadata "title=$title" \
+            --include-in-header="$pageshead" \
+            --standalone -f markdown -t html5 \
+            -o "$PAGESDIR/index.html"
+    sed -i 's|^<body>$|<body>\n<div class="banner">\n  <img class="banner" src="assets/banner.svg" alt="deploy2zenodo">\n</div>|' \
+        "$PAGESDIR/index.html"
+    echo "created $PAGESDIR/index.html"
+}
+
+case "${1:-all}" in
+    pdf)  make_pdf ;;
+    html) make_html ;;
+    all)  make_pdf; make_html ;;
+    *)    echo "usage: create_doc [pdf|html|all]" >&2; exit 1 ;;
+esac

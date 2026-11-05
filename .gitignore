@@ -3,3 +3,9 @@ deploy2zenodo.yaml
 deploy2zenodo.sh
 deploy2inveniordm.yaml
 deploy2inveniordm.sh
+logo/*.eps
+logo/*.ico
+logo/*.pdf
+logo/*.png
+logo/*-compact.svg
+public/

@@ -1,0 +1,103 @@
+<svg xmlns="http://www.w3.org/2000/svg"
+     viewBox="20 29 982 249" role="img" aria-labelledby="t">
+  <!--
+    banner for the deploy2zenodo project
+      home: https://gitlab.com/deploy2zenodo/deploy2zenodo
+      stable link: https://gitlab.com/projects/51392274
+      mirror: https://github.com/deploy2zenodo/deploy2zenodo
+      doi: 10.5281/zenodo.10112959
+
+    The project provides the two shell scripts "deploy2zenodo" and
+    "deploy2inveniordm" to automatically deploy data and software to
+    Zenodo or Invenio RDM repositories via a CI pipeline, giving every
+    release a persistent identifier (DOI).
+  -->
+  <title>deploy2zenodo banner</title>
+
+  <defs>
+    <linearGradient id="hexgradb" x1="0" y1="1" x2="1" y2="0">
+      <stop offset="0" stop-color="#3E4E6E"/>
+      <stop offset="1" stop-color="#005f99"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Logo, scaled and positioned to fit the banner height -->
+  <g transform="translate(-27.1 -42.5) scale(0.72)">
+    <polyline points="428,400 442,310 452,222" fill="none"
+              stroke="#F5A623" stroke-width="8" stroke-linecap="round"/>
+    <circle cx="428" cy="400" r="16" fill="#F5A623" opacity="0.45"/>
+    <circle cx="442" cy="310" r="22" fill="#F5A623" opacity="0.7"/>
+    <circle cx="452" cy="222" r="28" fill="#F5A623"/>
+
+    <g transform="rotate(15 230 280)">
+      <polygon points="230,120 368.6,200 368.6,360 230,440 91.4,360 91.4,200"
+               fill="url(#hexgradb)" stroke="url(#hexgradb)"
+               stroke-width="20" stroke-linejoin="round"/>
+    </g>
+
+    <rect x="170" y="210" width="120" height="140" rx="12" fill="#FFFFFF"/>
+    <g>
+      <rect x="186" y="224" width="16" height="16" rx="3"
+	    fill="#F5A623" opacity="0.35"/>
+      <rect x="210" y="224" width="16" height="16" rx="3"
+	    fill="#F5A623" opacity="0.70"/>
+      <rect x="234" y="224" width="16" height="16" rx="3"
+	    fill="#F5A623" opacity="0.50"/>
+      <rect x="258" y="224" width="16" height="16" rx="3"
+	    fill="#F5A623" opacity="0.90"/>
+
+      <rect x="186" y="244" width="16" height="16" rx="3"
+	    fill="#F5A623" opacity="0.90"/>
+      <rect x="210" y="244" width="16" height="16" rx="3"
+	    fill="#F5A623" opacity="0.45"/>
+      <rect x="234" y="244" width="16" height="16" rx="3" fill="#D64545"/>
+      <rect x="258" y="244" width="16" height="16" rx="3"
+	    fill="#F5A623" opacity="0.60"/>
+
+      <rect x="186" y="264" width="16" height="16" rx="3"
+	    fill="#F5A623" opacity="0.55"/>
+      <rect x="210" y="264" width="16" height="16" rx="3"
+	    fill="#F5A623" opacity="0.80"/>
+      <rect x="234" y="264" width="16" height="16" rx="3"
+	    fill="#F5A623" opacity="0.35"/>
+      <rect x="258" y="264" width="16" height="16" rx="3"
+	    fill="#F5A623" opacity="0.75"/>
+
+      <rect x="186" y="288" width="68" height="6" rx="3"
+	    fill="#005f99" opacity="0.85"/>
+
+      <rect x="186" y="316" width="14" height="22" rx="3" fill="#0E7C7B"/>
+      <rect x="210" y="302" width="14" height="36" rx="3" fill="#0E7C7B"/>
+      <rect x="234" y="312" width="14" height="26" rx="3" fill="#0E7C7B"/>
+      <rect x="258" y="298" width="14" height="40" rx="3" fill="#0E7C7B"/>
+    </g>
+
+    <g transform="translate(352 150) rotate(-25)">
+      <rect x="-86" y="-25" width="172" height="50" rx="25" fill="#6E7684"/>
+      <path d="M -24 -25 H -61 A 25 25 0 0 0 -86 0 A 25 25 0 0 0 -61 25 H -24 Z"
+            fill="#3A3F47"/>
+      <text x="-55" y="9" font-family="sans-serif"
+            font-size="24" fill="#fff" text-anchor="middle">DOI</text>
+      <rect x="-12" y="-5" width="23" height="10" rx="5" fill="#fff"/>
+      <rect x="19"  y="-5" width="28" height="10" rx="5" fill="#fff"/>
+      <rect x="53"  y="-5" width="21" height="10" rx="5" fill="#fff"/>
+    </g>
+  </g>
+
+  <!-- Title and subtitle -->
+  <text x="360" y="110" font-family="sans-serif"
+        font-size="60" font-weight="bold" fill="#1B2A4A">deploy2zenodo</text>
+  <text x="360" y="155" font-family="sans-serif"
+        font-size="26" fill="#0E7C7B">
+  deploy your data to Zenodo &amp; Invenio RDM via CI</text>
+
+  <!-- Real DOI badge in Zenodo badge style -->
+  <rect x="360" y="190" width="460" height="54" rx="27" fill="#007ec6"/>
+  <path d="M 432 190 H 387 A 27 27 0 0 0 360 217 A 27 27 0 0 0 387 244 H 432 Z"
+        fill="#555"/>
+  <text x="396" y="226" font-family="sans-serif"
+        font-size="26" fill="#fff" text-anchor="middle">DOI</text>
+  <text x="626" y="226" font-family="sans-serif"
+        font-size="26" fill="#fff" text-anchor="middle">
+  10.5281/zenodo.10112959</text>
+</svg>

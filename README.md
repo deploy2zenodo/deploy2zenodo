@@ -1,8 +1,9 @@
 ---
 author: Daniel Mohr
-date: 2026-10-08
+date: 2026-11-05
 license: Apache-2.0
 home: https://gitlab.com/deploy2zenodo/deploy2zenodo
+stable link: https://gitlab.com/projects/51392274
 mirror: https://github.com/deploy2zenodo/deploy2zenodo
 latest_release: https://gitlab.com/deploy2zenodo/deploy2zenodo/-/releases/permalink/latest
 doi: 10.5281/zenodo.10112959
@@ -122,6 +123,19 @@ but also about the citability of individual versions.
 
 * [README.deploy2zenodo.md](README.deploy2zenodo.md)
 * [README.deploy2inveniordm.md](README.deploy2inveniordm.md)
+
+## rate limits
+
+gitlab.com has limited unauthenticated requests to 60 requests per hour
+per IP address
+([announcement](https://about.gitlab.com/blog/rate-limit-change-2026/))
+since 2026-10-19.
+
+zenodo.org currently enforces a rate limit of
+[30 requests per minute](https://blog.zenodo.org/2025/11/25/2025-11-14-search-api-updates/).
+
+If you hit rate limits or want to avoid them, see
+[README.rate-limit.md](README.rate-limit.md).
 
 ## license: Apache-2.0
 
