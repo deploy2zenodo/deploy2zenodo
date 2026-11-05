@@ -63,7 +63,7 @@ echo "keywords: $keywords" | tee -a "$pandocmetadatatmpfile"
 
 make_pdf() {
     grep -v "[[_TOC_]]" "$tmpreadme" | \
-	pandoc \
+        pandoc \
             -V papersize:a4 -V colorlinks:true -V graphics:true \
             -V margin-left=3cm -V margin-right=3cm -V margin-top=3cm \
             --metadata-file="$pandocmetadatatmpfile" \
@@ -90,8 +90,8 @@ img.banner { width: 100%; height: auto; }
 EOF
 
     cat "$tmpreadme" | grep -v "[[_TOC_]]" | \
-	pandoc \
-	    --metadata-file="$pandocmetadatatmpfile" \
+        pandoc \
+            --metadata-file="$pandocmetadatatmpfile" \
             --metadata "title=$title" \
             --include-in-header="$pageshead" \
             --standalone -f markdown -t html5 \

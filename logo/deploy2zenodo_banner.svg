@@ -38,33 +38,33 @@
     <rect x="170" y="210" width="120" height="140" rx="12" fill="#FFFFFF"/>
     <g>
       <rect x="186" y="224" width="16" height="16" rx="3"
-	    fill="#F5A623" opacity="0.35"/>
+            fill="#F5A623" opacity="0.35"/>
       <rect x="210" y="224" width="16" height="16" rx="3"
-	    fill="#F5A623" opacity="0.70"/>
+            fill="#F5A623" opacity="0.70"/>
       <rect x="234" y="224" width="16" height="16" rx="3"
-	    fill="#F5A623" opacity="0.50"/>
+            fill="#F5A623" opacity="0.50"/>
       <rect x="258" y="224" width="16" height="16" rx="3"
-	    fill="#F5A623" opacity="0.90"/>
+            fill="#F5A623" opacity="0.90"/>
 
       <rect x="186" y="244" width="16" height="16" rx="3"
-	    fill="#F5A623" opacity="0.90"/>
+            fill="#F5A623" opacity="0.90"/>
       <rect x="210" y="244" width="16" height="16" rx="3"
-	    fill="#F5A623" opacity="0.45"/>
+            fill="#F5A623" opacity="0.45"/>
       <rect x="234" y="244" width="16" height="16" rx="3" fill="#D64545"/>
       <rect x="258" y="244" width="16" height="16" rx="3"
-	    fill="#F5A623" opacity="0.60"/>
+            fill="#F5A623" opacity="0.60"/>
 
       <rect x="186" y="264" width="16" height="16" rx="3"
-	    fill="#F5A623" opacity="0.55"/>
+            fill="#F5A623" opacity="0.55"/>
       <rect x="210" y="264" width="16" height="16" rx="3"
-	    fill="#F5A623" opacity="0.80"/>
+            fill="#F5A623" opacity="0.80"/>
       <rect x="234" y="264" width="16" height="16" rx="3"
-	    fill="#F5A623" opacity="0.35"/>
+            fill="#F5A623" opacity="0.35"/>
       <rect x="258" y="264" width="16" height="16" rx="3"
-	    fill="#F5A623" opacity="0.75"/>
+            fill="#F5A623" opacity="0.75"/>
 
       <rect x="186" y="288" width="68" height="6" rx="3"
-	    fill="#005f99" opacity="0.85"/>
+            fill="#005f99" opacity="0.85"/>
 
       <rect x="186" y="316" width="14" height="22" rx="3" fill="#0E7C7B"/>
       <rect x="210" y="302" width="14" height="36" rx="3" fill="#0E7C7B"/>

@@ -123,7 +123,8 @@ deploy2zenodo:
   before_script:
     - apk add --no-cache curl jq
   script:
-    - curl -fL --header "PRIVATE-TOKEN: $DEPLOY2ZENODO_GITLAB_TOKEN" "$SCRIPTURL" | sh
+    - curl -fL --header "PRIVATE-TOKEN: $DEPLOY2ZENODO_GITLAB_TOKEN"
+      "$SCRIPTURL" | sh
 ```
 
 ### skip the include and use git-over-https
@@ -134,7 +135,9 @@ separate, much higher limit
 ([15,000 requests per minute per IP unauthenticated git https traffic](https://docs.gitlab.com/user/gitlab_com/rate_limits/#rate-limits-by-plan)).
 We can therefore replace `include` with a `git clone`.
 
-However, this bypasses the release build: the CI/CD template is not available, and the script from the repo only carries the meta DOI of deploy2zenodo, not the DOI of your release.
+However, this bypasses the release build: the CI/CD template is not available,
+and the script from the repo only carries the meta DOI of deploy2zenodo, not
+the DOI of your release.
 
 ```yaml
 deploy2zenodo:
@@ -149,7 +152,8 @@ deploy2zenodo:
   before_script:
     - apk add --no-cache curl jq git
     - DEPLOY2ZENODO_REPO="$(mktemp -d)"
-    - git clone --depth 1 --branch 0.8.1 https://gitlab.com/deploy2zenodo/deploy2zenodo.git "$DEPLOY2ZENODO_REPO"
+    - git clone --depth 1 --branch 0.8.1
+      https://gitlab.com/deploy2zenodo/deploy2zenodo.git "$DEPLOY2ZENODO_REPO"
     - DEPLOY2ZENODO_SCRIPT="$(mktemp)"
     - install -m 755 "$DEPLOY2ZENODO_REPO"/deploy2zenodo "$DEPLOY2ZENODO_SCRIPT"
     - pubdate=$(echo "$CI_COMMIT_TIMESTAMP" | grep -Eo "^[0-9]{4}-[0-9]{2}-[0-9]{2}")
