@@ -74,7 +74,7 @@ DEPLOY2ZENODO_DOI=$(sed -n 's/^#.*DOI:[[:space:]]*\([^[:space:]]*\)$/\1/p' "$0")
 
 log "run deploy2inveniordm v$VERSION (DOI: $DEPLOY2ZENODO_DOI)"
 
-for cmd in jq curl md5sum; do
+for cmd in curl jq md5sum; do
     command -v "$cmd" >/dev/null 2>&1 || { errlog "ERROR: required command '$cmd' not found"; exit 40; }
 done
 

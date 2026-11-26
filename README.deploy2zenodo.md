@@ -57,6 +57,16 @@ versions. This leads to the urge to automate the publishing process.
 This is not only about making the software usable through software repositories,
 but also about the citability of individual versions.
 
+## Dependencies
+
+The script requires the following tools to be installed on your system:
+
+* `curl`
+* `jq`
+* `md5sum`
+
+If any of these are missing, the script will terminate with error code 40.
+
 ## how-to
 
 There are many possibilities to use `deploy2zenodo` but in this how-to section
@@ -695,6 +705,8 @@ in your project.
 
 If this variable is not empty nearly everything is skipped.
 Only the commands to be executed are echoed. This is for debugging purpose.
+(Note: The script will still exit with error code 40 if the required
+dependencies `curl`, `jq`, or `md5sum` are missing).
 
 ### DEPLOY2ZENODO_SKIP_NEW_VERSION
 

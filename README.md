@@ -30,7 +30,7 @@ config file (see the respective how-to).
 | [Zenodo](https://zenodo.org/) | [`deploy2zenodo`](README.deploy2zenodo.md) or [`deploy2inveniordm`](README.deploy2inveniordm.md) | Zenodo API or Zenodo Invenio RDM API (beta) |
 | [Invenio RDM](https://inveniosoftware.org/products/rdm/) Instance | [`deploy2inveniordm`](README.deploy2inveniordm.md) | Invenio RDM API |
 
-### example CI/CD integration
+### example CI/CD integration: deploy2zenodo
 
 ```yaml
 include:
@@ -54,10 +54,10 @@ deploy2zenodo:
     - mv "tmp.json" "$DEPLOY2ZENODO_JSON"
 ```
 
-### example bash script
+### example bash script: deploy2inveniordm
 
 ```bash
-SCRIPTURL=https://gitlab.com/deploy2zenodo/deploy2zenodo/-/releases/permalink/latest/downloads/deploy2zenodo
+SCRIPTURL=https://gitlab.com/deploy2zenodo/deploy2zenodo/-/releases/permalink/latest/downloads/deploy2inveniordm
 curl -L "$SCRIPTURL" -o deploy2inveniordm && chmod +x deploy2inveniordm
 export DEPLOY2INVENIORDM_API_URL="https://sandbox.zenodo.org/api"
  export DEPLOY2INVENIORDM_ACCESS_TOKEN="your-access-token"
