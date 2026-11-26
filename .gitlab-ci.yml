@@ -37,6 +37,8 @@ pre-commit:
     - pre-commit run --all-files
     - pre-commit autoupdate --jobs 0
     - git diff .pre-commit-config.yaml
+    - pre-commit autoupdate --jobs 0 --config .pre-commit-config.templates.yaml
+    - git diff .pre-commit-config.templates.yaml
     # check exit code is unique
     - |
       FILETOCHECK="deploy2zenodo"
@@ -57,8 +59,9 @@ pre-commit:
     - md5sum "$BASE_FILE_NAME" "$CI_FILE_NAME" "$FILE_NAME.sh" "$BASE_FILE_NAME_INVENIORDM" "$CI_FILE_INVENIORDM_NAME" "$FILE_INVENIORDM_NAME.sh"
     - shellcheck "$BASE_FILE_NAME" "$FILE_NAME.sh" "$FILE_INVENIORDM_NAME.sh"
     # to test files with pre-commit it has to be added
-    - git add -f "$FILE_NAME.sh" "$FILE_INVENIORDM_NAME.sh"
+    - git add -f "$CI_FILE_NAME" "$FILE_NAME.sh" "$CI_FILE_INVENIORDM_NAME" "$FILE_INVENIORDM_NAME.sh"
     - pre-commit run --all-files
+    - pre-commit run --config .pre-commit-config.templates.yaml
     - cffconvert -i "$CITATION" --validate
     - jq < zenodo-add-related_identifiers.json
     - jq < zenodo-merge.json
@@ -139,7 +142,7 @@ prepare_release_step1:
   extends: .display_env
   script:
     - echo "DESCRIPTION=$README" > variables.env
-    - TAG=$(sed -n 's/^.*Version:\s*\(\S*\)$/\1/p' "$BASE_FILE_NAME")
+    - TAG=$(sed -n 's/^.*Version:[[:space:]]*\([^[:space:]]*\)$/\1/p' "$BASE_FILE_NAME")
     - echo "TAG=$TAG" >> variables.env
     - TAG_COMMIT_TIMESTAMP=$(echo "$CI_COMMIT_TIMESTAMP" | cut -d "T" -f 1)
     - echo "TAG_COMMIT_TIMESTAMP=$TAG_COMMIT_TIMESTAMP" >> variables.env
@@ -393,7 +396,7 @@ deploy_to_github:
     - (cd "$repopath" && git for-each-ref --format 'delete %(refname)' refs/pipelines | git update-ref --stdin)
     - (cd "$repopath" && git push --prune --mirror git@github.com:deploy2zenodo/deploy2zenodo.git)
 
-trigger_release_mirrors:
+trigger_release_mirrors_and_archive:
   stage: .post
   rules:
     - if: $CI_COMMIT_TAG
@@ -405,3 +408,4 @@ trigger_release_mirrors:
     - apk add --no-cache curl
     - curl --fail --data "token=${dlr_release_mirror_trigger_token:?}" --data "ref=main" "https://gitlab.dlr.de/api/v4/projects/69367/trigger/pipeline"
     - curl --fail --data "token=${helmholtz_release_mirror_trigger_token:?}" --data "ref=main" "https://codebase.helmholtz.cloud/api/v4/projects/23034/trigger/pipeline"
+    - curl -X POST "https://archive.softwareheritage.org/api/1/origin/save/?visit_type=git&origin_url=${CI_PROJECT_URL}"

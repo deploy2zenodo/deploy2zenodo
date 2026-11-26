@@ -1,0 +1,9 @@
+repos:
+  - repo: https://gitlab.com/yaml2script/yaml2script
+    rev: 0.2.4
+    hooks:
+      - id: yaml2script-all
+        name: yaml2script check deploy2inveniordm.yaml deploy2zenodo.yaml
+        additional_dependencies:
+          - shellcheck-py
+        files: ^(deploy2zenodo|deploy2inveniordm)\.yaml$

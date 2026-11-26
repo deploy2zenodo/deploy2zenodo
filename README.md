@@ -1,6 +1,6 @@
 ---
 author: Daniel Mohr
-date: 2026-11-05
+date: 2026-11-26
 license: Apache-2.0
 home: https://gitlab.com/deploy2zenodo/deploy2zenodo
 stable link: https://gitlab.com/projects/51392274
@@ -19,6 +19,9 @@ Two lightweight shell scripts to automatically deploy your data or software to:
 
 * Zenodo
 * Invenio RDM instances
+
+Both scripts can be configured via environment variables or an optional
+config file (see the respective how-to).
 
 ### which script to use
 
@@ -66,7 +69,7 @@ export DEPLOY2INVENIORDM_UPLOAD="data.zip"
 
 ## preamble
 
-[`deploy2zenodo`](https://gitlab.com/projects/51392274) are two lightweight
+[`deploy2zenodo`](https://gitlab.com/projects/51392274) provides two lightweight
 [shell](https://en.wikipedia.org/wiki/Bourne_shell) scripts to deploy
 your data to [Zenodo](https://zenodo.org/) or
 [Invenio RDM](https://inveniosoftware.org/products/rdm/),

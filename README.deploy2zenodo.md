@@ -1,6 +1,6 @@
 ---
 author: Daniel Mohr
-date: 2026-11-05
+date: 2026-11-26
 license: Apache-2.0
 home: https://gitlab.com/deploy2zenodo/deploy2zenodo
 mirror: https://github.com/deploy2zenodo/deploy2zenodo
@@ -191,6 +191,7 @@ Here a few simple considerations:
 | DEPLOY2ZENODO_DEPOSITION_ID | no | Should a user find your publication? |
 | DEPLOY2ZENODO_JSON | ? | Is the publication public? |
 | DEPLOY2ZENODO_UPLOAD | ? | Is the publication public? |
+| DEPLOY2ZENODO_CONFIG | file path is fine, but file may contain a token | protect the file (`chmod 600`) |
 
 Sometimes it is easier to change the variable in the UI.
 For example in your first step you should set
@@ -465,6 +466,8 @@ to publish itself. This is described in [deploy_deploy2zenodo_to_zenodo](https:/
 ## script parameter
 
 Instead of command line parameters we use environment variables.
+Optionally, the variables can also be read from a config file
+(see [DEPLOY2ZENODO_CONFIG](#deploy2zenodo_config)).
 
 You have to provide the following variables:
 
@@ -492,6 +495,7 @@ There are other optional variables:
 | DEPLOY2ZENODO_ADD_IsNewVersionOf | reference previous version |
 | DEPLOY2ZENODO_ADD_IsPartOf | reference DOI for all versions |
 | DEPLOY2ZENODO_RATE_LIMIT | defines the wait time, default: auto |
+| DEPLOY2ZENODO_CONFIG | path to config file, default: `$HOME/.deploy2zenodo.conf` |
 
 ### DEPLOY2ZENODO_API_URL
 
@@ -507,6 +511,42 @@ official [zenodo instance](https://about.zenodo.org/):
 
 To access your zenodo account you have to provide an
 [access token](https://developers.zenodo.org/?shell#authentication).
+
+Instead of the token itself, you can also provide a path to a readable
+file containing the token (one line). This is useful when you do not want
+the token to be part of the environment of the process.
+In both cases the token is passed to `curl` via a temporary header file
+and is not visible in the command line of the process.
+
+The token file contains private data and should be protected (e. g. `chmod 600`).
+
+### DEPLOY2ZENODO_CONFIG
+
+Instead of providing all variables as environment variables, you can store
+them in a config file. If this variable is not empty it is interpreted as
+the path to the config file. If it is empty the default config file
+`$HOME/.deploy2zenodo.conf` is used if it exists.
+The config file is a simple list of `KEY=value` lines:
+
+```conf
+DEPLOY2ZENODO_API_URL=https://sandbox.zenodo.org/api
+DEPLOY2ZENODO_ACCESS_TOKEN=***
+DEPLOY2ZENODO_DEPOSITION_ID=create NEW record
+DEPLOY2ZENODO_JSON=metadata.json
+DEPLOY2ZENODO_UPLOAD=data.zip
+```
+
+Lines starting with `#` and empty lines are ignored.
+Leading and trailing whitespace around keys and values is removed.
+Unknown keys produce a warning.
+Environment variables take precedence over values from the config file,
+so you can keep most settings in the file and override individual
+variables per run.
+Note that environment variables which are set but empty are treated
+as unset, i. e. they do not suppress the corresponding value from
+the config file.
+Since the config file may contain your access token,
+protect it accordingly, e. g. `chmod 600 "$HOME/.deploy2zenodo.conf"`.
 
 ### DEPLOY2ZENODO_DEPOSITION_ID
 
@@ -932,6 +972,22 @@ export DEPLOY2ZENODO_ADD_IsNewVersionOf=""
 export DEPLOY2ZENODO_ADD_IsPartOf="yes"
 curl -L "$SCRIPTURL" | tee deploy2zenodo.sh | sh
 ```
+
+Alternatively, you can store the variables in a config file and only run
+the script:
+
+```sh
+SCRIPTURL=https://gitlab.com/deploy2zenodo/deploy2zenodo/-/releases/permalink/latest/downloads/deploy2zenodo
+curl -L "$SCRIPTURL" -o deploy2zenodo && chmod +x deploy2zenodo
+# create the config file first
+(umask 077; touch "$HOME/.deploy2zenodo.conf")
+# add your configuration to the config file
+./deploy2zenodo
+```
+
+In CI pipelines you should still prefer masked/protected CI/CD variables
+for the access token, because a config file on the runner is less
+convenient to manage and does not benefit from GitLab's masking.
 
 It's worth noting that we try to handle private information such as the
 access token in a secure way in the script, it is still a sensitive piece of
