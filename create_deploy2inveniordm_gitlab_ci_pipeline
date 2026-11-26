@@ -16,7 +16,7 @@ script=$(sed -n '/^#    deploy2inveniordm$/,/^# stop deploy2inveniordm$/p' $IN |
              sed "s#v\$VERSION#v$VERSION $URL/-/releases/$VERSION#g" | \
              sed "s#\"\$VERSION\"#\"$VERSION\"#g" | \
              sed '/^DEPLOY2ZENODO_DOI=.*$/d' | \
-             sed '/^\s*$/d' | \
+             sed '/^[[:space:]]*$/d' | \
              sed 's/^/      /')
 
 if [ -n "$DOI" ]; then

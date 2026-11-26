@@ -14,7 +14,7 @@ URL=$(sed -n 's/^home:[[:space:]]*\(https:[^[:space:]]*\)$/\1/p' README.md)
 script=$(sed '/^VERSION=.*$/d' $IN | \
              sed "s#v\$VERSION#v$VERSION $URL/-/releases/$VERSION#g" | \
              sed '/^DEPLOY2ZENODO_DOI=.*$/d' | \
-             sed '/^\s*$/d')
+             sed '/^[[:space:]]*$/d')
 
 if [ -n "$DOI" ]; then
     # replace concept DOI by actual DOI given in the variable DOI:
