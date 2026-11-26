@@ -191,7 +191,8 @@ Here a few simple considerations:
 | DEPLOY2ZENODO_DEPOSITION_ID | no | Should a user find your publication? |
 | DEPLOY2ZENODO_JSON | ? | Is the publication public? |
 | DEPLOY2ZENODO_UPLOAD | ? | Is the publication public? |
-| DEPLOY2ZENODO_CONFIG | file path is fine, but file may contain a token | protect the file (`chmod 600`) |
+| DEPLOY2ZENODO_CONFIG | file path is fine, | protect the file |
+| | but file may contain a token | (`chmod 600`) |
 
 Sometimes it is easier to change the variable in the UI.
 For example in your first step you should set
@@ -495,7 +496,8 @@ There are other optional variables:
 | DEPLOY2ZENODO_ADD_IsNewVersionOf | reference previous version |
 | DEPLOY2ZENODO_ADD_IsPartOf | reference DOI for all versions |
 | DEPLOY2ZENODO_RATE_LIMIT | defines the wait time, default: auto |
-| DEPLOY2ZENODO_CONFIG | path to config file, default: `$HOME/.deploy2zenodo.conf` |
+| DEPLOY2ZENODO_CONFIG | path to config file, |
+| | default: `$HOME/.deploy2zenodo.conf` |
 
 ### DEPLOY2ZENODO_API_URL
 

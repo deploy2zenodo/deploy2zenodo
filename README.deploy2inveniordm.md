@@ -264,7 +264,8 @@ Here a few simple considerations:
 | DEPLOY2INVENIORDM_DEPOSITION_ID | no | Should a user find your publication? |
 | DEPLOY2INVENIORDM_JSON | ? | Is the publication public? |
 | DEPLOY2INVENIORDM_UPLOAD | ? | Is the publication public? |
-| DEPLOY2INVENIORDM_CONFIG | file path is fine, but file may contain a token | protect the file (`chmod 600`) |
+| DEPLOY2INVENIORDM_CONFIG | file path is fine, | protect the file |
+| | but file may contain a token | (`chmod 600`) |
 
 Store sensitive data (like tokens) in the GitLab UI with
 masking, protection, and hiding enabled.
@@ -340,7 +341,8 @@ There are other optional variables:
 | DEPLOY2INVENIORDM_ADD_IsCompiledBy_DEPLOY2INVENIORDM | reference |
 | | deploy2zenodo |
 | DEPLOY2INVENIORDM_RATE_LIMIT | defines the wait time, default: auto |
-| DEPLOY2INVENIORDM_CONFIG | path to config file, default: `$HOME/.deploy2inveniordm.conf` |
+| DEPLOY2INVENIORDM_CONFIG | path to config file, |
+| | default: `$HOME/.deploy2inveniordm.conf` |
 
 ### DEPLOY2INVENIORDM_API_URL
 
