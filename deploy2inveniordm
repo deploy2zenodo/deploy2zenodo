@@ -410,7 +410,7 @@ else
         log "Skip testing new doi due to DRYRUN or SKIPRUN."
     else
         if [ -n "$NEWDOI" ] && [ "$NEWDOI" != "null" ]; then
-            UPLOADMETADATA=NEWDOIJSON
+            UPLOADMETADATA=$NEWDOIJSON
         else
             if [ "$(echo "$NEWDOIJSON" | jq -r ".status")" = "400" ] && [ "$(echo "$NEWDOIJSON" | jq -r ".errors[0].field")" = "pids.doi" ] && [ "$(echo "$NEWDOIJSON" | jq -r ".errors[0].messages[0]")" = "A PID already exists for type doi" ]; then
                 log "doi exists already, no new doi possible"
