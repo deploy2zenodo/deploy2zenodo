@@ -486,7 +486,7 @@ else
         if [ -n "$DEPLOY2INVENIORDM_DRYRUN" ] || [ -n "$DEPLOY2INVENIORDM_SKIPRUN" ]; then
             log "Skip testing result due to DRYRUN or SKIPRUN."
         else
-            test "$(echo "$PUBLISHRECORD" | jq .state)" = '"done"' || (errlog "state=\"$(echo "$PUBLISHRECORD" | jq .state)\""; exit 20)
+            test "$(echo "$PUBLISHRECORD" | jq .state)" = '"published"' || (errlog "state=\"$(echo "$PUBLISHRECORD" | jq .state)\""; exit 20)
             test "$(echo "$PUBLISHRECORD" | jq .submitted)" = "true" || (errlog "submitted=\"$(echo "$PUBLISHRECORD" | jq .submitted)\""; exit 21)
         fi
         LATESTID=$(echo "$PUBLISHRECORD" | jq -r .id)

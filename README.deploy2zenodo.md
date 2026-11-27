@@ -1,6 +1,6 @@
 ---
 author: Daniel Mohr
-date: 2026-11-26
+date: 2026-11-27
 license: Apache-2.0
 home: https://gitlab.com/deploy2zenodo/deploy2zenodo
 mirror: https://github.com/deploy2zenodo/deploy2zenodo
@@ -416,8 +416,8 @@ prepare_deploy2zenodo_step1:
 
 deploy2zenodo-step1:
   variables:
-    - DEPLOY2ZENODO_SKIP_PUBLISH: "true"
-    - DEPLOY2ZENODO_GET_METADATA: "newmetadata.json"
+    DEPLOY2ZENODO_SKIP_PUBLISH: "true"
+    DEPLOY2ZENODO_GET_METADATA: "newmetadata.json"
   extends: .deploy2zenodo
   image:
     name: alpine:latest
@@ -664,7 +664,7 @@ Each individual block represents a file and these files will be uploaded.
 The reason not supporting spaces is that
 [you cannot create a CI/CD variable that is an array](https://docs.gitlab.com/ee/ci/variables/index.html#store-multiple-values-in-one-variable).
 
-If you really not want to provide data set `DEPLOY2ZENODO_UPLOAD` to
+If you really do not want to provide data, set `DEPLOY2ZENODO_UPLOAD` to
 `do NOT provide data`, e. g. `DEPLOY2ZENODO_UPLOAD="do NOT provide data"`.
 If you want to upload 4 files with these names change the order.
 
@@ -745,7 +745,7 @@ deploy2zenodo:
 ```
 
 You can extract values from the metadata. For example to get the DOI
-to site all versions:
+to cite all versions:
 
 ```yaml
 my_deploy2zenodo:

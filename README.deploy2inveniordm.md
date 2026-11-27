@@ -1,6 +1,6 @@
 ---
 author: Daniel Mohr
-date: 2026-11-26
+date: 2026-11-27
 license: Apache-2.0
 home: https://gitlab.com/deploy2zenodo/deploy2zenodo
 mirror: https://github.com/deploy2zenodo/deploy2zenodo
@@ -85,7 +85,7 @@ and a more structured, production-ready workflow
 
 ### very simple workflow (deploy2inveniordm)
 
-Maybe this very simple workflow to simplified.
+Maybe this very simple workflow is too simplified.
 But it is a good starting point for automating deployments to Zenodo via
 [GitLab CI/CD pipeline](https://docs.gitlab.com/ee/ci/pipelines/).
 
@@ -310,7 +310,7 @@ Optional Variables:
 * `DEPLOY2INVENIORDM_SKIPRUN`:
   useful for debugging and verifying the workflow logic
 * `DEPLOY2INVENIORDM_GET_METADATA`:
-  useful for extrating DOI for use in later steps
+  useful for extracting DOI for use in later steps
 * ...
 
 Depending on where variables are defined, they have different priorities.
@@ -530,15 +530,12 @@ Each individual block represents a file and these files will be uploaded.
 The reason not supporting spaces is that
 [you cannot create a CI/CD variable that is an array](https://docs.gitlab.com/ee/ci/variables/index.html#store-multiple-values-in-one-variable).
 
-If you really not want to provide data set `DEPLOY2INVENIORDM_UPLOAD` to
-`do NOT provide data`, e. g. `DEPLOY2INVENIORDM_UPLOAD="do NOT provide data"`.
-If you want to upload 4 files with these names change the order.
+If you really do not want to provide data, add an empty dummy file.
 
 Not every zenodo instance supports metadata-only records
 (configured by `canHaveMetadataOnlyRecords`?).
 For example the official [zenodo instance](https://about.zenodo.org/)
 does not allow metadata-only records!
-In this case an empty dummy file is uploaded.
 If this is the case, you should think about respecting the implicit request
 of the used zenodo instance to provide some data.
 
@@ -594,7 +591,7 @@ deploy2inveniordm:
 ```
 
 You can extract values from the metadata. For example to get the DOI
-to site all versions:
+to cite all versions:
 
 ```yaml
 my_deploy2inveniordm:
@@ -630,15 +627,13 @@ provided JSON file:
 
 ```json
 {
-  "metadata": {
-    "related_identifiers": [
-      {
-        "relation": "IsCompiledBy",
-        "identifier": "10.5281/zenodo.10112959",
-        "scheme": "doi",
-        "resource_type": "software"
-      }
-    ]
+  "relation_type": {
+    "id": "iscompiledby"
+  },
+  "identifier": "10.5281/zenodo.10112959",
+  "scheme": "doi",
+  "resource_type": {
+    "id": "software"
   }
 }
 ```

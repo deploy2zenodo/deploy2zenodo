@@ -24,6 +24,9 @@
 * Improved compatibility and robustness in regular expressions (`sed` patterns).
 * Using `printf` instead of`echo` for enhanced compatibility.
 * Enhanced compatibility and robustness in internal tooling script.
+* Fixed old files were not deleted in deploy2inveniordm.
+* Fixed unique exit code check in test.
+* Enhanced documentation.
 
 ## [0.8.1] - 2026-11-05
 

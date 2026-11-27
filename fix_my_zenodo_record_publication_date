@@ -2,7 +2,7 @@
 set -e
 
 #    fix_my_zenodo_record_publication_date
-#    Copyright (C) 2023  Daniel Mohr
+#    Copyright (C) 2023-2026  Daniel Mohr
 #
 # fix_my_zenodo_record_publication_date [record id] [new publication_date]
 #
@@ -13,7 +13,10 @@ set -e
 #   * DEPLOY2ZENODO_API_URL
 #   * DEPLOY2ZENODO_ACCESS_TOKEN
 #
-# Copyright 2023 Daniel Mohr and
+# Optional variables:
+#   * DEPLOY2ZENODO_RATE_LIMIT
+#
+# Copyright 2023-2026 Daniel Mohr and
 #    Deutsches Zentrum fuer Luft- und Raumfahrt e. V., D-51170 Koeln
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -28,10 +31,47 @@ set -e
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# avoid token appears in argv of a process:
+AUTH_HEADER_FILE="$(mktemp)"
+trap 'rm -f "$AUTH_HEADER_FILE"' EXIT INT TERM
+if [ -f "$DEPLOY2ZENODO_ACCESS_TOKEN" ] && [ -r "$DEPLOY2ZENODO_ACCESS_TOKEN" ]; then
+    # file: token given as content of a file
+    {
+        printf 'Authorization: Bearer '
+        cat "$DEPLOY2ZENODO_ACCESS_TOKEN"
+        if [ -n "$(tail -c 1 "$DEPLOY2ZENODO_ACCESS_TOKEN")" ]; then
+            printf '\n'
+        fi
+    } > "$AUTH_HEADER_FILE"
+else
+    # variable: token given as content of a variable
+    {
+        printf 'Authorization: Bearer '
+        printf '%s' "$DEPLOY2ZENODO_ACCESS_TOKEN"
+        printf '\n'
+    } > "$AUTH_HEADER_FILE"
+fi
+unset DEPLOY2ZENODO_ACCESS_TOKEN
+if [ -z "$DEPLOY2ZENODO_RATE_LIMIT" ] || [ "$DEPLOY2ZENODO_RATE_LIMIT" = "auto" ]; then
+    # estimate useful sleep time as rate limit
+    DEPLOY2ZENODO_RATE_LIMIT=2.142857
+else
+    if ! (echo "$DEPLOY2ZENODO_RATE_LIMIT" | grep -q -E "^[0-9]+\.?[0-9]*$"); then
+        echo "WARNING: do not understand DEPLOY2ZENODO_RATE_LIMIT"
+        DEPLOY2ZENODO_RATE_LIMIT=2.142857
+        echo "using default value: DEPLOY2ZENODO_RATE_LIMIT=$DEPLOY2ZENODO_RATE_LIMIT"
+    fi
+fi
+curlauth() {
+    sleep "$DEPLOY2ZENODO_RATE_LIMIT"
+    curl --header @"$AUTH_HEADER_FILE" \
+         --max-time "${DEPLOY2ZENODO_CURL_MAX_TIME:-60}" "$@"
+}
+
 echo "record: $1"
 
 DEPOSITION_ID="$1"
-RECORD=$(curl --header "Authorization: Bearer $DEPLOY2ZENODO_ACCESS_TOKEN" "$DEPLOY2ZENODO_API_URL/deposit/depositions/$DEPOSITION_ID")
+RECORD=$(curlauth "$DEPLOY2ZENODO_API_URL/deposit/depositions/$DEPOSITION_ID")
 echo "$RECORD" | jq -C .
 
 if [ "$#" = 1 ]; then
@@ -54,15 +94,15 @@ if [ "$edate" != "$publication_date" ]; then
     dopublish=""
     if [ "$(echo "$RECORD" | jq '.submitted')" = true ] && [ "$(echo "$RECORD" | jq -r '.state')" = "done" ]; then
         # record is published
-        EDITRECORD=$(curl --header "Authorization: Bearer $DEPLOY2ZENODO_ACCESS_TOKEN" --max-time 60 --request POST "$DEPLOY2ZENODO_API_URL/deposit/depositions/$DEPOSITION_ID/actions/edit")
+        EDITRECORD=$(curlauth --max-time 60 --request POST "$DEPLOY2ZENODO_API_URL/deposit/depositions/$DEPOSITION_ID/actions/edit")
         echo "$EDITRECORD" | jq -C .
         dopublish="yes"
     fi
     # upload new metadata
-    UPLOADMETADATA=$(curl --header "Authorization: Bearer $DEPLOY2ZENODO_ACCESS_TOKEN" --max-time 60 --header 'Content-Type: application/json' --request PUT --data-binary "$JSON_DATA" "$DEPLOY2ZENODO_API_URL/deposit/depositions/$DEPOSITION_ID")
+    UPLOADMETADATA=$(curlauth --max-time 60 --header 'Content-Type: application/json' --request PUT --data-binary "$JSON_DATA" "$DEPLOY2ZENODO_API_URL/deposit/depositions/$DEPOSITION_ID")
     echo "$UPLOADMETADATA" | jq -C .
     if [ -n "$dopublish" ]; then
-        PUBLISH=$(curl --header "Authorization: Bearer $DEPLOY2ZENODO_ACCESS_TOKEN" --max-time 300 --request POST "$DEPLOY2ZENODO_API_URL/deposit/depositions/$DEPOSITION_ID/actions/publish")
+        PUBLISH=$(curlauth --max-time 300 --request POST "$DEPLOY2ZENODO_API_URL/deposit/depositions/$DEPOSITION_ID/actions/publish")
         echo "$PUBLISH" | jq -C .
     fi
 else

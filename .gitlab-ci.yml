@@ -43,7 +43,7 @@ pre-commit:
     - |
       FILETOCHECK="deploy2zenodo"
       OUT="$(grep -o -E 'exit [0-9]*' "$FILETOCHECK")"
-      if [ ! "$(echo "$OUT" | wc -l)" -eq "$(echo "$OUT" | uniq | wc -l)" ]; then
+      if [ ! "$(echo "$OUT" | wc -l)" -eq "$(echo "$OUT" | sort | uniq | wc -l)" ]; then
           echo "exit code is not unique:"
           echo "$OUT" | sort -n -t " " -k 2
           exit 1
@@ -51,7 +51,7 @@ pre-commit:
     - |
       FILETOCHECK="deploy2inveniordm"
       OUT="$(grep -o -E 'exit [0-9]*' "$FILETOCHECK")"
-      if [ ! "$(echo "$OUT" | wc -l)" -eq "$(echo "$OUT" | uniq | wc -l)" ]; then
+      if [ ! "$(echo "$OUT" | wc -l)" -eq "$(echo "$OUT" | sort | uniq | wc -l)" ]; then
           echo "exit code is not unique:"
           echo "$OUT" | sort -n -t " " -k 2
           exit 1
@@ -210,7 +210,7 @@ deploy_ci_template:
     - apt-get update
     - $APT_GET_INSTALL cairosvg curl fonts-lmodern imagemagick jq lmodern minify pandoc pipx texlive yq
     - pipx install cffconvert
-    - export PATH="$PATH:~/.local/bin"
+    - export PATH="$PATH:$HOME/.local/bin"
     # $DOI and $DEPLOY2ZENODO_DEPOSITION_ID available
     # create CITATION.cff
     - TMPCITATION=$(mktemp)
@@ -395,9 +395,9 @@ deploy_to_github:
   script:
     - date
     - apk add --no-cache git openssh
-    - mkdir ~/.ssh && chmod 700 ~/.ssh
-    - ssh-keyscan -H github.com >> ~/.ssh/known_hosts
-    - mv "$github_deploy_key" ~/.ssh/id_ed25519 && chmod 600 ~/.ssh/id_ed25519
+    - mkdir "$HOME/.ssh" && chmod 700 "$HOME/.ssh"
+    - ssh-keyscan -H github.com >> "$HOME/.ssh/known_hosts"
+    - mv "$github_deploy_key" "$HOME/.ssh/id_ed25519" && chmod 600 "$HOME/.ssh/id_ed25519"
     - repopath=$(mktemp -d)
     - git clone --bare --mirror "${CI_REPOSITORY_URL}" "$repopath"
     - (cd "$repopath" && git for-each-ref --format 'delete %(refname)' refs/merge-requests)
