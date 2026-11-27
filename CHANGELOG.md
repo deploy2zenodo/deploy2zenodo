@@ -1,7 +1,7 @@
 <!-- markdownlint-disable MD024 -->
 # CHANGELOG
 
-## [Unreleased 0.9.0]
+## [0.9.0] - 2026-11-27
 
 ### Added
 
