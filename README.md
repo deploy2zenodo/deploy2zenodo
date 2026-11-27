@@ -1,6 +1,6 @@
 ---
 author: Daniel Mohr
-date: 2026-11-05
+date: 2026-11-26
 license: Apache-2.0
 home: https://gitlab.com/deploy2zenodo/deploy2zenodo
 stable link: https://gitlab.com/projects/51392274
@@ -20,6 +20,9 @@ Two lightweight shell scripts to automatically deploy your data or software to:
 * Zenodo
 * Invenio RDM instances
 
+Both scripts can be configured via environment variables or an optional
+config file (see the respective how-to).
+
 ### which script to use
 
 | target platform | script to use | API type |
@@ -27,7 +30,7 @@ Two lightweight shell scripts to automatically deploy your data or software to:
 | [Zenodo](https://zenodo.org/) | [`deploy2zenodo`](README.deploy2zenodo.md) or [`deploy2inveniordm`](README.deploy2inveniordm.md) | Zenodo API or Zenodo Invenio RDM API (beta) |
 | [Invenio RDM](https://inveniosoftware.org/products/rdm/) Instance | [`deploy2inveniordm`](README.deploy2inveniordm.md) | Invenio RDM API |
 
-### example CI/CD integration
+### example CI/CD integration: deploy2zenodo
 
 ```yaml
 include:
@@ -51,10 +54,10 @@ deploy2zenodo:
     - mv "tmp.json" "$DEPLOY2ZENODO_JSON"
 ```
 
-### example bash script
+### example bash script: deploy2inveniordm
 
 ```bash
-SCRIPTURL=https://gitlab.com/deploy2zenodo/deploy2zenodo/-/releases/permalink/latest/downloads/deploy2zenodo
+SCRIPTURL=https://gitlab.com/deploy2zenodo/deploy2zenodo/-/releases/permalink/latest/downloads/deploy2inveniordm
 curl -L "$SCRIPTURL" -o deploy2inveniordm && chmod +x deploy2inveniordm
 export DEPLOY2INVENIORDM_API_URL="https://sandbox.zenodo.org/api"
  export DEPLOY2INVENIORDM_ACCESS_TOKEN="your-access-token"
@@ -66,7 +69,7 @@ export DEPLOY2INVENIORDM_UPLOAD="data.zip"
 
 ## preamble
 
-[`deploy2zenodo`](https://gitlab.com/projects/51392274) are two lightweight
+[`deploy2zenodo`](https://gitlab.com/projects/51392274) provides two lightweight
 [shell](https://en.wikipedia.org/wiki/Bourne_shell) scripts to deploy
 your data to [Zenodo](https://zenodo.org/) or
 [Invenio RDM](https://inveniosoftware.org/products/rdm/),

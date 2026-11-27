@@ -14,12 +14,14 @@ identifiers:
 repository-code: https://gitlab.com/projects/51392274
 url: https://gitlab.com/deploy2zenodo/deploy2zenodo
 abstract: |-
-  deploy2zenodo is a shell script to deploy your data to
-  zenodo. You can use it in a CI pipeline as an automatic
-  workflow.
+  deploy2zenodo provides two shell scripts to deploy your data to
+  Zenodo or Invenio RDM instances. You can use them in a CI pipeline as an
+  automatic workflow.
 
-  Environmental variables allow very flexible use. Depending
-  on the selected flags, the data can be curated before
+  Both scripts can be configured via environment variables
+  or an optional config file.
+
+  Depending on the selected flags, the data can be curated before
   deployment in a merge request, in the zenodo web interface
   or not curated at all.
 keywords:

@@ -1,6 +1,6 @@
 ---
 author: Daniel Mohr
-date: 2026-11-05
+date: 2026-11-27
 license: Apache-2.0
 home: https://gitlab.com/deploy2zenodo/deploy2zenodo
 mirror: https://github.com/deploy2zenodo/deploy2zenodo
@@ -64,6 +64,16 @@ versions. This leads to the urge to automate the publishing process.
 This is not only about making the software usable through software repositories,
 but also about the citability of individual versions.
 
+## Dependencies
+
+The script requires the following tools to be installed on your system:
+
+* `curl`
+* `jq`
+* `md5sum`
+
+If any of these are missing, the script will terminate with error code 40.
+
 ## how-to
 
 There are many ways to use `deploy2inveniordm`.
@@ -75,7 +85,7 @@ and a more structured, production-ready workflow
 
 ### very simple workflow (deploy2inveniordm)
 
-Maybe this very simple workflow to simplified.
+Maybe this very simple workflow is too simplified.
 But it is a good starting point for automating deployments to Zenodo via
 [GitLab CI/CD pipeline](https://docs.gitlab.com/ee/ci/pipelines/).
 
@@ -264,6 +274,8 @@ Here a few simple considerations:
 | DEPLOY2INVENIORDM_DEPOSITION_ID | no | Should a user find your publication? |
 | DEPLOY2INVENIORDM_JSON | ? | Is the publication public? |
 | DEPLOY2INVENIORDM_UPLOAD | ? | Is the publication public? |
+| DEPLOY2INVENIORDM_CONFIG | file path is fine, | protect the file |
+| | but file may contain a token | (`chmod 600`) |
 
 Store sensitive data (like tokens) in the GitLab UI with
 masking, protection, and hiding enabled.
@@ -298,7 +310,7 @@ Optional Variables:
 * `DEPLOY2INVENIORDM_SKIPRUN`:
   useful for debugging and verifying the workflow logic
 * `DEPLOY2INVENIORDM_GET_METADATA`:
-  useful for extrating DOI for use in later steps
+  useful for extracting DOI for use in later steps
 * ...
 
 Depending on where variables are defined, they have different priorities.
@@ -311,6 +323,8 @@ Variables that are defined at job level, in the `script`, `before_script` or
 ## script parameter (deploy2inveniordm)
 
 Instead of command line parameters we use environment variables.
+Optionally, the variables can also be read from a config file
+([DEPLOY2INVENIORDM_CONFIG](#deploy2inveniordm_config)).
 
 You have to provide the following variables:
 
@@ -337,6 +351,8 @@ There are other optional variables:
 | DEPLOY2INVENIORDM_ADD_IsCompiledBy_DEPLOY2INVENIORDM | reference |
 | | deploy2zenodo |
 | DEPLOY2INVENIORDM_RATE_LIMIT | defines the wait time, default: auto |
+| DEPLOY2INVENIORDM_CONFIG | path to config file, |
+| | default: `$HOME/.deploy2inveniordm.conf` |
 
 ### DEPLOY2INVENIORDM_API_URL
 
@@ -352,6 +368,42 @@ official [zenodo instance](https://about.zenodo.org/):
 
 To access your zenodo account you have to provide an
 [access token](https://developers.zenodo.org/?shell#authentication).
+
+Instead of the token itself, you can also provide a path to a readable
+file containing the token (one line). This is useful when you do not want
+the token to be part of the environment of the process.
+In both cases the token is passed to `curl` via a temporary header file
+and is not visible in the command line of the process.
+
+The token file contains private data and should be protected (e. g. `chmod 600`).
+
+### DEPLOY2INVENIORDM_CONFIG
+
+Instead of providing all variables as environment variables, you can store
+them in a config file. If this variable is not empty it is interpreted as
+the path to the config file. If it is empty the default config file
+`$HOME/.deploy2inveniordm.conf` is used if it exists.
+The config file is a simple list of `KEY=value` lines:
+
+```conf
+DEPLOY2INVENIORDM_API_URL=https://sandbox.zenodo.org/api
+DEPLOY2INVENIORDM_ACCESS_TOKEN=***
+DEPLOY2INVENIORDM_DEPOSITION_ID=create NEW record
+DEPLOY2INVENIORDM_JSON=metadata.json
+DEPLOY2INVENIORDM_UPLOAD=data.zip
+```
+
+Lines starting with `#` and empty lines are ignored.
+Leading and trailing whitespace around keys and values is removed.
+Unknown keys produce a warning.
+Environment variables take precedence over values from the config file,
+so you can keep most settings in the file and override individual
+variables per run.
+Note that environment variables which are set but empty are treated
+as unset, i. e. they do not suppress the corresponding value from
+the config file.
+Since the config file may contain your access token,
+protect it accordingly, e. g. `chmod 600 "$HOME/.deploy2inveniordm.conf"`.
 
 ### DEPLOY2INVENIORDM_DEPOSITION_ID
 
@@ -478,15 +530,12 @@ Each individual block represents a file and these files will be uploaded.
 The reason not supporting spaces is that
 [you cannot create a CI/CD variable that is an array](https://docs.gitlab.com/ee/ci/variables/index.html#store-multiple-values-in-one-variable).
 
-If you really not want to provide data set `DEPLOY2INVENIORDM_UPLOAD` to
-`do NOT provide data`, e. g. `DEPLOY2INVENIORDM_UPLOAD="do NOT provide data"`.
-If you want to upload 4 files with these names change the order.
+If you really do not want to provide data, add an empty dummy file.
 
 Not every zenodo instance supports metadata-only records
 (configured by `canHaveMetadataOnlyRecords`?).
 For example the official [zenodo instance](https://about.zenodo.org/)
 does not allow metadata-only records!
-In this case an empty dummy file is uploaded.
 If this is the case, you should think about respecting the implicit request
 of the used zenodo instance to provide some data.
 
@@ -518,6 +567,8 @@ in your project.
 
 If this variable is not empty nearly everything is skipped.
 Only the commands to be executed are echoed. This is for debugging purpose.
+(Note: The script will still exit with error code 40 if the required
+dependencies `curl`, `jq`, or `md5sum` are missing).
 
 ### DEPLOY2INVENIORDM_GET_METADATA
 
@@ -540,7 +591,7 @@ deploy2inveniordm:
 ```
 
 You can extract values from the metadata. For example to get the DOI
-to site all versions:
+to cite all versions:
 
 ```yaml
 my_deploy2inveniordm:
@@ -576,15 +627,13 @@ provided JSON file:
 
 ```json
 {
-  "metadata": {
-    "related_identifiers": [
-      {
-        "relation": "IsCompiledBy",
-        "identifier": "10.5281/zenodo.10112959",
-        "scheme": "doi",
-        "resource_type": "software"
-      }
-    ]
+  "relation_type": {
+    "id": "iscompiledby"
+  },
+  "identifier": "10.5281/zenodo.10112959",
+  "scheme": "doi",
+  "resource_type": {
+    "id": "software"
   }
 }
 ```
@@ -681,6 +730,22 @@ export DEPLOY2INVENIORDM_CURL_MAX_TIME_PUBLISH=""
 export DEPLOY2INVENIORDM_ADD_IsCompiledBy_DEPLOY2INVENIORDM="yes"
 curl -L "$SCRIPTURL" | tee deploy2inveniordm.sh | sh
 ```
+
+Alternatively, you can store the variables in a config file and only run
+the script:
+
+```sh
+SCRIPTURL=https://gitlab.com/deploy2zenodo/deploy2zenodo/-/releases/permalink/latest/downloads/deploy2inveniordm
+curl -L "$SCRIPTURL" -o deploy2inveniordm && chmod +x deploy2inveniordm
+# create the config file first
+(umask 077; touch "$HOME/.deploy2inveniordm.conf")
+# add your configuration to the config file
+./deploy2inveniordm
+```
+
+In CI pipelines you should still prefer masked/protected CI/CD variables
+for the access token, because a config file on the runner is less
+convenient to manage and does not benefit from GitLab's masking.
 
 It's worth noting that we try to handle private information such as the
 access token in a secure way in the script, it is still a sensitive piece of

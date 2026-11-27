@@ -3,7 +3,7 @@ set -e -v
 
 #    deploy2inveniordm
 #    Copyright (C) 2026  Daniel Mohr
-#    Version: 0.8.1
+#    Version: 0.9.0
 #    DOI: 10.5281/zenodo.10112959
 #
 # Instead of command line parameters we use environment variables.
@@ -26,7 +26,14 @@ set -e -v
 #   * DEPLOY2INVENIORDM_ADD_IsCompiledBy_DEPLOY2INVENIORDM
 #   * DEPLOY2INVENIORDM_RATE_LIMIT
 #
-# DEPLOY2INVENIORDM_SKIP_NEW_VERSION is no longer needed.
+# Instead of providing these environment variables you can also set an
+# environment variable with a path pointing to a config file:
+#   * DEPLOY2INVENIORDM_CONFIG
+# The environment variables take precedence over those in the config file.
+# Empty environment variables are treated as unset.
+# Default config file is `$HOME/.deploy2inveniordm.conf`.
+#
+# DEPLOY2INVENIORDM_SKIP_NEW_VERSION is not needed.
 # deploy2inveniordm automatically creates new version or reuses existing draft.
 #
 # For more information see: https://gitlab.com/deploy2zenodo/deploy2zenodo
@@ -62,18 +69,79 @@ echojq() {
     echo "$2" | jq -C . || (errlog "$2"; exit 3)
 }
 
-VERSION=$(sed -n 's/^#.*Version:\s*\(\S*\)$/\1/p' "$0")
-DEPLOY2ZENODO_DOI=$(sed -n 's/^#.*DOI:\s*\(\S*\)$/\1/p' "$0")
+VERSION=$(sed -n 's/^#.*Version:[[:space:]]*\([^[:space:]]*\)$/\1/p' "$0")
+DEPLOY2ZENODO_DOI=$(sed -n 's/^#.*DOI:[[:space:]]*\([^[:space:]]*\)$/\1/p' "$0")
 
 log "run deploy2inveniordm v$VERSION (DOI: $DEPLOY2ZENODO_DOI)"
+
+for cmd in curl jq md5sum; do
+    command -v "$cmd" >/dev/null 2>&1 || { errlog "ERROR: required command '$cmd' not found"; exit 40; }
+done
+
+# load config
+DEPLOY2INVENIORDM_CONFIG="${DEPLOY2INVENIORDM_CONFIG:-$HOME/.deploy2inveniordm.conf}"
+if [ -r "$DEPLOY2INVENIORDM_CONFIG" ]; then
+    log "loading config from $DEPLOY2INVENIORDM_CONFIG"
+    while IFS='=' read -r key value || [ -n "$key" ]; do
+        # trim leading/trailing whitespace
+        key="${key#"${key%%[![:space:]]*}"}"
+        key="${key%"${key##*[![:space:]]}"}"
+        value="${value#"${value%%[![:space:]]*}"}"
+        value="${value%"${value##*[![:space:]]}"}"
+        case "$key" in
+            ''|\#*) continue ;;
+            DEPLOY2INVENIORDM_API_URL)
+                [ -n "${DEPLOY2INVENIORDM_API_URL:-}" ] ||
+                    DEPLOY2INVENIORDM_API_URL="$value" ;;
+            DEPLOY2INVENIORDM_ACCESS_TOKEN)
+                [ -n "${DEPLOY2INVENIORDM_ACCESS_TOKEN:-}" ] ||
+                    DEPLOY2INVENIORDM_ACCESS_TOKEN="$value" ;;
+            DEPLOY2INVENIORDM_DEPOSITION_ID)
+                [ -n "${DEPLOY2INVENIORDM_DEPOSITION_ID:-}" ] ||
+                    DEPLOY2INVENIORDM_DEPOSITION_ID="$value" ;;
+            DEPLOY2INVENIORDM_JSON)
+                [ -n "${DEPLOY2INVENIORDM_JSON:-}" ] ||
+                    DEPLOY2INVENIORDM_JSON="$value" ;;
+            DEPLOY2INVENIORDM_UPLOAD)
+                [ -n "${DEPLOY2INVENIORDM_UPLOAD:-}" ] ||
+                    DEPLOY2INVENIORDM_UPLOAD="$value" ;;
+            DEPLOY2INVENIORDM_SKIP_PUBLISH)
+                [ -n "${DEPLOY2INVENIORDM_SKIP_PUBLISH:-}" ] ||
+                    DEPLOY2INVENIORDM_SKIP_PUBLISH="$value" ;;
+            DEPLOY2INVENIORDM_DRYRUN)
+                [ -n "${DEPLOY2INVENIORDM_DRYRUN:-}" ] ||
+                    DEPLOY2INVENIORDM_DRYRUN="$value" ;;
+            DEPLOY2INVENIORDM_SKIPRUN)
+                [ -n "${DEPLOY2INVENIORDM_SKIPRUN:-}" ] ||
+                    DEPLOY2INVENIORDM_SKIPRUN="$value" ;;
+            DEPLOY2INVENIORDM_GET_METADATA)
+                [ -n "${DEPLOY2INVENIORDM_GET_METADATA:-}" ] ||
+                    DEPLOY2INVENIORDM_GET_METADATA="$value" ;;
+            DEPLOY2INVENIORDM_SKIP_UPLOAD)
+                [ -n "${DEPLOY2INVENIORDM_SKIP_UPLOAD:-}" ] ||
+                    DEPLOY2INVENIORDM_SKIP_UPLOAD="$value" ;;
+            DEPLOY2INVENIORDM_CURL_MAX_TIME)
+                [ -n "${DEPLOY2INVENIORDM_CURL_MAX_TIME:-}" ] ||
+                    DEPLOY2INVENIORDM_CURL_MAX_TIME="$value" ;;
+            DEPLOY2INVENIORDM_CURL_MAX_TIME_PUBLISH)
+                [ -n "${DEPLOY2INVENIORDM_CURL_MAX_TIME_PUBLISH:-}" ] ||
+                    DEPLOY2INVENIORDM_CURL_MAX_TIME_PUBLISH="$value" ;;
+            DEPLOY2INVENIORDM_ADD_IsCompiledBy_DEPLOY2INVENIORDM)
+                [ -n "${DEPLOY2INVENIORDM_ADD_IsCompiledBy_DEPLOY2INVENIORDM:-}" ] ||
+                    DEPLOY2INVENIORDM_ADD_IsCompiledBy_DEPLOY2INVENIORDM="$value" ;;
+            DEPLOY2INVENIORDM_RATE_LIMIT)
+                [ -n "${DEPLOY2INVENIORDM_RATE_LIMIT:-}" ] ||
+                    DEPLOY2INVENIORDM_RATE_LIMIT="$value" ;;
+            *) warnlog "unknown config key: $key" ;;
+        esac
+    done < "$DEPLOY2INVENIORDM_CONFIG"
+fi
 
 # check available variables
 log "check available variables"
 missing_variables=""
 for varname in DEPLOY2INVENIORDM_API_URL DEPLOY2INVENIORDM_ACCESS_TOKEN DEPLOY2INVENIORDM_DEPOSITION_ID DEPLOY2INVENIORDM_JSON DEPLOY2INVENIORDM_UPLOAD; do
-    if [ -z "$(eval "echo \"\$$varname\"")" ]; then
-        missing_variables="$missing_variables $varname"
-    fi
+    eval "[ -n \"\${$varname:-}\" ]" || missing_variables="$missing_variables $varname"
 done
 if [ -n "$missing_variables" ]; then
     errlog "ERROR: you have to provide environment variables"
@@ -113,7 +181,7 @@ if [ -n "$DEPLOY2INVENIORDM_SKIP_UPLOAD" ] && [ -z "$DEPLOY2INVENIORDM_SKIP_PUBL
 fi
 if [ -n "$DEPLOY2INVENIORDM_DRYRUN" ] || [ -n "$DEPLOY2INVENIORDM_SKIPRUN" ]; then
     curl() {
-        echo "$@" > /dev/null
+        return 0
     }
 fi
 if [ -n "$DEPLOY2INVENIORDM_SKIPRUN" ]; then
@@ -127,7 +195,36 @@ fi
 
 CURL_MAX_TIME_PUBLISH=${DEPLOY2INVENIORDM_CURL_MAX_TIME_PUBLISH:-300}
 hjson='Content-Type: application/json'
-alias curlauth='sleep "$DEPLOY2INVENIORDM_RATE_LIMIT"; curl --header "Authorization: Bearer $DEPLOY2INVENIORDM_ACCESS_TOKEN" --max-time "${DEPLOY2INVENIORDM_CURL_MAX_TIME:-60}"'
+
+# avoid token appears in argv of a process:
+AUTH_HEADER_FILE="$(mktemp)"
+trap 'rm -f "$AUTH_HEADER_FILE"' EXIT INT TERM
+if [ -f "$DEPLOY2INVENIORDM_ACCESS_TOKEN" ] && [ -r "$DEPLOY2INVENIORDM_ACCESS_TOKEN" ]; then
+    # file: token given as content of a file
+    {
+        printf 'Authorization: Bearer '
+        cat "$DEPLOY2INVENIORDM_ACCESS_TOKEN"
+        if [ -n "$(tail -c 1 "$DEPLOY2INVENIORDM_ACCESS_TOKEN")" ]; then
+            printf '\n'
+        fi
+    } > "$AUTH_HEADER_FILE"
+else
+    # variable: token given as content of a variable
+    {
+        printf 'Authorization: Bearer '
+        printf '%s' "$DEPLOY2INVENIORDM_ACCESS_TOKEN"
+        printf '\n'
+    } > "$AUTH_HEADER_FILE"
+fi
+unset DEPLOY2INVENIORDM_ACCESS_TOKEN
+curlauth() {
+    sleep "$DEPLOY2INVENIORDM_RATE_LIMIT"
+    curl --header @"$AUTH_HEADER_FILE" \
+         --max-time "${DEPLOY2INVENIORDM_CURL_MAX_TIME:-60}" "$@"
+}
+
+# normalize API URL
+DEPLOY2INVENIORDM_API_URL="${DEPLOY2INVENIORDM_API_URL%/}"
 
 echo "content of DEPLOY2INVENIORDM_JSON:"
 jq -C . "$DEPLOY2INVENIORDM_JSON"
@@ -164,7 +261,7 @@ if [ "$DEPLOY2INVENIORDM_DEPOSITION_ID" = "create NEW record" ]; then
     #   * create new record and upload metadata
     NEWRECORD="$(curlauth --header 'Accept: application/vnd.inveniordm.v1+json' --header "$hjson" --request POST --data-binary "$DEPLOY2INVENIORDM_JSON_DATA" "$DEPLOY2INVENIORDM_API_URL"/records)"
     echojq NEWRECORD "$NEWRECORD"
-    DEPLOY2INVENIORDM_DEPOSITION_ID=$(echo "$NEWRECORD" | jq .id | sed -e 's/^"\|"$/''/g')
+    DEPLOY2INVENIORDM_DEPOSITION_ID=$(echo "$NEWRECORD" | jq -r .id)
     if [ -n "$DEPLOY2INVENIORDM_DRYRUN" ] || [ -n "$DEPLOY2INVENIORDM_SKIPRUN" ]; then
         log "Skip testing checksum due to DRYRUN or SKIPRUN."
     else
@@ -285,7 +382,7 @@ else
         echojq NEWVERSION "$NEWVERSION"
         LATESTDRAFT=$(echo "$NEWVERSION" | jq -r .links.self) #https://sandbox.zenodo.org/api/records/487976/draft
         BUCKETURL=$(echo "$NEWVERSION" | jq -r .links.files) #https://sandbox.zenodo.org/api/records/487976/draft/files
-        LATESTID=$(echo "$NEWVERSION" | jq -r .id | sed -e 's/^"\|"$/''/g') #487976
+        LATESTID=$(echo "$NEWVERSION" | jq -r .id) #487976
     fi
     if [ -n "$DEPLOY2INVENIORDM_DRYRUN" ] || [ -n "$DEPLOY2INVENIORDM_SKIPRUN" ]; then
         log "Skip testing result due to DRYRUN or SKIPRUN."
@@ -313,7 +410,7 @@ else
         log "Skip testing new doi due to DRYRUN or SKIPRUN."
     else
         if [ -n "$NEWDOI" ] && [ "$NEWDOI" != "null" ]; then
-            UPLOADMETADATA=NEWDOIJSON
+            UPLOADMETADATA=$NEWDOIJSON
         else
             if [ "$(echo "$NEWDOIJSON" | jq -r ".status")" = "400" ] && [ "$(echo "$NEWDOIJSON" | jq -r ".errors[0].field")" = "pids.doi" ] && [ "$(echo "$NEWDOIJSON" | jq -r ".errors[0].messages[0]")" = "A PID already exists for type doi" ]; then
                 log "doi exists already, no new doi possible"
@@ -392,7 +489,7 @@ else
             test "$(echo "$PUBLISHRECORD" | jq .state)" = '"done"' || (errlog "state=\"$(echo "$PUBLISHRECORD" | jq .state)\""; exit 20)
             test "$(echo "$PUBLISHRECORD" | jq .submitted)" = "true" || (errlog "submitted=\"$(echo "$PUBLISHRECORD" | jq .submitted)\""; exit 21)
         fi
-        LATESTID=$(echo "$PUBLISHRECORD" | jq -r .id | sed -e 's/^"\|"$/''/g')
+        LATESTID=$(echo "$PUBLISHRECORD" | jq -r .id)
         HTMLURL=$(echo "$PUBLISHRECORD" | jq .links.self_html)
         if [ -n "$DEPLOY2INVENIORDM_DRYRUN" ] || [ -n "$DEPLOY2INVENIORDM_SKIPRUN" ]; then
             log "Skip testing result due to DRYRUN or SKIPRUN."
@@ -416,7 +513,7 @@ if [ -n "$DEPLOY2INVENIORDM_GET_METADATA" ]; then
     if [ -n "$DEPLOY2INVENIORDM_DRYRUN" ] || [ -n "$DEPLOY2INVENIORDM_SKIPRUN" ]; then
         log "Skip testing result due to DRYRUN or SKIPRUN."
     else
-        test "$(echo "$LATESTMETADATA" | jq -r .id | sed -e 's/^"\|"$/''/g')" = "$LATESTID" || (errlog "LATESTMETADATA=\"$LATESTMETADATA\""; exit 23)
+        test "$(echo "$LATESTMETADATA" | jq -r .id)" = "$LATESTID" || (errlog "LATESTMETADATA=\"$LATESTMETADATA\""; exit 23)
     fi
 fi
 
